@@ -10,26 +10,9 @@ if (!token) {
 const onReady = async () => {
   log.info("Connected to Discord gateway!");
 
-  // while (!discordeno.cache.isReady) {
-  // log.info(discordeno.cache.isReady);
-  // await new Promise((a) => setTimeout(a, 1000));
-  // }
-
-  // console.log(config.guildCommands);
-
-  // const existingCommands: Array<{
-  //   id: string;
-  //   name: string;
-  // }> = await discordeno.getSlashCommands();
-
-  // const commandsToCreate = config.commands.filter(
-  //   (c) => existingCommands.find((ec) => ec.name === c.name) === undefined
-  // );
-  // const commandsToUpdate = config.commands.filter(
-  //   (c) => existingCommands.find((ec) => ec.name === c.name) !== undefined
-  // );
-
   log.info("Synchronizing global commands...");
+
+  // TODO delete commands that _aren't_ in the config
 
   for (const command of config.commands) {
     await discordeno.createSlashCommand({
@@ -67,15 +50,17 @@ discordeno.startBot({
     interactionCreate: (data) => {
       log.info(`Received interaction: ${data.data?.name}`);
 
-      // for (const command of config.guildCommands[data.guild_id]) {
-      //   if (command.name === data.data?.name) {
-      //     command.process(data);
-      //   }
-      // }
+      for (const command of config.guildCommands[data.guild_id]) {
+        if (command.name === data.data?.name) {
+          command.process(data);
+          return;
+        }
+      }
 
       for (const command of config.commands) {
         if (command.name === data.data?.name) {
           command.process(data);
+          return;
         }
       }
     },

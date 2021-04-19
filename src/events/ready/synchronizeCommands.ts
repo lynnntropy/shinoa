@@ -29,6 +29,16 @@ const synchronizeCommands = async () => {
     if (guildConfig.commands) {
       log.info(`Synchronizing commands for guild ${guild?.name}...`);
 
+      const existingCommands = await discordeno.getSlashCommands(guildId);
+      for (const command of existingCommands) {
+        if (
+          config.globalCommands.find((c) => c.name === command.name) ===
+          undefined
+        ) {
+          await discordeno.deleteSlashCommand(command.id, guildId);
+        }
+      }
+
       for (const command of guildConfig.commands) {
         await discordeno.createSlashCommand({
           name: command.name,

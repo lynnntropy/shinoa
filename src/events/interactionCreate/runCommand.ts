@@ -33,7 +33,7 @@ const validateCommandCall = async (input: CommandInput, command: Command) => {
       });
       throw new Error(
         `${input.member.username}#${input.member.discriminator} ` +
-          `somehow triggered a command they didn't have the permissions for (/${command.name}).`
+          `tried to use a command they don't have the permissions for (/${command.name}).`
       );
     }
   }

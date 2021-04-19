@@ -3,7 +3,9 @@ version: "3.8"
 services:
   shinoa:
     image: hayd/alpine-deno:1.9.0
-    command: run --allow-net=discord.com --watch --unstable src/main.ts
+    command: run --allow-env --allow-net=discord.com,gateway.discord.gg --watch --unstable src/main.ts
     working_dir: /app
     volumes:
       - ./:/app
+    environment:
+      TOKEN: ~

@@ -15,12 +15,14 @@ const onReady = async () => {
 
   const existingCommands = await discordeno.getSlashCommands();
   for (const command of existingCommands) {
-    if (config.commands.find((c) => c.name === command.name) === undefined) {
+    if (
+      config.globalCommands.find((c) => c.name === command.name) === undefined
+    ) {
       await discordeno.deleteSlashCommand(command.id);
     }
   }
 
-  for (const command of config.commands) {
+  for (const command of config.globalCommands) {
     await discordeno.createSlashCommand({
       name: command.name,
       description: command.description,
@@ -29,19 +31,22 @@ const onReady = async () => {
     log.debug(`synced ${command.name}`);
   }
 
-  for (const guildId in config.guildCommands) {
+  for (const guildId in config.guilds) {
     const guild = discordeno.cache.guilds.get(guildId);
-    // console.log(guild);
-    log.info(`Synchronizing commands for guild ${guild?.name}...`);
+    const guildConfig = config.guilds[guildId];
 
-    for (const command of config.guildCommands[guildId]) {
-      await discordeno.createSlashCommand({
-        name: command.name,
-        description: command.description,
-        options: command.options,
-        guildID: guildId,
-      });
-      log.debug(`synced ${command.name}`);
+    if (guildConfig.commands) {
+      log.info(`Synchronizing commands for guild ${guild?.name}...`);
+
+      for (const command of guildConfig.commands) {
+        await discordeno.createSlashCommand({
+          name: command.name,
+          description: command.description,
+          options: command.options,
+          guildID: guildId,
+        });
+        log.debug(`synced ${command.name}`);
+      }
     }
   }
 
@@ -56,14 +61,14 @@ discordeno.startBot({
     interactionCreate: (data) => {
       logInteraction(data);
 
-      for (const command of config.guildCommands[data.guild_id]) {
+      for (const command of config.guilds[data.guild_id].commands ?? []) {
         if (command.name === data.data?.name) {
           command.process(data);
           return;
         }
       }
 
-      for (const command of config.commands) {
+      for (const command of config.globalCommands) {
         if (command.name === data.data?.name) {
           command.process(data);
           return;

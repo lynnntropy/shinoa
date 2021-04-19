@@ -4,7 +4,6 @@ import { Command, CommandInput } from "../types.ts";
 class PingCommand implements Command {
   name = "ping";
   description = "ping uwu";
-  requiredPermissions: discordeno.Permission[] = ["ADMINISTRATOR"];
 
   process(input: CommandInput) {
     discordeno.executeSlashCommand(input.id, input.token, {

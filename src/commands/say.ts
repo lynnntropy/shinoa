@@ -12,6 +12,7 @@ class SayCommand implements Command {
       required: true,
     },
   ];
+  isOwnerOnly = true;
 
   process(input: CommandInput) {
     discordeno.executeSlashCommand(input.id, input.token, {

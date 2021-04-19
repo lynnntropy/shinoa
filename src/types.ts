@@ -4,6 +4,8 @@ export interface Command {
   name: string;
   description: string;
   options?: discordeno.SlashCommandOption[];
+  requiredPermissions?: discordeno.Permission[];
+  isOwnerOnly?: boolean;
 
   process: (input: CommandInput) => unknown;
 }

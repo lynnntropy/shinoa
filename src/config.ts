@@ -39,6 +39,7 @@ const eventHandlers: EventHandlers = {
 };
 
 const config = {
+  ownerId: "98225142064250880",
   globalCommands,
   guilds,
   eventHandlers,

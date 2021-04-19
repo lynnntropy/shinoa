@@ -13,7 +13,12 @@ const onReady = async () => {
 
   log.info("Synchronizing global commands...");
 
-  // TODO delete commands that _aren't_ in the config
+  const existingCommands = await discordeno.getSlashCommands();
+  for (const command of existingCommands) {
+    if (config.commands.find((c) => c.name === command.name) === undefined) {
+      await discordeno.deleteSlashCommand(command.id);
+    }
+  }
 
   for (const command of config.commands) {
     await discordeno.createSlashCommand({

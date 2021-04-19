@@ -2,7 +2,7 @@ import config from "../../config.ts";
 import { CommandInput, Command } from "../../types.ts";
 import { discordeno, log } from "../../../deps.ts";
 
-const validateCommandCall = (input: CommandInput, command: Command) => {
+const validateCommandCall = async (input: CommandInput, command: Command) => {
   if (command.isOwnerOnly && input.member.id !== config.ownerId) {
     discordeno.executeSlashCommand(input.id, input.token, {
       type: discordeno.InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -14,12 +14,34 @@ const validateCommandCall = (input: CommandInput, command: Command) => {
     );
   }
 
-  // TODO validate guild permissions
+  if (command.requiredPermissions) {
+    if (
+      !(await discordeno.memberIDHasPermission(
+        input.member.id,
+        input.guild_id,
+        command.requiredPermissions
+      ))
+    ) {
+      discordeno.executeSlashCommand(input.id, input.token, {
+        type: discordeno.InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          content:
+            `That command requires these permissions: ` +
+            `${command.requiredPermissions.join(", ")}`,
+        },
+        private: true,
+      });
+      throw new Error(
+        `${input.member.username}#${input.member.discriminator} ` +
+          `somehow triggered a command they didn't have the permissions for (/${command.name}).`
+      );
+    }
+  }
 };
 
-const handleFoundCommand = (input: CommandInput, command: Command) => {
+const handleFoundCommand = async (input: CommandInput, command: Command) => {
   try {
-    validateCommandCall(input, command);
+    await validateCommandCall(input, command);
   } catch (e) {
     log.warning(e);
     return;
@@ -32,17 +54,17 @@ const handleFoundCommand = (input: CommandInput, command: Command) => {
   }
 };
 
-const runCommand = (input: CommandInput) => {
+const runCommand = async (input: CommandInput) => {
   for (const command of config.guilds[input.guild_id].commands ?? []) {
     if (command.name === input.data?.name) {
-      handleFoundCommand(input, command);
+      await handleFoundCommand(input, command);
       return;
     }
   }
 
   for (const command of config.globalCommands) {
     if (command.name === input.data?.name) {
-      handleFoundCommand(input, command);
+      await handleFoundCommand(input, command);
       return;
     }
   }

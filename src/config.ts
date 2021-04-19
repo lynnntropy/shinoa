@@ -1,12 +1,24 @@
 import { Command } from "./types.ts";
 import PingCommand from "./commands/ping.ts";
 import SayCommand from "./commands/say.ts";
+import { discordeno, log } from "../deps.ts";
+import synchronizeCommands from "./events/ready/synchronizeCommands.ts";
+import logMessage from "./events/messageCreate/logMessage.ts";
+import { CommandInput } from "./types.ts";
+import logInteraction from "./events/interactionCreate/logInteraction.ts";
+import runCommand from "./events/interactionCreate/runCommand.ts";
 
 interface GuildsConfig {
   [guildId: string]: {
     commands?: Command[];
   };
 }
+
+type EventHandlers = {
+  ready: Array<() => unknown>;
+  messageCreate: Array<(message: discordeno.Message) => unknown>;
+  interactionCreate: Array<(input: CommandInput) => unknown>;
+};
 
 const globalCommands: Command[] = [];
 
@@ -16,9 +28,20 @@ const guilds: GuildsConfig = {
   },
 };
 
+const eventHandlers: EventHandlers = {
+  ready: [
+    () => log.info("Connected to Discord gateway!"),
+    synchronizeCommands,
+    () => log.info("Initialization complete!"),
+  ],
+  messageCreate: [logMessage],
+  interactionCreate: [logInteraction, runCommand],
+};
+
 const config = {
   globalCommands,
   guilds,
+  eventHandlers,
 };
 
 export default config;

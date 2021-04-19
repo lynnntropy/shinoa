@@ -1,5 +1,6 @@
 import { discordeno, log } from "../deps.ts";
 import config from "./config.ts";
+import { logInteraction, logMessage } from "./util/log.ts";
 
 const token = Deno.env.get("TOKEN");
 if (!token) {
@@ -48,7 +49,7 @@ discordeno.startBot({
   eventHandlers: {
     ready: onReady,
     interactionCreate: (data) => {
-      log.info(`Received interaction: ${data.data?.name}`);
+      logInteraction(data);
 
       for (const command of config.guildCommands[data.guild_id]) {
         if (command.name === data.data?.name) {
@@ -64,6 +65,6 @@ discordeno.startBot({
         }
       }
     },
-    messageCreate: (data) => log.info(`received message: ${data.content}`),
+    messageCreate: (data) => logMessage(data),
   },
 });

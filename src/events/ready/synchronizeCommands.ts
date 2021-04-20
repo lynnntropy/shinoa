@@ -1,5 +1,6 @@
 import { discordeno, log } from "../../../deps.ts";
 import config from "../../config.ts";
+import { createSlashCommand } from "../../util/discord.ts";
 
 const synchronizeCommands = async () => {
   log.info("Synchronizing global commands...");
@@ -14,12 +15,12 @@ const synchronizeCommands = async () => {
   }
 
   for (const command of config.globalCommands) {
-    await discordeno.createSlashCommand({
+    await createSlashCommand({
       name: command.name,
       description: command.description,
       options: command.options,
     });
-    log.debug(`synced ${command.name}`);
+    log.debug(`Synced command /${command.name}`);
   }
 
   for (const guildId in config.guilds) {
@@ -40,13 +41,13 @@ const synchronizeCommands = async () => {
       }
 
       for (const command of guildConfig.commands) {
-        await discordeno.createSlashCommand({
+        await createSlashCommand({
           name: command.name,
           description: command.description,
           options: command.options,
           guildID: guildId,
         });
-        log.debug(`synced ${command.name}`);
+        log.debug(`Synced command /${command.name}`);
       }
     }
   }

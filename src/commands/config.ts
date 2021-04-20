@@ -8,8 +8,8 @@ import {
 
 enum SubCommand {
   GET = "get",
-  SET = "get",
-  LIST = "get",
+  SET = "set",
+  LIST = "list",
 }
 
 enum SubCommandArgument {

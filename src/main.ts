@@ -8,6 +8,17 @@ if (!token) {
   Deno.exit(1);
 }
 
+const logLevel = (Deno.env.get("LOG_LEVEL") as log.LevelName) ?? "INFO";
+await log.setup({
+  handlers: {
+    default: new log.handlers.ConsoleHandler(logLevel),
+  },
+  loggers: {
+    default: { level: "DEBUG", handlers: ["default"] },
+  },
+});
+log.info(`Log level set to ${logLevel}.`);
+
 discordeno.startBot({
   token,
   intents: ["GUILDS", "GUILD_MESSAGES"],

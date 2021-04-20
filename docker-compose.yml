@@ -9,6 +9,7 @@ services:
       - ./:/app
     environment:
       TOKEN: ~
+      LOG_LEVEL: DEBUG
   db:
     image: postgres:13
     environment:

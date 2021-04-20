@@ -26,3 +26,13 @@ export const readConfig = async (): Promise<{ [key: string]: string }> => {
 
   return config;
 };
+
+export const safeGetEnvironmentVariable = (key: string) => {
+  const value = Deno.env.get(key);
+
+  if (value === undefined) {
+    throw new Error(`Environment variable ${key} is required.`);
+  }
+
+  return value;
+};

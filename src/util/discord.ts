@@ -12,7 +12,7 @@ const sendAuthenticatedRequest = async (
     method,
     body: JSON.stringify(body),
     headers: {
-      Authorization: `Bot ${Deno.env.get("TOKEN") as string}`,
+      Authorization: `Bot ${config.environment.TOKEN}`,
       "Content-Type": "application/json",
     },
   });

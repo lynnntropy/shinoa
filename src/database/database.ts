@@ -1,11 +1,12 @@
 import { denodb, log, async } from "../../deps.ts";
 import ConfigItem from "./models/ConfigItem.ts";
+import config from "../config.ts";
 
 const connection = new denodb.PostgresConnector({
-  host: Deno.env.get("DATABASE_HOST") ?? "db",
-  username: Deno.env.get("DATABASE_USERNAME") ?? "postgres",
-  password: Deno.env.get("DATABASE_PASSWORD") ?? "postgres",
-  database: Deno.env.get("DATABASE_NAME") ?? "shinoa",
+  host: config.environment.DATABASE_HOST,
+  username: config.environment.DATABASE_USERNAME,
+  password: config.environment.DATABASE_PASSWORD,
+  database: config.environment.DATABASE_NAME,
 });
 
 log.info("Connecting to database and synchronizing schema...");

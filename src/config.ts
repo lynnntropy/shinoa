@@ -7,6 +7,7 @@ import logMessage from "./events/messageCreate/logMessage.ts";
 import { CommandInput } from "./types.ts";
 import logInteraction from "./events/interactionCreate/logInteraction.ts";
 import runCommand from "./events/interactionCreate/runCommand.ts";
+import ConfigCommand from "./commands/config.ts";
 
 interface GuildsConfig {
   [guildId: string]: {
@@ -24,7 +25,7 @@ const globalCommands: Command[] = [];
 
 const guilds: GuildsConfig = {
   ["161167668131397642"]: {
-    commands: [new PingCommand(), new SayCommand()],
+    commands: [new PingCommand(), new SayCommand(), new ConfigCommand()],
   },
 };
 

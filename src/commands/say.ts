@@ -4,7 +4,8 @@ import { Command, CommandInput } from "../types.ts";
 class SayCommand implements Command {
   name = "say";
   description = "Make the bot say something";
-  options = [
+  isOwnerOnly = true;
+  options: discordeno.SlashCommandOption[] = [
     {
       type: discordeno.SlashCommandOptionType.STRING,
       name: "content",
@@ -12,7 +13,6 @@ class SayCommand implements Command {
       required: true,
     },
   ];
-  isOwnerOnly = true;
 
   process(input: CommandInput) {
     discordeno.executeSlashCommand(input.id, input.token, {

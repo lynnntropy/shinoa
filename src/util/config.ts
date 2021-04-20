@@ -12,3 +12,17 @@ export const setDynamicConfigItem = async (key: string, value: string) => {
   item.value = value;
   await item.save();
 };
+
+export const readConfig = async (): Promise<{ [key: string]: string }> => {
+  const items = (await ConfigItem.all()) as ConfigItem[];
+  const config: { [key: string]: string } = {};
+
+  for (const item of items) {
+    if (typeof item.value !== "string") {
+      continue;
+    }
+    config[item.key as string] = item.value;
+  }
+
+  return config;
+};

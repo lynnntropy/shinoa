@@ -17,12 +17,12 @@ discordeno.startBot({
       }
     },
     messageCreate: async (message) => {
-      for (const handler of config.eventHandlers.messageCreate ?? []) {
+      for (const handler of config.eventHandlers.messageCreate) {
         await handler(message);
       }
     },
     interactionCreate: async (input) => {
-      for (const handler of config.eventHandlers.interactionCreate ?? []) {
+      for (const handler of config.eventHandlers.interactionCreate) {
         await handler(input);
       }
     },

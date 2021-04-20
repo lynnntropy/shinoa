@@ -3,7 +3,7 @@ import { Command, CommandInput } from "../types.ts";
 
 class PingCommand implements Command {
   name = "ping";
-  description = "ping uwu";
+  description = "Pong!";
 
   process(input: CommandInput) {
     discordeno.executeSlashCommand(input.id, input.token, {

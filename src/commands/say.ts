@@ -3,7 +3,7 @@ import { Command, CommandInput } from "../types.ts";
 
 class SayCommand implements Command {
   name = "say";
-  description = "Say something";
+  description = "Make the bot say something";
   options = [
     {
       type: discordeno.SlashCommandOptionType.STRING,

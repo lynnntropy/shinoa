@@ -1,5 +1,6 @@
 import { discordeno, log } from "../deps.ts";
 import config from "./config.ts";
+import "./database/database.ts";
 
 const token = Deno.env.get("TOKEN");
 if (!token) {

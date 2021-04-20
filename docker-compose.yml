@@ -9,3 +9,8 @@ services:
       - ./:/app
     environment:
       TOKEN: ~
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shinoa

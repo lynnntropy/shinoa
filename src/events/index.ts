@@ -19,12 +19,10 @@ const handlers: Handlers = {
     synchronizeCommands,
   ],
   [GatewayDispatchEvents.InteractionCreate]: [
-    (input) => logInteraction(input as APIInteraction),
+    logInteraction,
     handleInteraction,
   ],
-  [GatewayDispatchEvents.MessageCreate]: [
-    (input) => logMessage(input as APIMessage),
-  ],
+  [GatewayDispatchEvents.MessageCreate]: [logMessage],
 };
 
 export default handlers;

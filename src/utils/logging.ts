@@ -4,7 +4,6 @@ import {
 } from "discord-api-types/utils/v8";
 import { APIInteraction, APIMessage } from "discord-api-types/v8";
 import { DMChannel, PartialGroupDMChannel, TextChannel } from "discord.js";
-// import { TextChannel } from "discord.js";
 import client from "../client";
 import logger from "../logger";
 

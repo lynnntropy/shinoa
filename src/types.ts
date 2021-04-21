@@ -1,14 +1,14 @@
 import {
   APIApplicationCommandOption,
-  Permissions,
   APIInteraction,
 } from "discord-api-types/v8";
+import { PermissionResolvable } from "discord.js";
 
 export interface Command {
   name: string;
   description: string;
   options?: APIApplicationCommandOption[];
-  requiredPermissions?: Permissions;
+  requiredPermissions?: PermissionResolvable;
   isOwnerOnly?: boolean;
   defaultPermission?: boolean;
 

@@ -20,6 +20,7 @@ const guilds: GuildConfig = {
 };
 
 const config = {
+  ownerId: "98225142064250880",
   isProduction,
   applicationId,
   globalCommands,

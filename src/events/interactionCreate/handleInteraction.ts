@@ -2,7 +2,27 @@ import { APIInteraction } from "discord-api-types";
 import { isGuildInteraction } from "discord-api-types/utils/v8";
 import config from "../../config";
 import logger from "../../logger";
-import { EventHandler } from "../../types";
+import { Command, EventHandler } from "../../types";
+import { validateInteractionIsAllowed } from "../../utils/permissions";
+
+const handleFoundCommand = async (
+  interaction: APIInteraction,
+  command: Command
+) => {
+  try {
+    await validateInteractionIsAllowed(interaction, command);
+  } catch (e) {
+    logger.warn(e);
+    return;
+  }
+
+  try {
+    command.handle(interaction);
+  } catch (e) {
+    logger.warn(e);
+    return;
+  }
+};
 
 const handleInteraction: EventHandler<APIInteraction> = async (interaction) => {
   logger.trace(interaction);
@@ -16,7 +36,7 @@ const handleInteraction: EventHandler<APIInteraction> = async (interaction) => {
   ) {
     for (const command of config.guilds[interaction.guild_id].commands) {
       if (command.name === interaction.data.name) {
-        command.handle(interaction);
+        await handleFoundCommand(interaction, command);
         return;
       }
     }
@@ -26,7 +46,7 @@ const handleInteraction: EventHandler<APIInteraction> = async (interaction) => {
 
   for (const command of config.globalCommands) {
     if (command.name === interaction.data.name) {
-      command.handle(interaction);
+      await handleFoundCommand(interaction, command);
       return;
     }
   }

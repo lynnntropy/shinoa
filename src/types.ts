@@ -1,0 +1,15 @@
+import {
+  APIApplicationCommandOption,
+  Permissions,
+  APIInteraction,
+} from "discord-api-types/v8";
+
+export interface Command {
+  name: string;
+  description: string;
+  options?: APIApplicationCommandOption[];
+  requiredPermissions?: Permissions;
+  isOwnerOnly?: boolean;
+
+  handle: (input: APIInteraction) => unknown;
+}

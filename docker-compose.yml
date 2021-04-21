@@ -8,4 +8,6 @@ services:
     volumes:
       - ./:/app
     environment:
+      NODE_OPTIONS: "--unhandled-rejections=throw"
       TOKEN: ~
+      LOG_LEVEL: debug

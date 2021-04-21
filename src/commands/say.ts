@@ -19,6 +19,7 @@ class SayCommand implements Command {
       name: "content",
       description: "What you want her to say.",
       type: ApplicationCommandOptionType.STRING,
+      required: true,
     },
   ];
 

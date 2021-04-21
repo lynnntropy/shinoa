@@ -1,5 +1,6 @@
 import PingCommand from "./commands/ping";
 import SayCommand from "./commands/say";
+import KickCommand from "./commands/kick";
 import { Command } from "./types";
 
 interface GuildConfig {
@@ -15,7 +16,7 @@ const globalCommands: Command[] = [];
 const guilds: GuildConfig = {
   // Vesko's Workshop
   ["161167668131397642"]: {
-    commands: [new PingCommand(), new SayCommand()],
+    commands: [new PingCommand(), new SayCommand(), new KickCommand()],
   },
 };
 

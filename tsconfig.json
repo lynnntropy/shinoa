@@ -1,5 +1,10 @@
 {
-  "compilerOptions": { "outDir": "dist/", "skipLibCheck": true },
+  "compilerOptions": {
+    "outDir": "dist/",
+    "skipLibCheck": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
+  },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }

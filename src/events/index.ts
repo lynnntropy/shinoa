@@ -1,6 +1,11 @@
-import { GatewayDispatchEvents } from "discord-api-types/v8";
+import {
+  APIInteraction,
+  APIMessage,
+  GatewayDispatchEvents,
+} from "discord-api-types/v8";
 import logger from "../logger";
 import { EventHandler } from "../types";
+import { logInteraction, logMessage } from "../utils/logging";
 import handleInteraction from "./interactionCreate.ts/handleInteraction";
 import synchronizeCommands from "./ready/synchronizeCommands";
 
@@ -13,7 +18,13 @@ const handlers: Handlers = {
     async () => logger.info("Connected to Discord gateway!"),
     synchronizeCommands,
   ],
-  [GatewayDispatchEvents.InteractionCreate]: [handleInteraction],
+  [GatewayDispatchEvents.InteractionCreate]: [
+    (input) => logInteraction(input as APIInteraction),
+    handleInteraction,
+  ],
+  [GatewayDispatchEvents.MessageCreate]: [
+    (input) => logMessage(input as APIMessage),
+  ],
 };
 
 export default handlers;

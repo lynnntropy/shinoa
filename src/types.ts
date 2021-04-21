@@ -13,3 +13,7 @@ export interface Command {
 
   handle: (input: APIInteraction) => unknown;
 }
+
+export interface EventHandler<T> {
+  (payload: T): Promise<unknown>;
+}

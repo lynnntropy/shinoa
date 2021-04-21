@@ -2,6 +2,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import {
   APIInteraction,
   APIInteractionResponse,
+  RESTGetAPIApplicationGuildCommandsResult,
   RESTPostAPIApplicationCommandsResult,
   RESTPostAPIApplicationGuildCommandsResult,
   Snowflake,
@@ -55,5 +56,26 @@ export const respondToInteraction = async (
     method: "POST",
     url: `/interactions/${interaction.id}/${interaction.token}/callback`,
     data: payload,
+  });
+};
+
+export const getGuildCommands = async (guildId: Snowflake) => {
+  const url = `/applications/${config.applicationId}/guilds/${guildId}/commands`;
+
+  return (
+    await sendDiscordAPIRequest<RESTGetAPIApplicationGuildCommandsResult>({
+      method: "GET",
+      url: `/applications/${config.applicationId}/guilds/${guildId}/commands`,
+    })
+  ).data;
+};
+
+export const deleteGuildCommand = async (
+  guildId: Snowflake,
+  commandId: Snowflake
+) => {
+  return await sendDiscordAPIRequest({
+    method: "DELETE",
+    url: `/applications/${config.applicationId}/guilds/${guildId}/commands/${commandId}`,
   });
 };

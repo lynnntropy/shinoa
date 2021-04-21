@@ -13,6 +13,6 @@ export const buildApplicationCommandBodyFromCommand = (
     name: command.name,
     description: command.description,
     options: command.options,
-    // todo default permission
+    default_permission: command.defaultPermission,
   };
 };

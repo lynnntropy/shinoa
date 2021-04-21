@@ -60,8 +60,6 @@ export const respondToInteraction = async (
 };
 
 export const getGuildCommands = async (guildId: Snowflake) => {
-  const url = `/applications/${config.applicationId}/guilds/${guildId}/commands`;
-
   return (
     await sendDiscordAPIRequest<RESTGetAPIApplicationGuildCommandsResult>({
       method: "GET",

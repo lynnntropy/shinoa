@@ -10,6 +10,7 @@ export interface Command {
   options?: APIApplicationCommandOption[];
   requiredPermissions?: Permissions;
   isOwnerOnly?: boolean;
+  defaultPermission?: boolean;
 
   handle: (input: APIInteraction) => unknown;
 }

@@ -10,4 +10,4 @@ services:
     environment:
       NODE_OPTIONS: "--unhandled-rejections=throw"
       TOKEN: ~
-      LOG_LEVEL: trace
+      LOG_LEVEL: ~

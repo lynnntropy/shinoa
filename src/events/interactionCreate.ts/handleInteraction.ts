@@ -20,6 +20,8 @@ const handleInteraction: EventHandler<APIInteraction> = async (interaction) => {
   }
 
   // todo global commands
+
+  logger.warn(`Didn't handle unknown command /${interaction.data.name}`);
 };
 
 export default handleInteraction;

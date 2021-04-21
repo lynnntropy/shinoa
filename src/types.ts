@@ -1,18 +1,20 @@
-import { discordeno } from "../deps.ts";
+import {
+  APIApplicationCommandOption,
+  APIInteraction,
+} from "discord-api-types/v8";
+import { PermissionResolvable } from "discord.js";
 
 export interface Command {
   name: string;
   description: string;
-  options?: discordeno.SlashCommandOption[];
-  requiredPermissions?: discordeno.Permission[];
+  options?: APIApplicationCommandOption[];
+  requiredPermissions?: PermissionResolvable;
   isOwnerOnly?: boolean;
+  defaultPermission?: boolean;
 
-  process: (input: CommandInput) => unknown;
+  handle: (input: APIInteraction) => unknown;
 }
 
-export type CommandInput = Omit<
-  discordeno.InteractionCommandPayload,
-  "member"
-> & {
-  member: discordeno.Member;
-};
+export interface EventHandler<T> {
+  (payload: T): Promise<unknown>;
+}

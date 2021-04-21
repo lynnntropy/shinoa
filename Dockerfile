@@ -1,16 +1,13 @@
-FROM hayd/alpine-deno:1.9.0
+FROM node:14-alpine
 
-EXPOSE 80
+WORKDIR /usr/src/app
 
-WORKDIR /app
+COPY package.json .
+COPY yarn.lock .
+RUN yarn install
 
-USER deno
+COPY . .
 
-# TODO
-# COPY deps.ts .
-# RUN deno cache deps.ts
+RUN yarn build
 
-ADD . .
-RUN deno cache src/main.ts
-
-CMD ["run", "--allow-net=discord.com", "src/main.ts"]
+CMD node dist/index.js

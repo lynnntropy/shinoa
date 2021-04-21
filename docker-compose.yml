@@ -2,16 +2,12 @@ version: "3.8"
 
 services:
   shinoa:
-    image: hayd/alpine-deno:1.9.0
-    command: run -A --watch --unstable src/main.ts
+    image: node:14-alpine
+    command: /bin/sh -c "yarn && yarn dev"
     working_dir: /app
     volumes:
       - ./:/app
     environment:
+      NODE_OPTIONS: "--unhandled-rejections=throw"
       TOKEN: ~
-      LOG_LEVEL: DEBUG
-  db:
-    image: postgres:13
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: shinoa
+      LOG_LEVEL: ~

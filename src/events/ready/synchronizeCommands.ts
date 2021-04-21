@@ -1,56 +1,63 @@
-import { discordeno, log } from "../../../deps.ts";
-import config from "../../config.ts";
-import { createSlashCommand } from "../../util/discord.ts";
+import { Snowflake } from "discord-api-types";
+import client from "../../client";
+import config from "../../config";
+import {
+  deleteGuildCommand,
+  getGuildCommands,
+  registerCommand,
+  getGlobalCommands,
+  deleteGlobalCommand,
+} from "../../discord/api";
+import logger from "../../logger";
+import { EventHandler } from "../../types";
 
-const synchronizeCommands = async () => {
-  log.info("Synchronizing global commands...");
+const synchronizeCommands: EventHandler<void> = async () => {
+  logger.info("Synchronizing commands...");
+  logger.debug("Synchronizing global commands...");
 
-  const existingCommands = await discordeno.getSlashCommands();
+  for (const command of config.globalCommands) {
+    logger.debug(`Registering command /${command.name}...`);
+    await registerCommand(command);
+  }
+
+  const existingCommands = await getGlobalCommands();
   for (const command of existingCommands) {
     if (
       config.globalCommands.find((c) => c.name === command.name) === undefined
     ) {
-      await discordeno.deleteSlashCommand(command.id);
+      logger.debug(`Deleting stale command /${command.name}...`);
+      await deleteGlobalCommand(command.id);
     }
-  }
-
-  for (const command of config.globalCommands) {
-    await createSlashCommand({
-      name: command.name,
-      description: command.description,
-      options: command.options,
-    });
-    log.debug(`Synced command /${command.name}`);
   }
 
   for (const guildId in config.guilds) {
-    const guild = discordeno.cache.guilds.get(guildId);
-    const guildConfig = config.guilds[guildId];
+    if (config.guilds[guildId].commands) {
+      logger.debug(
+        `Synchronizing commands for ${
+          (await client.guilds.fetch(guildId)).name
+        }...`
+      );
 
-    if (guildConfig.commands) {
-      log.info(`Synchronizing commands for guild ${guild?.name}...`);
-
-      const existingCommands = await discordeno.getSlashCommands(guildId);
-      for (const command of existingCommands) {
-        if (
-          config.globalCommands.find((c) => c.name === command.name) ===
-          undefined
-        ) {
-          await discordeno.deleteSlashCommand(command.id, guildId);
-        }
+      for (const command of config.guilds[guildId].commands) {
+        logger.debug(`Registering command /${command.name}...`);
+        await registerCommand(command, guildId as Snowflake);
       }
 
-      for (const command of guildConfig.commands) {
-        await createSlashCommand({
-          name: command.name,
-          description: command.description,
-          options: command.options,
-          guildID: guildId,
-        });
-        log.debug(`Synced command /${command.name}`);
+      const existingCommands = await getGuildCommands(guildId as Snowflake);
+      for (const command of existingCommands) {
+        if (
+          config.guilds[guildId].commands.find(
+            (c) => c.name === command.name
+          ) === undefined
+        ) {
+          logger.debug(`Deleting stale command /${command.name}...`);
+          await deleteGuildCommand(guildId as Snowflake, command.id);
+        }
       }
     }
   }
+
+  logger.info("All commands synchronized.");
 };
 
 export default synchronizeCommands;

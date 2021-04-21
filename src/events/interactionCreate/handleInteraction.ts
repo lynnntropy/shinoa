@@ -17,7 +17,7 @@ const handleFoundCommand = async (
   }
 
   try {
-    command.handle(interaction);
+    await command.handle(interaction);
   } catch (e) {
     logger.warn(e);
     return;

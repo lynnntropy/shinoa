@@ -12,7 +12,7 @@ export interface Command {
   isOwnerOnly?: boolean;
   defaultPermission?: boolean;
 
-  handle: (input: APIInteraction) => unknown;
+  handle: (input: APIInteraction) => Promise<unknown>;
 }
 
 export interface EventHandler<T> {

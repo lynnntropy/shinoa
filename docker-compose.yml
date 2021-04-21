@@ -11,3 +11,8 @@ services:
       NODE_OPTIONS: "--unhandled-rejections=throw"
       TOKEN: ~
       LOG_LEVEL: ~
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shinoa

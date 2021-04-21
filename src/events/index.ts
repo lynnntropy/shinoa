@@ -1,12 +1,8 @@
-import {
-  APIInteraction,
-  APIMessage,
-  GatewayDispatchEvents,
-} from "discord-api-types/v8";
+import { GatewayDispatchEvents } from "discord-api-types/v8";
 import logger from "../logger";
 import { EventHandler } from "../types";
 import { logInteraction, logMessage } from "../utils/logging";
-import handleInteraction from "./interactionCreate.ts/handleInteraction";
+import handleInteraction from "./interactionCreate/handleInteraction";
 import synchronizeCommands from "./ready/synchronizeCommands";
 
 type Handlers = {

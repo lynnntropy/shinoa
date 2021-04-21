@@ -2,6 +2,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import {
   APIInteraction,
   APIInteractionResponse,
+  RESTGetAPIApplicationCommandsResult,
   RESTGetAPIApplicationGuildCommandsResult,
   RESTPostAPIApplicationCommandsResult,
   RESTPostAPIApplicationGuildCommandsResult,
@@ -23,7 +24,7 @@ const client = axios.create({
 function sendDiscordAPIRequest<T = any, R = AxiosResponse<T>>(
   config: AxiosRequestConfig
 ): Promise<R> {
-  logger.debug(`Discord API request: ${config.method} ${config.url}`);
+  logger.debug(`(Discord) ${config.method} ${config.url}`);
   logger.trace(config);
   return client.request(config);
 }
@@ -75,5 +76,21 @@ export const deleteGuildCommand = async (
   return await sendDiscordAPIRequest({
     method: "DELETE",
     url: `/applications/${config.applicationId}/guilds/${guildId}/commands/${commandId}`,
+  });
+};
+
+export const getGlobalCommands = async () => {
+  return (
+    await sendDiscordAPIRequest<RESTGetAPIApplicationCommandsResult>({
+      method: "GET",
+      url: `/applications/${config.applicationId}/commands`,
+    })
+  ).data;
+};
+
+export const deleteGlobalCommand = async (commandId: Snowflake) => {
+  return await sendDiscordAPIRequest({
+    method: "DELETE",
+    url: `/applications/${config.applicationId}/commands/${commandId}`,
   });
 };

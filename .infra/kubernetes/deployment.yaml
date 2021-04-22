@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shinoa-deployment
+  labels:
+    app: shinoa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shinoa
+  template:
+    metadata:
+      labels:
+        app: shinoa
+    spec:
+      containers:
+        - name: shinoa
+          image: omegavesko/shinoa:latest
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db
+                  key: database_url
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: token
+                  key: token

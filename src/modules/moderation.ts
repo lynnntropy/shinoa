@@ -12,7 +12,7 @@ import client from "../client";
 import { respondToInteraction } from "../discord/api";
 import { Command } from "../types";
 
-class KickCommand implements Command {
+export class KickCommand implements Command {
   name = "kick";
   description = "Kick a user.";
   requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
@@ -56,5 +56,3 @@ class KickCommand implements Command {
     });
   }
 }
-
-export default KickCommand;

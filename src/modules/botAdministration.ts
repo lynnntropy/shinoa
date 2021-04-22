@@ -10,7 +10,7 @@ import client from "../client";
 import { respondToInteraction } from "../discord/api";
 import { Command } from "../types";
 
-class SayCommand implements Command {
+export class SayCommand implements Command {
   name = "say";
   description = "Make Shinoa say something";
   isOwnerOnly = true;
@@ -39,5 +39,3 @@ class SayCommand implements Command {
     });
   }
 }
-
-export default SayCommand;

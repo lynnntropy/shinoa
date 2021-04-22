@@ -1,8 +1,8 @@
-import { APIInteraction, InteractionResponseType } from "discord-api-types/v8";
+import { APIInteraction, InteractionResponseType } from "discord-api-types";
 import { respondToInteraction } from "../discord/api";
 import { Command } from "../types";
 
-class PingCommand implements Command {
+export class PingCommand implements Command {
   name = "ping";
   description = "Pong!";
 
@@ -15,5 +15,3 @@ class PingCommand implements Command {
     });
   }
 }
-
-export default PingCommand;

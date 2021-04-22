@@ -21,9 +21,6 @@
     "axios": "^0.21.1",
     "discord-api-types": "^0.18.0",
     "discord.js": "^12.5.3",
-    "pg": "^8.6.0",
-    "pino": "^6.11.3",
-    "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.2.32"
+    "pino": "^6.11.3"
   }
 }

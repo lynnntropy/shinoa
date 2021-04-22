@@ -10,4 +10,7 @@ COPY . .
 
 RUN yarn build
 
+ENV NODE_OPTIONS=--unhandled-rejections=throw
+ENV LOG_LEVEL=info
+
 CMD node dist/index.js

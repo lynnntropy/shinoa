@@ -15,3 +15,5 @@ export class PingCommand implements Command {
     });
   }
 }
+
+export const commands = [new PingCommand()];

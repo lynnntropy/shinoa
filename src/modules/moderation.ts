@@ -56,3 +56,5 @@ export class KickCommand implements Command {
     });
   }
 }
+
+export const commands = [new KickCommand()];

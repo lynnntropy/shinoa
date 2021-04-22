@@ -1,6 +1,6 @@
-import { SayCommand } from "./modules/botAdministration";
-import { PingCommand } from "./modules/misc";
-import { KickCommand } from "./modules/moderation";
+import { commands as botAdministrationCommands } from "./modules/botAdministration";
+import { commands as miscCommands } from "./modules/misc";
+import { commands as moderationCommands } from "./modules/moderation";
 import { Command } from "./types";
 
 interface GuildConfig {
@@ -16,7 +16,11 @@ const globalCommands: Command[] = [];
 const guilds: GuildConfig = {
   // Vesko's Workshop
   ["161167668131397642"]: {
-    commands: [new SayCommand(), new PingCommand(), new KickCommand()],
+    commands: [
+      ...botAdministrationCommands,
+      ...miscCommands,
+      ...moderationCommands,
+    ],
   },
 };
 

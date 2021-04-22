@@ -39,3 +39,5 @@ export class SayCommand implements Command {
     });
   }
 }
+
+export const commands = [new SayCommand()];

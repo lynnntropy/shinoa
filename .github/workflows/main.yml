@@ -6,6 +6,9 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
 
@@ -37,5 +40,5 @@ jobs:
         with:
           namespace: "shinoa"
           manifests: |
-            ./.infra/kubernetes/deployment.yaml
+            .infra/kubernetes/deployment.yaml
           images: omegavesko/shinoa:${{ github.sha }}

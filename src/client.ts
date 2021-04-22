@@ -1,5 +1,5 @@
 import { Client, WSEventType } from "discord.js";
-import handlers from "./events";
+import handlers from "./eventHandlers";
 
 const client = new Client();
 

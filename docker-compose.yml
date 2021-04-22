@@ -9,6 +9,7 @@ services:
       - ./:/app
     environment:
       NODE_OPTIONS: "--unhandled-rejections=throw"
+      DATABASE_URL: postgresql://postgres:postgres@db/shinoa
       TOKEN: ~
       LOG_LEVEL: ~
   db:

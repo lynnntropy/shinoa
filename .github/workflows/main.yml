@@ -40,6 +40,9 @@ jobs:
     needs: build
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
       - name: Set Kubernetes context
         uses: azure/k8s-set-context@v1
         if: ${{ github.ref == 'refs/heads/main' }}

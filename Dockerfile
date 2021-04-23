@@ -13,6 +13,8 @@ RUN yarn build
 ENV NODE_OPTIONS=--unhandled-rejections=throw
 ENV LOG_LEVEL=info
 
+RUN chmod +x .infra/docker/entrypoint.sh
+
 ENTRYPOINT [".infra/docker/entrypoint.sh"]
 
 CMD node dist/index.js

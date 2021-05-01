@@ -9,6 +9,7 @@ RUN yarn install
 COPY . .
 
 RUN yarn build
+RUN yarn prisma generate
 
 ENV NODE_OPTIONS=--unhandled-rejections=throw
 ENV LOG_LEVEL=info

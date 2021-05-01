@@ -16,7 +16,10 @@ interface Config {
 
 const config: Config = {
   ownerId: "98225142064250880",
-  applicationId: "833659808187678771",
+  applicationId:
+    process.env.NODE_ENV === "production"
+      ? "833659808187678771"
+      : "838072375063871559",
   isProduction: process.env.NODE_ENV === "production",
   globalCommands: [],
   guilds: {

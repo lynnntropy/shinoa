@@ -1,6 +1,7 @@
 import { commands as botAdministrationCommands } from "./modules/botAdministration";
 import { commands as miscCommands } from "./modules/misc";
 import { commands as moderationCommands } from "./modules/moderation";
+import { commands as funCommands } from "./modules/fun";
 import { Command } from "./types";
 
 interface Config {
@@ -25,6 +26,7 @@ const config: Config = {
         ...botAdministrationCommands,
         ...miscCommands,
         ...moderationCommands,
+        ...funCommands,
       ],
     },
   },

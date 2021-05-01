@@ -1,6 +1,9 @@
 import { APIInteraction, InteractionResponseType } from "discord-api-types";
 import { respondToInteraction } from "../discord/api";
 import { Command } from "../types";
+import * as os from "os";
+import { Client1_13 as Client } from "kubernetes-client";
+import { formatDuration } from "date-fns";
 
 export class PingCommand implements Command {
   name = "ping";
@@ -16,4 +19,58 @@ export class PingCommand implements Command {
   }
 }
 
-export const commands = [new PingCommand()];
+export class InfoCommand implements Command {
+  name = "info";
+  description = "Get some information about the bot.";
+
+  async handle(interaction: APIInteraction) {
+    let output: string[] = [];
+
+    output.push(`Running as PID ${process.pid} on host ${os.hostname()}`);
+    output.push("");
+
+    output.push("[General]");
+    output.push(
+      `Uptime: ${formatDuration({
+        seconds: Number(process.uptime().toFixed(1)),
+      })}`
+    );
+
+    output.push(
+      `Memory usage (RSS): ${(process.memoryUsage().rss / 1024 / 1024).toFixed(
+        2
+      )}MB`
+    );
+
+    output.push("");
+
+    try {
+      const k8sClient = new Client({ version: "1.20" });
+      const nodes = await k8sClient.api.v1.nodes.get();
+      const master = nodes.body.items.find(
+        (n) => n.metadata.labels["node-role.kubernetes.io/master"] === "true"
+      );
+      const host = master.metadata.labels["kubernetes.io/hostname"];
+      const os = master.metadata.labels["kubernetes.io/os"];
+      const kernelVersion = master.status.nodeInfo.kernelVersion;
+      const kubeletVersion = master.status.nodeInfo.kubeletVersion;
+
+      output.push("[Kubernetes]");
+      output.push(`Master node: ${host}`);
+      output.push(`OS: ${os}`);
+      output.push(`Kernel version: ${kernelVersion}`);
+      output.push(`Kubelet version: ${kubeletVersion}`);
+    } catch {
+      // not running in k8s
+    }
+
+    await respondToInteraction(interaction, {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: `\`\`\`${output.join("\n")}\`\`\``,
+      },
+    });
+  }
+}
+
+export const commands = [new PingCommand(), new InfoCommand()];

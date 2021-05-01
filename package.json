@@ -21,8 +21,10 @@
     "@types/node": "^14.14.41",
     "@types/pino": "^6.3.7",
     "axios": "^0.21.1",
+    "date-fns": "^2.21.1",
     "discord-api-types": "^0.18.0",
     "discord.js": "^12.5.3",
+    "kubernetes-client": "^9.0.0",
     "pino": "^6.11.3"
   }
 }

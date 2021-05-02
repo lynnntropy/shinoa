@@ -65,6 +65,11 @@ export const validateInteractionIsAllowed = async (
     }
 
     if (isGuildInteraction(interaction)) {
+      // The bot owner isn't limited by permissions
+      if (interaction.member.user.id === client.user.id) {
+        return;
+      }
+
       const member = await (
         await client.guilds.fetch(interaction.guild_id)
       ).members.fetch(interaction.member.user.id);

@@ -2,6 +2,8 @@ import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import {
   APIInteraction,
   APIInteractionResponse,
+  APIInteractionResponseChannelMessageWithSource,
+  InteractionResponseType,
   RESTGetAPIApplicationCommandsResult,
   RESTGetAPIApplicationGuildCommandsResult,
   RESTPatchAPIWebhookWithTokenMessageResult,
@@ -15,6 +17,7 @@ import logger from "../logger";
 import { Command } from "../types";
 import { buildApplicationCommandBodyFromCommand } from "./utils";
 import * as FormData from "form-data";
+import { merge } from "lodash";
 
 interface RateLimitState {
   routeKeyBucketMappings: { [routeKey: string]: string };
@@ -115,6 +118,15 @@ export const respondToInteraction = async (
   interaction: APIInteraction,
   payload: APIInteractionResponse
 ): Promise<void> => {
+  if (payload.type === InteractionResponseType.ChannelMessageWithSource) {
+    payload = merge<
+      APIInteractionResponseChannelMessageWithSource,
+      Partial<APIInteractionResponseChannelMessageWithSource>
+    >(payload, {
+      data: { allowed_mentions: { parse: [] } },
+    });
+  }
+
   return await sendDiscordAPIRequest(
     "POST_/interactions/:interactionId/:interactionToken/callback",
     {

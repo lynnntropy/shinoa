@@ -99,9 +99,16 @@ class StorytimeCommand implements Command {
 
       const form = new FormData();
       form.append("file", story, { filename: "storytime.txt" });
-      form.append("payload_json", JSON.stringify({ content: "" }), {
-        contentType: "application/json",
-      });
+      form.append(
+        "payload_json",
+        JSON.stringify({
+          content: "",
+          allowed_mentions: { parse: [] },
+        }),
+        {
+          contentType: "application/json",
+        }
+      );
 
       await editOriginalInteractionResponse(interaction, form);
     }

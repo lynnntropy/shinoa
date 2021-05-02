@@ -4,6 +4,7 @@ import {
   APIInteractionResponse,
   RESTGetAPIApplicationCommandsResult,
   RESTGetAPIApplicationGuildCommandsResult,
+  RESTPatchAPIWebhookWithTokenMessageResult,
   RESTPostAPIApplicationCommandsResult,
   RESTPostAPIApplicationGuildCommandsResult,
   Snowflake,
@@ -13,6 +14,7 @@ import environment from "../environment";
 import logger from "../logger";
 import { Command } from "../types";
 import { buildApplicationCommandBodyFromCommand } from "./utils";
+import * as FormData from "form-data";
 
 interface RateLimitState {
   routeKeyBucketMappings: { [routeKey: string]: string };
@@ -121,6 +123,23 @@ export const respondToInteraction = async (
       data: payload,
     }
   );
+};
+
+export const editOriginalInteractionResponse = async (
+  interaction: APIInteraction,
+  payload: FormData
+) => {
+  return (
+    await sendDiscordAPIRequest<RESTPatchAPIWebhookWithTokenMessageResult>(
+      "PATCH_/webhooks/:applicationId/:interactionToken/messages/@original",
+      {
+        method: "PATCH",
+        url: `/webhooks/${config.applicationId}/${interaction.token}/messages/@original`,
+        headers: payload.getHeaders(),
+        data: payload,
+      }
+    )
+  ).data;
 };
 
 export const getGuildCommands = async (guildId: Snowflake) => {

@@ -4,6 +4,7 @@ import config from "../../config";
 import logger from "../../logger";
 import { Command, EventHandler } from "../../types";
 import { validateInteractionIsAllowed } from "../../utils/permissions";
+import { AxiosError } from "axios";
 
 const handleFoundCommand = async (
   interaction: APIInteraction,
@@ -20,6 +21,11 @@ const handleFoundCommand = async (
     await command.handle(interaction);
   } catch (e) {
     logger.warn(e);
+
+    if (e.isAxiosError) {
+      logger.warn((e as AxiosError).response.data);
+    }
+
     return;
   }
 };

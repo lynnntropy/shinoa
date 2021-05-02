@@ -7,14 +7,24 @@ import {
   InteractionResponseType,
 } from "discord-api-types";
 import { isGuildInteraction } from "discord-api-types/utils/v8";
-import { PermissionResolvable, Snowflake, TextChannel } from "discord.js";
+import {
+  Message,
+  PermissionResolvable,
+  Snowflake,
+  TextChannel,
+} from "discord.js";
+import FormData = require("form-data");
 import client from "../../client";
-import { respondToInteraction } from "../../discord/api";
+import {
+  editOriginalInteractionResponse,
+  respondToInteraction,
+} from "../../discord/api";
 import logger from "../../logger";
 import prisma from "../../prisma";
 import { Command, Module } from "../../types";
 
 const MAXIMUM_MESSAGE_LENGTH = 64;
+const EXPORT_BATCH_SIZE = 100;
 
 // tl;dr people can post only single words, they can't edit them
 // (pretty sure that's not doable with a bot tho), and a period counts as a word
@@ -44,6 +54,11 @@ class StorytimeCommand implements Command {
       description: "Disable storytime mode for this channel.",
       type: ApplicationCommandOptionType.SUB_COMMAND,
     },
+    {
+      name: "export",
+      description: "Export all messages so far as a text file.",
+      type: ApplicationCommandOptionType.SUB_COMMAND,
+    },
   ];
 
   async handle(interaction: APIInteraction) {
@@ -51,7 +66,10 @@ class StorytimeCommand implements Command {
       throw new Error("This command can only be used in a guild.");
     }
 
-    const subcommand = interaction.data.options[0].name as "enable" | "disable";
+    const subcommand = interaction.data.options[0].name as
+      | "enable"
+      | "disable"
+      | "export";
 
     const key = getSettingKey(interaction.channel_id);
 
@@ -81,6 +99,24 @@ class StorytimeCommand implements Command {
         type: InteractionResponseType.ChannelMessageWithSource,
         data: { content: `Disabled storytime mode for this channel.` },
       });
+    }
+
+    if (subcommand === "export") {
+      const channel = client.channels.cache.get(interaction.channel_id);
+
+      await respondToInteraction(interaction, {
+        type: InteractionResponseType.DeferredChannelMessageWithSource,
+      });
+
+      const story = await exportMessagesToString(channel as TextChannel);
+
+      const form = new FormData();
+      form.append("file", story, { filename: "storytime.txt" });
+      form.append("payload_json", JSON.stringify({ content: "" }), {
+        contentType: "application/json",
+      });
+
+      await editOriginalInteractionResponse(interaction, form);
     }
   }
 }
@@ -144,6 +180,10 @@ const isMessageAllowed = async (
     return false;
   }
 
+  if (message.content.trim().includes("\n")) {
+    return false;
+  }
+
   if (message.content.length > MAXIMUM_MESSAGE_LENGTH) {
     return false;
   }
@@ -159,6 +199,46 @@ const isEnabledForChannel = async (id: Snowflake): Promise<boolean> => {
 };
 
 const getSettingKey = (id: Snowflake) => `channels.${id}.storytime.enabled`;
+
+const exportMessagesToString = async (
+  channel: TextChannel
+): Promise<string> => {
+  let messages: Message[] = [];
+  let cursor: Snowflake | null = null;
+
+  while (true) {
+    const batch = await channel.messages.fetch(
+      { limit: EXPORT_BATCH_SIZE, before: cursor },
+      true,
+      true
+    );
+
+    logger.debug(`Fetched batch of ${batch.size} messages.`);
+
+    cursor = batch.last()?.id;
+
+    messages.push(...batch.array());
+
+    if (batch.size < EXPORT_BATCH_SIZE) {
+      break;
+    }
+  }
+
+  messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+  messages = messages.filter((m) => m.author.id !== client.user.id);
+
+  let combinedContent = "";
+  for (const message of messages) {
+    let atom = message.content;
+    atom = atom.trim();
+    if (combinedContent.length > 0 && atom.match(/^\w/)) {
+      atom = ` ${atom}`;
+    }
+    combinedContent += atom;
+  }
+
+  return combinedContent;
+};
 
 const StorytimeModule: Module = {
   commands: [new StorytimeCommand()],

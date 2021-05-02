@@ -1,8 +1,12 @@
 import { HandlerCollection, Module } from "../types";
-import { merge } from "lodash";
+import { isArray, merge, mergeWith } from "lodash";
 
 export const mergeModules = (modules: Module[]): Module => {
-  return merge({}, ...modules);
+  return mergeWith({}, ...modules, (objValue, srcValue) => {
+    if (isArray(objValue)) {
+      return objValue.concat(srcValue);
+    }
+  });
 };
 
 export const mergeHandlerCollections = (

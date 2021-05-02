@@ -19,10 +19,14 @@ const config: Config = {
       ? "833659808187678771"
       : "838072375063871559",
   isProduction: process.env.NODE_ENV === "production",
-  globalCommands: commands,
+  globalCommands: [],
   guilds: {
     // Vesko's Workshop
     ["161167668131397642"]: {
+      commands,
+    },
+    // /r/SAO
+    ["191709045646688256"]: {
       commands,
     },
   },

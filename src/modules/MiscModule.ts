@@ -5,7 +5,7 @@ import * as os from "os";
 import { Client1_13 as Client } from "kubernetes-client";
 import { formatDuration, intervalToDuration } from "date-fns";
 
-export class PingCommand implements Command {
+class PingCommand implements Command {
   name = "ping";
   description = "Pong!";
 
@@ -19,7 +19,7 @@ export class PingCommand implements Command {
   }
 }
 
-export class InfoCommand implements Command {
+class InfoCommand implements Command {
   name = "stats";
   description = "Get some stats on the current instance of the bot.";
 

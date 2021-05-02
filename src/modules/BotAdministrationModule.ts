@@ -10,7 +10,7 @@ import client from "../client";
 import { respondToInteraction } from "../discord/api";
 import { Command, Module } from "../types";
 
-export class SayCommand implements Command {
+class SayCommand implements Command {
   name = "say";
   description = "Make Shinoa say something";
   isOwnerOnly = true;

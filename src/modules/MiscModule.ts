@@ -3,7 +3,7 @@ import { respondToInteraction } from "../discord/api";
 import { Command, Module } from "../types";
 import * as os from "os";
 import { Client1_13 as Client } from "kubernetes-client";
-import { formatDuration } from "date-fns";
+import { formatDuration, intervalToDuration } from "date-fns";
 
 export class PingCommand implements Command {
   name = "ping";
@@ -20,8 +20,8 @@ export class PingCommand implements Command {
 }
 
 export class InfoCommand implements Command {
-  name = "info";
-  description = "Get some information about the bot.";
+  name = "stats";
+  description = "Get some stats on the current instance of the bot.";
 
   async handle(interaction: APIInteraction) {
     let output: string[] = [];
@@ -31,9 +31,12 @@ export class InfoCommand implements Command {
 
     output.push("[General]");
     output.push(
-      `Uptime: ${formatDuration({
-        seconds: Number(process.uptime().toFixed(1)),
-      })}`
+      `Uptime: ${formatDuration(
+        intervalToDuration({
+          start: 0,
+          end: Number(process.uptime().toFixed(1)) * 1000,
+        })
+      )}`
     );
 
     output.push(

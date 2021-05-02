@@ -1,8 +1,5 @@
-import { commands as botAdministrationCommands } from "./modules/botAdministration";
-import { commands as miscCommands } from "./modules/misc";
-import { commands as moderationCommands } from "./modules/moderation";
-import { commands as funCommands } from "./modules/fun";
 import { Command } from "./types";
+import { commands } from "./modules";
 
 interface Config {
   ownerId: string;
@@ -25,12 +22,7 @@ const config: Config = {
   guilds: {
     // Vesko's Workshop
     ["161167668131397642"]: {
-      commands: [
-        ...botAdministrationCommands,
-        ...miscCommands,
-        ...moderationCommands,
-        ...funCommands,
-      ],
+      commands,
     },
   },
 };

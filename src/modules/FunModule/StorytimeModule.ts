@@ -26,19 +26,6 @@ import { Command, Module } from "../../types";
 const MAXIMUM_MESSAGE_LENGTH = 64;
 const EXPORT_BATCH_SIZE = 100;
 
-// tl;dr people can post only single words, they can't edit them
-// (pretty sure that's not doable with a bot tho), and a period counts as a word
-
-// If they post 2 consecutive messages the 2nd one gets deleted
-
-// And uh, I'd say a 64-character limit on words, that's about it
-
-// Just that the bot needs to delete anything that's more than one word or too long
-
-// Compile the entire channel into a single text file.
-// I will do manual formatting and spelling/grammar correction later on anyways,
-// I just want a basic file in the end is all.
-
 class StorytimeCommand implements Command {
   name = "storytime";
   description = "Storytime mode management commands.";

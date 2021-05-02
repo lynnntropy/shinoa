@@ -66,7 +66,7 @@ export const validateInteractionIsAllowed = async (
 
     if (isGuildInteraction(interaction)) {
       // The bot owner isn't limited by permissions
-      if (interaction.member.user.id === client.user.id) {
+      if (interaction.member.user.id === config.ownerId) {
         return;
       }
 

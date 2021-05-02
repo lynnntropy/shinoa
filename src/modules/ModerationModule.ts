@@ -57,8 +57,53 @@ class KickCommand implements Command {
   }
 }
 
+class BanCommand implements Command {
+  name = "ban";
+  description = "Ban a user.";
+  requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
+  options: APIApplicationCommandOption[] = [
+    {
+      name: "user",
+      description: "The user you want to ban.",
+      type: ApplicationCommandOptionType.USER,
+      required: true,
+    },
+    {
+      name: "reason",
+      description: "The reason for the ban.",
+      type: ApplicationCommandOptionType.STRING,
+    },
+  ];
+
+  async handle(interaction: APIInteraction) {
+    if (!isGuildInteraction(interaction)) {
+      throw new Error("Command must be called inside a guild.");
+    }
+
+    const userId = (interaction.data
+      .options[0] as ApplicationCommandInteractionDataOptionUser).value;
+    const reason = interaction.data.options[1]
+      ? (interaction.data
+          .options[1] as ApplicationCommandInteractionDataOptionString).value
+      : undefined;
+
+    const guild = await client.guilds.fetch(interaction.guild_id);
+    const member = await guild.members.fetch(userId);
+    await member.ban({ reason });
+
+    await respondToInteraction(interaction, {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content:
+          `${member.user.username}#${member.user.discriminator} has been banned.` +
+          `\n\n**Reason:** ${reason ?? "(not set)"}`,
+      },
+    });
+  }
+}
+
 const ModerationModule: Module = {
-  commands: [new KickCommand()],
+  commands: [new KickCommand(), new BanCommand()],
   handlers: {},
 };
 

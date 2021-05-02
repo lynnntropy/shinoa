@@ -1,5 +1,6 @@
 import { Command } from "./types";
 import { commands } from "./modules";
+export { handlers } from "./modules";
 
 interface Config {
   ownerId: string;

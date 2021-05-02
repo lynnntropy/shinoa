@@ -1,11 +1,16 @@
-import { commands as botAdministrationCommands } from "./botAdministration";
-import { commands as miscCommands } from "./misc";
-import { commands as moderationCommands } from "./moderation";
-import { commands as funCommands } from "./fun";
+import { flatten } from "lodash";
+import { mergeHandlerCollections } from "../utils/modules";
+import BotAdministrationModule from "./BotAdministrationModule";
+import FunModule from "./FunModule";
+import MiscModule from "./MiscModule";
+import ModerationModule from "./ModerationModule";
 
-export const commands = [
-  ...botAdministrationCommands,
-  ...miscCommands,
-  ...moderationCommands,
-  ...funCommands,
+const modules = [
+  FunModule,
+  BotAdministrationModule,
+  MiscModule,
+  ModerationModule,
 ];
+
+export const commands = flatten(modules.map((m) => m.commands));
+export const handlers = mergeHandlerCollections(modules.map((m) => m.handlers));

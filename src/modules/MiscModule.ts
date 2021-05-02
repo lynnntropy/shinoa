@@ -1,6 +1,6 @@
 import { APIInteraction, InteractionResponseType } from "discord-api-types";
 import { respondToInteraction } from "../discord/api";
-import { Command } from "../types";
+import { Command, Module } from "../types";
 import * as os from "os";
 import { Client1_13 as Client } from "kubernetes-client";
 import { formatDuration } from "date-fns";
@@ -73,4 +73,9 @@ export class InfoCommand implements Command {
   }
 }
 
-export const commands = [new PingCommand(), new InfoCommand()];
+const MiscModule: Module = {
+  commands: [new PingCommand(), new InfoCommand()],
+  handlers: {},
+};
+
+export default MiscModule;

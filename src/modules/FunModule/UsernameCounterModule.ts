@@ -5,6 +5,7 @@ import {
   ApplicationCommandInteractionDataOptionString,
   ApplicationCommandInteractionDataOptionSubCommand,
   ApplicationCommandOptionType,
+  GatewayDispatchEvents,
   InteractionResponseType,
 } from "discord-api-types";
 import { isGuildInteraction } from "discord-api-types/utils/v8";
@@ -13,9 +14,9 @@ import { PermissionResolvable, Snowflake } from "discord.js";
 import client from "../../client";
 import { respondToInteraction } from "../../discord/api";
 import prisma from "../../prisma";
-import { Command } from "../../types";
+import { Command, Module } from "../../types";
 
-export class UsernameCounterAdminCommand implements Command {
+class UsernameCounterAdminCommand implements Command {
   name = "username-counter";
   description = "Configure username counters for this server.";
   requiredPermissions: PermissionResolvable = ["MANAGE_GUILD"];
@@ -131,8 +132,6 @@ export class UsernameCounterAdminCommand implements Command {
   }
 }
 
-export const commands = [new UsernameCounterAdminCommand()];
-
 const handleMember = async (member: APIGuildMember) => {
   const guildId: Snowflake = (member as any).guild_id;
 
@@ -182,4 +181,11 @@ const handleMember = async (member: APIGuildMember) => {
   }
 };
 
-export const eventHandlers = { handleMember };
+const UsernameCounterModule: Module = {
+  commands: [new UsernameCounterAdminCommand()],
+  handlers: {
+    [GatewayDispatchEvents.GuildMemberAdd]: [handleMember],
+  },
+};
+
+export default UsernameCounterModule;

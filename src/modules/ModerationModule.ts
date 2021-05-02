@@ -10,7 +10,7 @@ import {
 import { PermissionResolvable } from "discord.js";
 import client from "../client";
 import { respondToInteraction } from "../discord/api";
-import { Command } from "../types";
+import { Command, Module } from "../types";
 
 export class KickCommand implements Command {
   name = "kick";
@@ -57,4 +57,9 @@ export class KickCommand implements Command {
   }
 }
 
-export const commands = [new KickCommand()];
+const ModerationModule: Module = {
+  commands: [new KickCommand()],
+  handlers: {},
+};
+
+export default ModerationModule;

@@ -8,7 +8,7 @@ import {
 } from "discord-api-types/v8";
 import client from "../client";
 import { respondToInteraction } from "../discord/api";
-import { Command } from "../types";
+import { Command, Module } from "../types";
 
 export class SayCommand implements Command {
   name = "say";
@@ -40,4 +40,9 @@ export class SayCommand implements Command {
   }
 }
 
-export const commands = [new SayCommand()];
+const BotAdministrationModule: Module = {
+  commands: [new SayCommand()],
+  handlers: {},
+};
+
+export default BotAdministrationModule;

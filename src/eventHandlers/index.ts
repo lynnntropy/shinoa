@@ -6,10 +6,12 @@ import handleInteraction from "./interactionCreate/handleInteraction";
 import synchronizeCommands from "./ready/synchronizeCommands";
 import { handlers as moduleHandlers } from "../config";
 import { mergeHandlerCollections } from "../utils/modules";
+import setStatus from "./ready/setStatus";
 
 let handlers: HandlerCollection = {
   [GatewayDispatchEvents.Ready]: [
     async () => logger.info("Connected to Discord gateway!"),
+    setStatus,
     synchronizeCommands,
   ],
   [GatewayDispatchEvents.InteractionCreate]: [

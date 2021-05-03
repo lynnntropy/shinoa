@@ -19,6 +19,20 @@ class PingCommand implements Command {
   }
 }
 
+class PongCommand implements Command {
+  name = "pong";
+  description = "Ping!";
+
+  async handle(interaction: APIInteraction) {
+    await respondToInteraction(interaction, {
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: "Ping!",
+      },
+    });
+  }
+}
+
 class InfoCommand implements Command {
   name = "stats";
   description = "Get some stats on the current instance of the bot.";
@@ -77,7 +91,7 @@ class InfoCommand implements Command {
 }
 
 const MiscModule: Module = {
-  commands: [new PingCommand(), new InfoCommand()],
+  commands: [new PingCommand(), new PongCommand(), new InfoCommand()],
   handlers: {},
 };
 

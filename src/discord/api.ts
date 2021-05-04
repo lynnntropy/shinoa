@@ -1,11 +1,14 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import {
+  APIApplicationCommand,
   APIInteraction,
   APIInteractionResponse,
   APIInteractionResponseChannelMessageWithSource,
   InteractionResponseType,
   RESTGetAPIApplicationCommandsResult,
   RESTGetAPIApplicationGuildCommandsResult,
+  RESTPatchAPIApplicationCommandResult,
+  RESTPatchAPIApplicationGuildCommandResult,
   RESTPatchAPIWebhookWithTokenMessageResult,
   RESTPostAPIApplicationCommandsResult,
   RESTPostAPIApplicationGuildCommandsResult,
@@ -108,6 +111,31 @@ export const registerCommand = async (
       | RESTPostAPIApplicationGuildCommandsResult
     >(routeKey, {
       method: "POST",
+      url,
+      data: buildApplicationCommandBodyFromCommand(command),
+    })
+  ).data;
+};
+
+export const updateRegisteredCommand = async (
+  registeredCommand: APIApplicationCommand,
+  command: Command,
+  guildId?: Snowflake
+) => {
+  const url = guildId
+    ? `/applications/${config.applicationId}/guilds/${guildId}/commands/${registeredCommand.id}`
+    : `/applications/${config.applicationId}/commands/${registeredCommand.id}`;
+
+  const routeKey = guildId
+    ? "POST_/applications/:applicationId/guilds/:guildId/commands/:commandId"
+    : "POST_/applications/:applicationId/commands/:commandId";
+
+  return (
+    await sendDiscordAPIRequest<
+      | RESTPatchAPIApplicationCommandResult
+      | RESTPatchAPIApplicationGuildCommandResult
+    >(routeKey, {
+      method: "PATCH",
       url,
       data: buildApplicationCommandBodyFromCommand(command),
     })

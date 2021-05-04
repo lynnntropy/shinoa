@@ -7,7 +7,9 @@ import {
   registerCommand,
   getGlobalCommands,
   deleteGlobalCommand,
+  updateRegisteredCommand,
 } from "../../discord/api";
+import { commandMatchesRegisteredCommand } from "../../discord/utils";
 import logger from "../../logger";
 import { EventHandler } from "../../types";
 
@@ -15,12 +17,22 @@ const synchronizeCommands: EventHandler<void> = async () => {
   logger.info("Synchronizing commands...");
   logger.debug("Synchronizing global commands...");
 
+  const existingCommands = await getGlobalCommands();
+
   for (const command of config.globalCommands) {
-    logger.debug(`Registering command /${command.name}...`);
-    await registerCommand(command);
+    const registeredCommand = existingCommands.find(
+      (c) => c.name === command.name
+    );
+    if (registeredCommand !== undefined) {
+      if (!commandMatchesRegisteredCommand(command, registeredCommand)) {
+        await updateRegisteredCommand(registeredCommand, command);
+      }
+    } else {
+      logger.debug(`Registering command /${command.name}...`);
+      await registerCommand(command);
+    }
   }
 
-  const existingCommands = await getGlobalCommands();
   for (const command of existingCommands) {
     if (
       config.globalCommands.find((c) => c.name === command.name) === undefined
@@ -38,12 +50,26 @@ const synchronizeCommands: EventHandler<void> = async () => {
         }...`
       );
 
+      const existingCommands = await getGuildCommands(guildId as Snowflake);
+
       for (const command of config.guilds[guildId].commands) {
-        logger.debug(`Registering command /${command.name}...`);
-        await registerCommand(command, guildId as Snowflake);
+        const registeredCommand = existingCommands.find(
+          (c) => c.name === command.name
+        );
+        if (registeredCommand !== undefined) {
+          if (!commandMatchesRegisteredCommand(command, registeredCommand)) {
+            await updateRegisteredCommand(
+              registeredCommand,
+              command,
+              guildId as Snowflake
+            );
+          }
+        } else {
+          logger.debug(`Registering command /${command.name}...`);
+          await registerCommand(command, guildId as Snowflake);
+        }
       }
 
-      const existingCommands = await getGuildCommands(guildId as Snowflake);
       for (const command of existingCommands) {
         if (
           config.guilds[guildId].commands.find(

@@ -17,15 +17,11 @@ const config: Config = {
   applicationId: environment.isProduction
     ? "833659808187678771"
     : "838072375063871559",
-  globalCommands: [],
+  globalCommands: commands,
   guilds: environment.isProduction
     ? {
         // Vesko's Workshop
         ["161167668131397642"]: {
-          commands,
-        },
-        // /r/SAO
-        ["191709045646688256"]: {
           commands,
         },
       }

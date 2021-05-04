@@ -83,6 +83,24 @@ const synchronizeCommands: EventHandler<void> = async () => {
     }
   }
 
+  // Clean up leftover commands in guilds that used to have guild
+  // commands configured, but not anymore
+
+  for (const guild of client.guilds.cache.array()) {
+    if (config.guilds[guild.id] === undefined) {
+      const commands = await getGuildCommands(guild.id as Snowflake);
+
+      if (commands.length > 0) {
+        logger.debug(`Deleting stale commands in guild /${guild.name}...`);
+      }
+
+      for (const command of commands) {
+        logger.debug(`Deleting stale command /${command.name}...`);
+        await deleteGuildCommand(guild.id as Snowflake, command.id);
+      }
+    }
+  }
+
   logger.info("All commands synchronized.");
 };
 

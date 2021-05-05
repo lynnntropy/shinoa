@@ -8,6 +8,7 @@ import {
 } from "discord-api-types/v8";
 import client from "../client";
 import { respondToInteraction } from "../discord/api";
+import prisma from "../prisma";
 import { Command, Module } from "../types";
 
 class SayCommand implements Command {
@@ -56,6 +57,12 @@ class EvalCommand implements Command {
   async handle(interaction: APIInteraction) {
     const input = (interaction.data
       .options[0] as ApplicationCommandInteractionDataOptionString).value;
+
+    const context = {
+      client,
+      prisma,
+    };
+
     const output = eval(input);
 
     await respondToInteraction(interaction, {

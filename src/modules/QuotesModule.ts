@@ -51,6 +51,9 @@ class QuotesCommand implements Command {
   ];
   requiredPermissions: PermissionResolvable[] = ["MANAGE_MESSAGES"];
 
+  // TODO /quote add :messageId
+  // TODO /quote remove :messageId
+
   async handle(interaction: APIInteraction) {
     if (!isGuildInteraction(interaction)) {
       throw new Error("Command must be called inside a guild.");
@@ -106,6 +109,8 @@ class QuotesCommand implements Command {
         .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
         .options[0] as ApplicationCommandInteractionDataOptionString).value;
 
+      // TODO also include e.g. the author name and nickname in the full-text search?
+
       const results = await prisma.$queryRaw<
         Quote[]
       >`SELECT *, ts_rank_cd(to_tsvector(message -> 'content'), plainto_tsquery(${query})) AS rank
@@ -147,6 +152,10 @@ const buildEmbedForQuotedMessage = (message: SerializableMessage): APIEmbed => {
     description: message.content,
     fields: [],
   };
+
+  // TODO fetch the user and use their current name/avatar/etc. if they're still in the guild
+
+  // TODO show author avatar, createdAt, etc.
 
   const image = message.attachments.find((a) =>
     (mime.lookup(a.url) || "unknown").startsWith("image/")

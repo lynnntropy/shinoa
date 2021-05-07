@@ -90,11 +90,12 @@ class QuotesCommand implements Command {
         }
       }
 
-      // TODO put quote embed in response
-
       await respondToInteraction(interaction, {
         type: InteractionResponseType.ChannelMessageWithSource,
-        data: { content: "Quote added!" },
+        data: {
+          content: "Quote added!",
+          embeds: [buildEmbedForQuotedMessage(message)],
+        },
       });
     }
 

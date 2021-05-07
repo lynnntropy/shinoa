@@ -1,3 +1,4 @@
+import { Quote } from ".prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import {
   APIApplicationCommandOption,
@@ -26,11 +27,12 @@ class QuotesCommand implements Command {
           name: "messageId",
           description: "The ID of the message you want to quote.",
           type: ApplicationCommandOptionType.STRING,
+          required: true,
         },
       ],
     },
     {
-      name: "get",
+      name: "search",
       description: "Gets the quote that's the closest match for a given query.",
       type: ApplicationCommandOptionType.SUB_COMMAND,
       options: [
@@ -38,13 +40,14 @@ class QuotesCommand implements Command {
           name: "query",
           description: "The query to search for.",
           type: ApplicationCommandOptionType.STRING,
+          required: true,
         },
       ],
     },
   ];
 
   async handle(interaction: APIInteraction) {
-    const subcommand = interaction.data.options[0].name as "add" | "get";
+    const subcommand = interaction.data.options[0].name as "add" | "search";
 
     if (subcommand === "add") {
       const messageId = ((interaction.data
@@ -88,7 +91,35 @@ class QuotesCommand implements Command {
       });
     }
 
-    if (subcommand === "get") {
+    if (subcommand === "search") {
+      const query = ((interaction.data
+        .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
+        .options[0] as ApplicationCommandInteractionDataOptionString).value;
+
+      const results = await prisma.$queryRaw<
+        Quote[]
+      >`SELECT *, ts_rank_cd(to_tsvector(message -> 'content'), plainto_tsquery(${query})) AS rank
+        FROM "Quote"
+        WHERE to_tsvector(message -> 'content') @@ plainto_tsquery(${query})
+        ORDER BY rank DESC
+        LIMIT 1;
+        `;
+
+      if (!results.length) {
+        await respondToInteraction(interaction, {
+          type: InteractionResponseType.ChannelMessageWithSource,
+          data: { content: "No quotes found for that query." },
+        });
+
+        return;
+      }
+
+      const quote = results[0];
+
+      await respondToInteraction(interaction, {
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: { content: JSON.stringify(quote) }, // TODO build a proper embed for quotes lol
+      });
     }
   }
 }

@@ -4,12 +4,14 @@ import BotAdministrationModule from "./BotAdministrationModule";
 import FunModule from "./FunModule";
 import MiscModule from "./MiscModule";
 import ModerationModule from "./ModerationModule";
+import QuotesModule from "./QuotesModule";
 
 const modules = [
   FunModule,
   BotAdministrationModule,
   MiscModule,
   ModerationModule,
+  QuotesModule,
 ];
 
 export const commands = flatten(modules.map((m) => m.commands));

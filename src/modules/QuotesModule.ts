@@ -14,6 +14,7 @@ import { respondToInteraction } from "../discord/api";
 import prisma from "../prisma";
 import { Command, Module, SerializableMessage } from "../types";
 import { buildSerializableMessage } from "../utils/structures";
+import * as mime from "mime-types";
 
 class QuotesCommand implements Command {
   name = "quotes";
@@ -130,12 +131,30 @@ class QuotesCommand implements Command {
 }
 
 const buildEmbedForQuotedMessage = (message: SerializableMessage): APIEmbed => {
-  return {
+  const embed: APIEmbed = {
     author: {
       name: `${message.author.username}#${message.author.discriminator}`,
     },
     description: message.content,
+    fields: [],
   };
+
+  const image = message.attachments.find((a) =>
+    (mime.lookup(a.url) || "unknown").startsWith("image/")
+  );
+  const video = message.attachments.find((a) =>
+    (mime.lookup(a.url) || "unknown").startsWith("video/")
+  );
+
+  if (image !== undefined) {
+    embed.image = { url: image.url };
+  }
+
+  if (video !== undefined) {
+    embed.fields.push({ name: "Video", value: video.url });
+  }
+
+  return embed;
 };
 
 const QuotesModule: Module = {

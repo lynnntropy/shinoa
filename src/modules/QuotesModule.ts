@@ -2,6 +2,7 @@ import { Quote } from ".prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import {
   APIApplicationCommandOption,
+  APIEmbed,
   APIInteraction,
   ApplicationCommandInteractionDataOptionString,
   ApplicationCommandInteractionDataOptionSubCommand,
@@ -11,7 +12,7 @@ import {
 import client from "../client";
 import { respondToInteraction } from "../discord/api";
 import prisma from "../prisma";
-import { Command, Module } from "../types";
+import { Command, Module, SerializableMessage } from "../types";
 import { buildSerializableMessage } from "../utils/structures";
 
 class QuotesCommand implements Command {
@@ -118,11 +119,24 @@ class QuotesCommand implements Command {
 
       await respondToInteraction(interaction, {
         type: InteractionResponseType.ChannelMessageWithSource,
-        data: { content: JSON.stringify(quote) }, // TODO build a proper embed for quotes lol
+        data: {
+          embeds: [
+            buildEmbedForQuotedMessage(quote.message as SerializableMessage),
+          ],
+        },
       });
     }
   }
 }
+
+const buildEmbedForQuotedMessage = (message: SerializableMessage): APIEmbed => {
+  return {
+    author: {
+      name: `${message.author.username}#${message.author.discriminator}`,
+    },
+    description: message.content,
+  };
+};
 
 const QuotesModule: Module = {
   commands: [new QuotesCommand()],

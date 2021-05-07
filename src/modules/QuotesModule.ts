@@ -16,6 +16,7 @@ import { Command, Module, SerializableMessage } from "../types";
 import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
 import { isGuildInteraction } from "discord-api-types/utils/v8";
+import { PermissionResolvable } from "discord.js";
 
 class QuotesCommand implements Command {
   name = "quotes";
@@ -48,6 +49,7 @@ class QuotesCommand implements Command {
       ],
     },
   ];
+  requiredPermissions: PermissionResolvable[] = ["MANAGE_MESSAGES"];
 
   async handle(interaction: APIInteraction) {
     if (!isGuildInteraction(interaction)) {

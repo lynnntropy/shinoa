@@ -15,6 +15,7 @@ import prisma from "../prisma";
 import { Command, Module, SerializableMessage } from "../types";
 import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
+import { isGuildInteraction } from "discord-api-types/utils/v8";
 
 class QuotesCommand implements Command {
   name = "quotes";
@@ -49,6 +50,10 @@ class QuotesCommand implements Command {
   ];
 
   async handle(interaction: APIInteraction) {
+    if (!isGuildInteraction(interaction)) {
+      throw new Error("Command must be called inside a guild.");
+    }
+
     const subcommand = interaction.data.options[0].name as "add" | "search";
 
     if (subcommand === "add") {
@@ -102,7 +107,8 @@ class QuotesCommand implements Command {
         Quote[]
       >`SELECT *, ts_rank_cd(to_tsvector(message -> 'content'), plainto_tsquery(${query})) AS rank
         FROM "Quote"
-        WHERE to_tsvector(message -> 'content') @@ plainto_tsquery(${query})
+        WHERE "guildId" = ${interaction.guild_id}
+          AND to_tsvector(message -> 'content') @@ plainto_tsquery(${query})
         ORDER BY rank DESC
         LIMIT 1;
         `;

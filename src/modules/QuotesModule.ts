@@ -17,6 +17,7 @@ import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
 import { isGuildInteraction } from "discord-api-types/utils/v8";
 import { PermissionResolvable } from "discord.js";
+import logger from "../logger";
 
 class QuotesCommand implements Command {
   name = "quotes";
@@ -99,7 +100,7 @@ class QuotesCommand implements Command {
         type: InteractionResponseType.ChannelMessageWithSource,
         data: {
           content: "Quote added!",
-          embeds: [buildEmbedForQuotedMessage(message)],
+          embeds: [await buildEmbedForQuotedMessage(message)],
         },
       });
     }
@@ -146,7 +147,9 @@ class QuotesCommand implements Command {
         type: InteractionResponseType.ChannelMessageWithSource,
         data: {
           embeds: [
-            buildEmbedForQuotedMessage(quote.message as SerializableMessage),
+            await buildEmbedForQuotedMessage(
+              quote.message as SerializableMessage
+            ),
           ],
         },
       });
@@ -154,7 +157,9 @@ class QuotesCommand implements Command {
   }
 }
 
-const buildEmbedForQuotedMessage = (message: SerializableMessage): APIEmbed => {
+const buildEmbedForQuotedMessage = async (
+  message: SerializableMessage
+): Promise<APIEmbed> => {
   const embed: APIEmbed = {
     author: {
       name: `${message.author.username}#${message.author.discriminator}`,
@@ -163,7 +168,19 @@ const buildEmbedForQuotedMessage = (message: SerializableMessage): APIEmbed => {
     fields: [],
   };
 
-  // TODO fetch the user and use their current name/avatar/etc. if they're still in the guild
+  try {
+    const member = await (
+      await client.guilds.fetch(message.guild.id)
+    ).members.fetch(message.author.id);
+
+    embed.author = {
+      name:
+        member.nickname ??
+        `${member.user.username}#${member.user.discriminator}`,
+    };
+  } catch (e) {
+    logger.debug(`Couldn't fetch a member for user ID ${message.author.id}.`);
+  }
 
   // TODO show author avatar, createdAt, etc.
 

@@ -28,7 +28,7 @@ class QuotesCommand implements Command {
       type: ApplicationCommandOptionType.SUB_COMMAND,
       options: [
         {
-          name: "messageId",
+          name: "message_id",
           description: "The ID of the message you want to quote.",
           type: ApplicationCommandOptionType.STRING,
           required: true,
@@ -109,14 +109,24 @@ class QuotesCommand implements Command {
         .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
         .options[0] as ApplicationCommandInteractionDataOptionString).value;
 
-      // TODO also include e.g. the author name and nickname in the full-text search?
-
-      const results = await prisma.$queryRaw<
-        Quote[]
-      >`SELECT *, ts_rank_cd(to_tsvector(message -> 'content'), plainto_tsquery(${query})) AS rank
+      const results = await prisma.$queryRaw<Quote[]>`SELECT
+        *,
+        ts_rank_cd(
+          to_tsvector(
+            message ->> 'content' || ' ' ||
+            coalesce(message #>> '{author,username}', '') || ' ' ||
+            coalesce(message #>> '{member,nickname}', '')
+          ),
+          plainto_tsquery(${query})
+        ) AS rank
         FROM "Quote"
         WHERE "guildId" = ${interaction.guild_id}
-          AND to_tsvector(message -> 'content') @@ plainto_tsquery(${query})
+          AND to_tsvector(
+            message ->> 'content' || ' ' ||
+            coalesce(message #>> '{author,username}', '') || ' ' ||
+            coalesce(message #>> '{member,nickname}', '')
+          )
+          @@ plainto_tsquery(${query})
         ORDER BY rank DESC
         LIMIT 1;
         `;

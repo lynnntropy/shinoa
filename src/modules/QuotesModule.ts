@@ -55,6 +55,18 @@ class QuotesCommand implements Command {
         },
       ],
     },
+    {
+      name: "random",
+      description: "Shows a random quote.",
+      type: ApplicationCommandOptionType.SUB_COMMAND,
+      options: [
+        {
+          name: "user",
+          description: "Restricts the command to quotes from a specific user.",
+          type: ApplicationCommandOptionType.USER,
+        },
+      ],
+    },
   ];
   requiredPermissions: PermissionResolvable[] = ["MANAGE_MESSAGES"];
 
@@ -63,7 +75,10 @@ class QuotesCommand implements Command {
       throw new Error("Command must be called inside a guild.");
     }
 
-    const subcommand = interaction.data.options[0].name as "add" | "search";
+    const subcommand = interaction.data.options[0].name as
+      | "add"
+      | "search"
+      | "random";
 
     if (subcommand === "add") {
       const messageId = ((interaction.data
@@ -152,6 +167,52 @@ class QuotesCommand implements Command {
         await respondToInteraction(interaction, {
           type: InteractionResponseType.ChannelMessageWithSource,
           data: { content: "No quotes found for that query." },
+        });
+
+        return;
+      }
+
+      const quote = results[0];
+
+      await respondToInteraction(interaction, {
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+          embeds: [
+            await buildEmbedForQuotedMessage(
+              quote.message as SerializableMessage
+            ),
+          ],
+        },
+      });
+    }
+
+    if (subcommand === "random") {
+      let userId: Snowflake;
+
+      if (
+        (interaction.data
+          .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
+          .options
+      ) {
+        userId = ((interaction.data
+          .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
+          .options[0] as ApplicationCommandInteractionDataOptionUser).value;
+      }
+
+      const results = await prisma.$queryRaw<Quote[]>`
+        SELECT
+        *
+        FROM "Quote"
+        WHERE "guildId" = ${interaction.guild_id}
+          ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
+        ORDER BY random()
+        LIMIT 1;
+        `;
+
+      if (!results.length) {
+        await respondToInteraction(interaction, {
+          type: InteractionResponseType.ChannelMessageWithSource,
+          data: { content: "No quotes found." },
         });
 
         return;

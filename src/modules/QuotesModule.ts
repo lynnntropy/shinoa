@@ -9,6 +9,7 @@ import {
   ApplicationCommandInteractionDataOptionUser,
   ApplicationCommandOptionType,
   InteractionResponseType,
+  MessageFlags,
 } from "discord-api-types";
 import client from "../client";
 import { respondToInteraction } from "../discord/api";
@@ -17,7 +18,7 @@ import { Command, Module, SerializableMessage } from "../types";
 import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
 import { isGuildInteraction } from "discord-api-types/utils/v8";
-import { PermissionResolvable, Snowflake } from "discord.js";
+import { Snowflake } from "discord.js";
 import logger from "../logger";
 
 class QuotesCommand implements Command {
@@ -68,7 +69,6 @@ class QuotesCommand implements Command {
       ],
     },
   ];
-  requiredPermissions: PermissionResolvable[] = ["MANAGE_MESSAGES"];
 
   async handle(interaction: APIInteraction) {
     if (!isGuildInteraction(interaction)) {
@@ -80,7 +80,23 @@ class QuotesCommand implements Command {
       | "search"
       | "random";
 
+    const member = await (
+      await client.guilds.fetch(interaction.guild_id)
+    ).members.fetch(interaction.member.user.id);
+
     if (subcommand === "add") {
+      if (!member.hasPermission("MANAGE_MESSAGES")) {
+        await respondToInteraction(interaction, {
+          type: InteractionResponseType.ChannelMessageWithSource,
+          data: {
+            flags: MessageFlags.EPHEMERAL,
+            content: `You need the MANAGE_MESSAGES permission to add quotes.`,
+          },
+        });
+
+        return;
+      }
+
       const messageId = ((interaction.data
         .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
         .options[0] as ApplicationCommandInteractionDataOptionString).value;

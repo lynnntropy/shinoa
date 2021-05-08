@@ -16,9 +16,9 @@ model KeyValueItem {
 }
 
 model Quote {
-  id        Int    @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   guildId   String
   userId    String
-  messageId String @unique
+  messageId String? @unique
   message   Json
 }

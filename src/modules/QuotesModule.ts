@@ -21,6 +21,11 @@ import { isGuildInteraction } from "discord-api-types/utils/v8";
 import { Snowflake } from "discord.js";
 import logger from "../logger";
 
+// TODO tie /quote add to a role rather than a permission
+// TODO add some way to page through search results
+// TODO migrate images for Philia quotes
+// TODO show IDs and allow get/delete based on those?
+
 class QuotesCommand implements Command {
   name = "quotes";
   description = "Quotes";

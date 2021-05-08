@@ -163,8 +163,10 @@ const buildEmbedForQuotedMessage = async (
   const embed: APIEmbed = {
     author: {
       name: `${message.author.username}#${message.author.discriminator}`,
+      icon_url: `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}`,
     },
     description: message.content,
+    timestamp: (message.createdAt as unknown) as string,
     fields: [],
   };
 
@@ -177,12 +179,11 @@ const buildEmbedForQuotedMessage = async (
       name:
         member.nickname ??
         `${member.user.username}#${member.user.discriminator}`,
+      icon_url: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
     };
   } catch (e) {
     logger.debug(`Couldn't fetch a member for user ID ${message.author.id}.`);
   }
-
-  // TODO show author avatar, createdAt, etc.
 
   const image = message.attachments.find((a) =>
     (mime.lookup(a.url) || "unknown").startsWith("image/")

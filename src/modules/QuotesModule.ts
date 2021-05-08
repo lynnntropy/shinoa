@@ -1,4 +1,4 @@
-import { Quote } from ".prisma/client";
+import { Prisma, Quote } from ".prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import {
   APIApplicationCommandOption,
@@ -6,6 +6,7 @@ import {
   APIInteraction,
   ApplicationCommandInteractionDataOptionString,
   ApplicationCommandInteractionDataOptionSubCommand,
+  ApplicationCommandInteractionDataOptionUser,
   ApplicationCommandOptionType,
   InteractionResponseType,
 } from "discord-api-types";
@@ -16,7 +17,7 @@ import { Command, Module, SerializableMessage } from "../types";
 import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
 import { isGuildInteraction } from "discord-api-types/utils/v8";
-import { PermissionResolvable } from "discord.js";
+import { PermissionResolvable, Snowflake } from "discord.js";
 import logger from "../logger";
 
 class QuotesCommand implements Command {
@@ -47,13 +48,15 @@ class QuotesCommand implements Command {
           type: ApplicationCommandOptionType.STRING,
           required: true,
         },
+        {
+          name: "user",
+          description: "Restrict the search to quotes from a specific user.",
+          type: ApplicationCommandOptionType.USER,
+        },
       ],
     },
   ];
   requiredPermissions: PermissionResolvable[] = ["MANAGE_MESSAGES"];
-
-  // TODO /quote add :messageId
-  // TODO /quote remove :messageId
 
   async handle(interaction: APIInteraction) {
     if (!isGuildInteraction(interaction)) {
@@ -110,6 +113,18 @@ class QuotesCommand implements Command {
         .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
         .options[0] as ApplicationCommandInteractionDataOptionString).value;
 
+      let userId: Snowflake;
+
+      if (
+        (interaction.data
+          .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
+          .options[1]
+      ) {
+        userId = ((interaction.data
+          .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
+          .options[1] as ApplicationCommandInteractionDataOptionUser).value;
+      }
+
       const results = await prisma.$queryRaw<Quote[]>`SELECT
         *,
         ts_rank_cd(
@@ -122,6 +137,7 @@ class QuotesCommand implements Command {
         ) AS rank
         FROM "Quote"
         WHERE "guildId" = ${interaction.guild_id}
+          ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
           AND to_tsvector(
             message ->> 'content' || ' ' ||
             coalesce(message #>> '{author,username}', '') || ' ' ||

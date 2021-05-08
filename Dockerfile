@@ -8,8 +8,8 @@ RUN yarn install
 
 COPY . .
 
-RUN yarn build
 RUN yarn prisma generate
+RUN yarn build
 
 ENV NODE_ENV=production
 ENV NODE_OPTIONS=--unhandled-rejections=throw

@@ -70,7 +70,16 @@ async function sendDiscordAPIRequest<T = any, R = AxiosResponse<T>>(
     await new Promise((yay) => setTimeout(yay, timeUntilResetMs));
   }
 
-  const response = await client.request(config);
+  let response: AxiosResponse;
+
+  try {
+    response = await client.request(config);
+  } catch (e) {
+    if (axios.isAxiosError(e)) {
+      logger.trace(e.response.data);
+    }
+    throw e;
+  }
 
   const rateLimitBucket = response.headers["x-ratelimit-bucket"];
   const rateLimitRemaining = Number(response.headers["x-ratelimit-remaining"]);

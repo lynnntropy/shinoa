@@ -6,11 +6,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider = "prisma-client-js"
+}
+
 model KeyValueItem {
-  key   String  @id
+  key   String @id
   value Json
 }
 
-generator client {
-  provider = "prisma-client-js"
+model Quote {
+  id        Int     @id @default(autoincrement())
+  guildId   String
+  userId    String
+  messageId String? @unique
+  message   Json
 }

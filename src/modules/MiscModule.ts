@@ -1,21 +1,15 @@
-import { APIInteraction, InteractionResponseType } from "discord-api-types";
-import { respondToInteraction } from "../discord/api";
 import { Command, Module } from "../types";
 import * as os from "os";
 import { Client1_13 as Client } from "kubernetes-client";
 import { formatDuration, intervalToDuration } from "date-fns";
+import { CommandInteraction } from "discord.js";
 
 class PingCommand implements Command {
   name = "ping";
   description = "Pong!";
 
-  async handle(interaction: APIInteraction) {
-    await respondToInteraction(interaction, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: "Pong!",
-      },
-    });
+  async handle(interaction: CommandInteraction) {
+    await interaction.reply("Pong!");
   }
 }
 
@@ -23,13 +17,8 @@ class PongCommand implements Command {
   name = "pong";
   description = "Ping!";
 
-  async handle(interaction: APIInteraction) {
-    await respondToInteraction(interaction, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: "Ping!",
-      },
-    });
+  async handle(interaction: CommandInteraction) {
+    await interaction.reply("Ping!");
   }
 }
 
@@ -37,7 +26,7 @@ class InfoCommand implements Command {
   name = "stats";
   description = "Get some stats on the current instance of the bot.";
 
-  async handle(interaction: APIInteraction) {
+  async handle(interaction: CommandInteraction) {
     let output: string[] = [];
 
     output.push(`Running as PID ${process.pid} on host ${os.hostname()}`);
@@ -81,12 +70,7 @@ class InfoCommand implements Command {
       // not running in k8s
     }
 
-    await respondToInteraction(interaction, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: `\`\`\`${output.join("\n")}\`\`\``,
-      },
-    });
+    await interaction.reply(`\`\`\`${output.join("\n")}\`\`\``);
   }
 }
 

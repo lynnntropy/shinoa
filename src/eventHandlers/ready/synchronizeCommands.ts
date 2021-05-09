@@ -1,23 +1,18 @@
-import { Snowflake } from "discord-api-types";
+import _ = require("lodash");
 import client from "../../client";
 import config from "../../config";
 import {
-  deleteGuildCommand,
-  getGuildCommands,
-  registerCommand,
-  getGlobalCommands,
-  deleteGlobalCommand,
-  updateRegisteredCommand,
-} from "../../discord/api";
-import { commandMatchesRegisteredCommand } from "../../discord/utils";
+  buildApplicationCommandDataFromCommand,
+  commandMatchesRegisteredCommand,
+} from "../../discord/utils";
 import logger from "../../logger";
 import { EventHandler } from "../../types";
 
-const synchronizeCommands: EventHandler<void> = async () => {
+const synchronizeCommands: EventHandler<"ready"> = async () => {
   logger.info("Synchronizing commands...");
   logger.debug("Synchronizing global commands...");
 
-  const existingCommands = await getGlobalCommands();
+  const existingCommands = (await client.application.commands.fetch()).array();
 
   for (const command of config.globalCommands) {
     const registeredCommand = existingCommands.find(
@@ -25,11 +20,15 @@ const synchronizeCommands: EventHandler<void> = async () => {
     );
     if (registeredCommand !== undefined) {
       if (!commandMatchesRegisteredCommand(command, registeredCommand)) {
-        await updateRegisteredCommand(registeredCommand, command);
+        await registeredCommand.edit(
+          buildApplicationCommandDataFromCommand(command)
+        );
       }
     } else {
       logger.debug(`Registering command /${command.name}...`);
-      await registerCommand(command);
+      await client.application.commands.create(
+        buildApplicationCommandDataFromCommand(command)
+      );
     }
   }
 
@@ -38,19 +37,17 @@ const synchronizeCommands: EventHandler<void> = async () => {
       config.globalCommands.find((c) => c.name === command.name) === undefined
     ) {
       logger.debug(`Deleting stale command /${command.name}...`);
-      await deleteGlobalCommand(command.id);
+      await command.delete();
     }
   }
 
   for (const guildId in config.guilds) {
-    if (config.guilds[guildId].commands) {
-      logger.debug(
-        `Synchronizing commands for ${
-          (await client.guilds.fetch(guildId)).name
-        }...`
-      );
+    const guild = await client.guilds.fetch(guildId);
 
-      const existingCommands = await getGuildCommands(guildId as Snowflake);
+    if (config.guilds[guildId].commands) {
+      logger.debug(`Synchronizing commands for ${guild.name}...`);
+
+      const existingCommands = (await guild.commands.fetch()).array();
 
       for (const command of config.guilds[guildId].commands) {
         const registeredCommand = existingCommands.find(
@@ -58,15 +55,15 @@ const synchronizeCommands: EventHandler<void> = async () => {
         );
         if (registeredCommand !== undefined) {
           if (!commandMatchesRegisteredCommand(command, registeredCommand)) {
-            await updateRegisteredCommand(
-              registeredCommand,
-              command,
-              guildId as Snowflake
+            await registeredCommand.edit(
+              buildApplicationCommandDataFromCommand(command)
             );
           }
         } else {
           logger.debug(`Registering command /${command.name}...`);
-          await registerCommand(command, guildId as Snowflake);
+          await guild.commands.create(
+            buildApplicationCommandDataFromCommand(command)
+          );
         }
       }
 
@@ -77,7 +74,7 @@ const synchronizeCommands: EventHandler<void> = async () => {
           ) === undefined
         ) {
           logger.debug(`Deleting stale command /${command.name}...`);
-          await deleteGuildCommand(guildId as Snowflake, command.id);
+          await command.delete();
         }
       }
     }
@@ -88,7 +85,7 @@ const synchronizeCommands: EventHandler<void> = async () => {
 
   for (const guild of client.guilds.cache.array()) {
     if (config.guilds[guild.id] === undefined) {
-      const commands = await getGuildCommands(guild.id as Snowflake);
+      const commands = (await guild.commands.fetch()).array();
 
       if (commands.length > 0) {
         logger.debug(`Deleting stale commands in guild /${guild.name}...`);
@@ -96,7 +93,7 @@ const synchronizeCommands: EventHandler<void> = async () => {
 
       for (const command of commands) {
         logger.debug(`Deleting stale command /${command.name}...`);
-        await deleteGuildCommand(guild.id as Snowflake, command.id);
+        await command.delete();
       }
     }
   }

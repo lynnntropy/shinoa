@@ -1,4 +1,3 @@
-import { GatewayDispatchEvents } from "discord-api-types/v8";
 import logger from "../logger";
 import { HandlerCollection } from "../types";
 import { logInteraction, logMessage } from "../utils/logging";
@@ -9,16 +8,13 @@ import { mergeHandlerCollections } from "../utils/modules";
 import setStatus from "./ready/setStatus";
 
 let handlers: HandlerCollection = {
-  [GatewayDispatchEvents.Ready]: [
+  ready: [
     async () => logger.info("Connected to Discord gateway!"),
     setStatus,
     synchronizeCommands,
   ],
-  [GatewayDispatchEvents.InteractionCreate]: [
-    logInteraction,
-    handleInteraction,
-  ],
-  [GatewayDispatchEvents.MessageCreate]: [logMessage],
+  interaction: [logInteraction, handleInteraction],
+  message: [logMessage],
 };
 
 handlers = mergeHandlerCollections([handlers, moduleHandlers]);

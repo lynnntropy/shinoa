@@ -1,13 +1,12 @@
-import { APIInteraction } from "discord-api-types";
-import { isGuildInteraction } from "discord-api-types/utils/v8";
 import config from "../../config";
 import logger from "../../logger";
 import { Command, EventHandler } from "../../types";
 import { validateInteractionIsAllowed } from "../../utils/permissions";
 import { AxiosError } from "axios";
+import { CommandInteraction } from "discord.js";
 
 const handleFoundCommand = async (
-  interaction: APIInteraction,
+  interaction: CommandInteraction,
   command: Command
 ) => {
   try {
@@ -30,18 +29,21 @@ const handleFoundCommand = async (
   }
 };
 
-const handleInteraction: EventHandler<APIInteraction> = async (interaction) => {
+const handleInteraction: EventHandler<"interaction"> = async (interaction) => {
   logger.trace(interaction);
+  if (!interaction.isCommand()) {
+    return;
+  }
 
   // Guild commands (if applicable)
 
   if (
-    isGuildInteraction(interaction) &&
-    config.guilds[interaction.guild_id] &&
-    config.guilds[interaction.guild_id].commands
+    interaction.guild &&
+    config.guilds[interaction.guild.id] &&
+    config.guilds[interaction.guild.id].commands
   ) {
-    for (const command of config.guilds[interaction.guild_id].commands) {
-      if (command.name === interaction.data.name) {
+    for (const command of config.guilds[interaction.guild.id].commands) {
+      if (command.name === interaction.commandName) {
         await handleFoundCommand(interaction, command);
         return;
       }
@@ -51,13 +53,13 @@ const handleInteraction: EventHandler<APIInteraction> = async (interaction) => {
   // Global commands
 
   for (const command of config.globalCommands) {
-    if (command.name === interaction.data.name) {
+    if (command.name === interaction.commandName) {
       await handleFoundCommand(interaction, command);
       return;
     }
   }
 
-  logger.warn(`Didn't handle unknown command /${interaction.data.name}`);
+  logger.warn(`Didn't handle unknown command /${interaction.commandName}`);
 };
 
 export default handleInteraction;

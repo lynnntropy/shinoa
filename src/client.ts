@@ -1,11 +1,13 @@
-import { Client, WSEventType } from "discord.js";
+import { Client, Intents } from "discord.js";
 import handlers from "./eventHandlers";
 
-const client = new Client();
+const client = new Client({
+  intents: [Intents.ALL],
+});
 
 for (const event in handlers) {
   for (const handler of handlers[event]) {
-    client.ws.on(event as WSEventType, handler);
+    client.on(event, handler);
   }
 }
 

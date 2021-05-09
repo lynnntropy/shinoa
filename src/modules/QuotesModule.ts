@@ -1,24 +1,16 @@
 import { Prisma, Quote } from ".prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import {
-  APIApplicationCommandOption,
-  APIEmbed,
-  APIInteraction,
-  ApplicationCommandInteractionDataOptionString,
-  ApplicationCommandInteractionDataOptionSubCommand,
-  ApplicationCommandInteractionDataOptionUser,
-  ApplicationCommandOptionType,
-  InteractionResponseType,
-  MessageFlags,
-} from "discord-api-types";
 import client from "../client";
-import { respondToInteraction } from "../discord/api";
 import prisma from "../prisma";
 import { Command, Module, SerializableMessage } from "../types";
 import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
-import { isGuildInteraction } from "discord-api-types/utils/v8";
-import { Snowflake } from "discord.js";
+import {
+  ApplicationCommandOptionData,
+  Snowflake,
+  CommandInteraction,
+  MessageEmbedOptions,
+} from "discord.js";
 import logger from "../logger";
 
 // TODO tie /quote add to a role rather than a permission
@@ -29,16 +21,16 @@ import logger from "../logger";
 class QuotesCommand implements Command {
   name = "quotes";
   description = "Quotes";
-  options: APIApplicationCommandOption[] = [
+  options: ApplicationCommandOptionData[] = [
     {
       name: "add",
       description: "Adds a quote.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
       options: [
         {
           name: "message_id",
           description: "The ID of the message you want to quote.",
-          type: ApplicationCommandOptionType.STRING,
+          type: "STRING",
           required: true,
         },
       ],
@@ -46,73 +38,71 @@ class QuotesCommand implements Command {
     {
       name: "search",
       description: "Gets the quote that's the closest match for a given query.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
       options: [
         {
           name: "query",
           description: "The query to search for.",
-          type: ApplicationCommandOptionType.STRING,
+          type: "STRING",
           required: true,
         },
         {
           name: "user",
           description: "Restrict the search to quotes from a specific user.",
-          type: ApplicationCommandOptionType.USER,
+          type: "USER",
         },
       ],
     },
     {
       name: "random",
       description: "Shows a random quote.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
       options: [
         {
           name: "user",
           description: "Restricts the command to quotes from a specific user.",
-          type: ApplicationCommandOptionType.USER,
+          type: "USER",
         },
       ],
     },
   ];
 
-  async handle(interaction: APIInteraction) {
-    if (!isGuildInteraction(interaction)) {
-      throw new Error("Command must be called inside a guild.");
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
     }
 
-    const subcommand = interaction.data.options[0].name as
+    const subcommand = interaction.options[0].name as
       | "add"
       | "search"
       | "random";
 
     const member = await (
-      await client.guilds.fetch(interaction.guild_id)
+      await client.guilds.fetch(interaction.guildID)
     ).members.fetch(interaction.member.user.id);
 
     if (subcommand === "add") {
-      if (!member.hasPermission("MANAGE_MESSAGES")) {
-        await respondToInteraction(interaction, {
-          type: InteractionResponseType.ChannelMessageWithSource,
-          data: {
-            flags: MessageFlags.EPHEMERAL,
-            content: `You need the MANAGE_MESSAGES permission to add quotes.`,
-          },
+      if (!member.permissions.has("MANAGE_MESSAGES")) {
+        await interaction.reply({
+          content: "You need the MANAGE_MESSAGES permission to add quotes.",
+          ephemeral: true,
         });
 
         return;
       }
 
-      const messageId = ((interaction.data
-        .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
-        .options[0] as ApplicationCommandInteractionDataOptionString).value;
+      const messageId = interaction.options[0].options[0].value as string;
 
-      const channel = await client.channels.fetch(interaction.channel_id);
-      if (!channel.isText()) {
+      if (!interaction.channel.isText()) {
         throw new Error("Command must be called in a text channel.");
       }
 
       const message = buildSerializableMessage(
-        await channel.messages.fetch(messageId)
+        await interaction.channel.messages.fetch(messageId)
       );
 
       try {
@@ -126,39 +116,25 @@ class QuotesCommand implements Command {
         });
       } catch (e) {
         if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
-          await respondToInteraction(interaction, {
-            type: InteractionResponseType.ChannelMessageWithSource,
-            data: { content: "That message has already been quoted." },
-          });
+          await interaction.reply("That message has already been quoted.");
         } else {
           throw e;
         }
       }
 
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content: "Quote added!",
-          embeds: [await buildEmbedForQuotedMessage(message)],
-        },
+      await interaction.reply({
+        content: "Quote added!",
+        embeds: [await buildEmbedForQuotedMessage(message)],
       });
     }
 
     if (subcommand === "search") {
-      const query = ((interaction.data
-        .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
-        .options[0] as ApplicationCommandInteractionDataOptionString).value;
+      const query = interaction.options[0].options[0].value as string;
 
       let userId: Snowflake;
 
-      if (
-        (interaction.data
-          .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
-          .options[1]
-      ) {
-        userId = ((interaction.data
-          .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
-          .options[1] as ApplicationCommandInteractionDataOptionUser).value;
+      if (interaction.options[0].options[1]) {
+        userId = interaction.options[0].options[1].value as string;
       }
 
       const results = await prisma.$queryRaw<Quote[]>`SELECT
@@ -172,7 +148,7 @@ class QuotesCommand implements Command {
           plainto_tsquery(${query})
         ) AS rank
         FROM "Quote"
-        WHERE "guildId" = ${interaction.guild_id}
+        WHERE "guildId" = ${interaction.guild.id}
           ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
           AND to_tsvector(
             message ->> 'content' || ' ' ||
@@ -185,71 +161,53 @@ class QuotesCommand implements Command {
         `;
 
       if (!results.length) {
-        await respondToInteraction(interaction, {
-          type: InteractionResponseType.ChannelMessageWithSource,
-          data: { content: "No quotes found for that query." },
-        });
+        await interaction.reply("No quotes found for that query.");
 
         return;
       }
 
       const quote = results[0];
 
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          embeds: [
-            await buildEmbedForQuotedMessage(
-              quote.message as SerializableMessage
-            ),
-          ],
-        },
+      await interaction.reply({
+        embeds: [
+          await buildEmbedForQuotedMessage(
+            quote.message as SerializableMessage
+          ),
+        ],
       });
     }
 
     if (subcommand === "random") {
       let userId: Snowflake;
 
-      if (
-        (interaction.data
-          .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
-          .options
-      ) {
-        userId = ((interaction.data
-          .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
-          .options[0] as ApplicationCommandInteractionDataOptionUser).value;
+      if (interaction.options[0].options) {
+        userId = interaction.options[0].options[0].value as string;
       }
 
       const results = await prisma.$queryRaw<Quote[]>`
         SELECT
         *
         FROM "Quote"
-        WHERE "guildId" = ${interaction.guild_id}
+        WHERE "guildId" = ${interaction.guild.id}
           ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
         ORDER BY random()
         LIMIT 1;
         `;
 
       if (!results.length) {
-        await respondToInteraction(interaction, {
-          type: InteractionResponseType.ChannelMessageWithSource,
-          data: { content: "No quotes found." },
-        });
+        await interaction.reply("No quotes found.");
 
         return;
       }
 
       const quote = results[0];
 
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          embeds: [
-            await buildEmbedForQuotedMessage(
-              quote.message as SerializableMessage
-            ),
-          ],
-        },
+      await interaction.reply({
+        embeds: [
+          await buildEmbedForQuotedMessage(
+            quote.message as SerializableMessage
+          ),
+        ],
       });
     }
   }
@@ -257,14 +215,14 @@ class QuotesCommand implements Command {
 
 const buildEmbedForQuotedMessage = async (
   message: SerializableMessage
-): Promise<APIEmbed> => {
-  const embed: APIEmbed = {
+): Promise<MessageEmbedOptions> => {
+  const embed: MessageEmbedOptions = {
     author: {
       name: `${message.author.username}#${message.author.discriminator}`,
-      icon_url: `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}`,
+      iconURL: `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}`,
     },
     description: message.content,
-    timestamp: (message.createdAt as unknown) as string,
+    timestamp: new Date((message.createdAt as unknown) as string),
     fields: [],
   };
 
@@ -277,7 +235,7 @@ const buildEmbedForQuotedMessage = async (
       name:
         member.nickname ??
         `${member.user.username}#${member.user.discriminator}`,
-      icon_url: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
+      iconURL: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
     };
   } catch (e) {
     logger.debug(`Couldn't fetch a member for user ID ${message.author.id}.`);
@@ -295,7 +253,7 @@ const buildEmbedForQuotedMessage = async (
   }
 
   if (video !== undefined) {
-    embed.fields.push({ name: "Video", value: video.url });
+    embed.fields.push({ name: "Video", value: video.url, inline: false });
   }
 
   return embed;

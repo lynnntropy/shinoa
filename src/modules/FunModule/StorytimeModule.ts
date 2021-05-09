@@ -1,27 +1,15 @@
 import {
-  APIApplicationCommandOption,
-  APIInteraction,
-  APIMessage,
-  ApplicationCommandOptionType,
-  GatewayDispatchEvents,
-  InteractionResponseType,
-} from "discord-api-types";
-import { isGuildInteraction } from "discord-api-types/utils/v8";
-import {
+  ApplicationCommandOptionData,
+  CommandInteraction,
   Message,
   PermissionResolvable,
   Snowflake,
   TextChannel,
 } from "discord.js";
-import FormData = require("form-data");
 import client from "../../client";
-import {
-  editOriginalInteractionResponse,
-  respondToInteraction,
-} from "../../discord/api";
 import logger from "../../logger";
 import prisma from "../../prisma";
-import { Command, Module } from "../../types";
+import { Command, EventHandler, Module } from "../../types";
 
 const MAXIMUM_MESSAGE_LENGTH = 64;
 const EXPORT_BATCH_SIZE = 100;
@@ -30,35 +18,31 @@ class StorytimeCommand implements Command {
   name = "storytime";
   description = "Storytime mode management commands.";
   requiredPermissions: PermissionResolvable = ["MANAGE_CHANNELS"];
-  options: APIApplicationCommandOption[] = [
+  options: ApplicationCommandOptionData[] = [
     {
       name: "enable",
       description: "Enable storytime mode for this channel.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
     },
     {
       name: "disable",
       description: "Disable storytime mode for this channel.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
     },
     {
       name: "export",
       description: "Export all messages so far as a text file.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
     },
   ];
 
-  async handle(interaction: APIInteraction) {
-    if (!isGuildInteraction(interaction)) {
-      throw new Error("This command can only be used in a guild.");
-    }
-
-    const subcommand = interaction.data.options[0].name as
+  async handle(interaction: CommandInteraction) {
+    const subcommand = interaction.options[0].name as
       | "enable"
       | "disable"
       | "export";
 
-    const key = getSettingKey(interaction.channel_id);
+    const key = getSettingKey(interaction.channel.id);
 
     if (subcommand === "enable") {
       const kv = { key, value: true };
@@ -68,10 +52,7 @@ class StorytimeCommand implements Command {
         create: kv,
       });
 
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: { content: `Enabled storytime mode for this channel.` },
-      });
+      await interaction.reply("Enabled storytime mode for this channel.");
     }
 
     if (subcommand === "disable") {
@@ -81,50 +62,33 @@ class StorytimeCommand implements Command {
         update: kv,
         create: kv,
       });
-
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: { content: `Disabled storytime mode for this channel.` },
-      });
+      await interaction.reply("Disabled storytime mode for this channel.");
     }
 
     if (subcommand === "export") {
-      const channel = client.channels.cache.get(interaction.channel_id);
+      const channel = client.channels.cache.get(interaction.channel.id);
 
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.DeferredChannelMessageWithSource,
-      });
+      await interaction.defer();
 
       const story = await exportMessagesToString(channel as TextChannel);
 
-      const form = new FormData();
-      form.append("file", story, { filename: "storytime.txt" });
-      form.append(
-        "payload_json",
-        JSON.stringify({
-          content: "",
-          allowed_mentions: { parse: [] },
-        }),
-        {
-          contentType: "application/json",
-        }
-      );
-
-      await editOriginalInteractionResponse(interaction, form);
+      await interaction.editReply({
+        files: [{ name: "storytime.txt", attachment: story }],
+      });
     }
   }
 }
 
-const handleMessage = async (message: APIMessage) => {
-  if (!(await isEnabledForChannel(message.channel_id))) {
+const handleMessage: EventHandler<"message"> = async (message: Message) => {
+  if (!(await isEnabledForChannel(message.channel.id))) {
     return;
   }
 
-  const channel = client.channels.cache.get(message.channel_id);
+  const channel = client.channels.cache.get(message.channel.id);
 
   if (!channel.isText()) {
     logger.warn(
-      `Storytime mode is enabled for non-text channel ID ${message.channel_id}.`
+      `Storytime mode is enabled for non-text channel ID ${message.channel.id}.`
     );
     return;
   }
@@ -134,19 +98,21 @@ const handleMessage = async (message: APIMessage) => {
   }
 };
 
-const handleMessageUpdate = async (message: APIMessage) => {
-  if (!(await isEnabledForChannel(message.channel_id))) {
+const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
+  message: Message
+) => {
+  if (!(await isEnabledForChannel(message.channel.id))) {
     return;
   }
 
   // Someone edited a message in a storytime channel, which isn't allowed,
   // so we'll just delete it
 
-  const channel = client.channels.cache.get(message.channel_id);
+  const channel = client.channels.cache.get(message.channel.id);
 
   if (!channel.isText()) {
     logger.warn(
-      `Storytime mode is enabled for non-text channel ID ${message.channel_id}.`
+      `Storytime mode is enabled for non-text channel ID ${message.channel.id}.`
     );
     return;
   }
@@ -156,7 +122,7 @@ const handleMessageUpdate = async (message: APIMessage) => {
 
 const isMessageAllowed = async (
   channel: TextChannel,
-  message: APIMessage
+  message: Message
 ): Promise<boolean> => {
   if (message.author.id === client.user.id) {
     return true;
@@ -237,8 +203,8 @@ const exportMessagesToString = async (
 const StorytimeModule: Module = {
   commands: [new StorytimeCommand()],
   handlers: {
-    [GatewayDispatchEvents.MessageCreate]: [handleMessage],
-    [GatewayDispatchEvents.MessageUpdate]: [handleMessageUpdate],
+    message: [handleMessage],
+    messageUpdate: [handleMessageUpdate],
   },
 };
 

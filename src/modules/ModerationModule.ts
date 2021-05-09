@@ -4,9 +4,10 @@ import {
   GuildMember,
   PermissionResolvable,
 } from "discord.js";
-import { Command, Module } from "../types";
+import { Command } from "../internal/command";
+import { Module } from "../internal/types";
 
-class KickCommand implements Command {
+class KickCommand extends Command {
   name = "kick";
   description = "Kick a user.";
   requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
@@ -48,7 +49,7 @@ class KickCommand implements Command {
   }
 }
 
-class BanCommand implements Command {
+class BanCommand extends Command {
   name = "ban";
   description = "Ban a user.";
   requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];

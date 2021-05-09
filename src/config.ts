@@ -1,6 +1,6 @@
-import { Command } from "./types";
 import { commands } from "./modules";
 import environment from "./environment";
+import { Command } from "./internal/command";
 export { handlers } from "./modules";
 
 interface Config {

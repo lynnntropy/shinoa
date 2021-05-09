@@ -25,7 +25,7 @@ export const logInteraction = async (interaction: CommandInteraction) => {
     return;
   }
 
-  if (interaction.channel.type === "dm") {
+  if (interaction.channel && interaction.channel.type === "dm") {
     logger.info(
       `Command /${interaction.commandName} used by ` +
         `${interaction.user.username}#${interaction.user.discriminator} ` +

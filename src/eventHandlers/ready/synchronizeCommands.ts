@@ -5,8 +5,8 @@ import {
   buildApplicationCommandDataFromCommand,
   commandMatchesRegisteredCommand,
 } from "../../discord/utils";
+import { EventHandler } from "../../internal/types";
 import logger from "../../logger";
-import { EventHandler } from "../../types";
 
 const synchronizeCommands: EventHandler<"ready"> = async () => {
   logger.info("Synchronizing commands...");

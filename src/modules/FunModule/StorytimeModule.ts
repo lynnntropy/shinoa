@@ -1,82 +1,74 @@
 import {
-  ApplicationCommandOptionData,
-  CommandInteraction,
   Message,
   PermissionResolvable,
   Snowflake,
   TextChannel,
 } from "discord.js";
 import client from "../../client";
+import { Command, CommandSubCommand } from "../../internal/command";
+import { EventHandler, Module } from "../../internal/types";
 import logger from "../../logger";
 import prisma from "../../prisma";
-import { Command, EventHandler, Module } from "../../types";
 
 const MAXIMUM_MESSAGE_LENGTH = 64;
 const EXPORT_BATCH_SIZE = 100;
 
-class StorytimeCommand implements Command {
+class StorytimeCommand extends Command {
   name = "storytime";
   description = "Storytime mode management commands.";
   requiredPermissions: PermissionResolvable = ["MANAGE_CHANNELS"];
-  options: ApplicationCommandOptionData[] = [
+  subCommands: CommandSubCommand[] = [
     {
       name: "enable",
       description: "Enable storytime mode for this channel.",
-      type: "SUB_COMMAND",
+
+      async handle(interaction) {
+        const key = getSettingKey(interaction.channel.id);
+
+        const kv = { key, value: true };
+        await prisma.keyValueItem.upsert({
+          where: { key },
+          update: kv,
+          create: kv,
+        });
+
+        await interaction.reply("Enabled storytime mode for this channel.");
+      },
     },
     {
       name: "disable",
       description: "Disable storytime mode for this channel.",
-      type: "SUB_COMMAND",
+
+      async handle(interaction) {
+        const key = getSettingKey(interaction.channel.id);
+
+        const kv = { key, value: false };
+        await prisma.keyValueItem.upsert({
+          where: { key },
+          update: kv,
+          create: kv,
+        });
+
+        await interaction.reply("Disabled storytime mode for this channel.");
+      },
     },
     {
       name: "export",
       description: "Export all messages so far as a text file.",
-      type: "SUB_COMMAND",
+
+      async handle(interaction) {
+        const channel = client.channels.cache.get(interaction.channel.id);
+
+        await interaction.defer();
+
+        const story = await exportMessagesToString(channel as TextChannel);
+
+        await interaction.editReply({
+          files: [{ name: "storytime.txt", attachment: story }],
+        });
+      },
     },
   ];
-
-  async handle(interaction: CommandInteraction) {
-    const subcommand = interaction.options[0].name as
-      | "enable"
-      | "disable"
-      | "export";
-
-    const key = getSettingKey(interaction.channel.id);
-
-    if (subcommand === "enable") {
-      const kv = { key, value: true };
-      await prisma.keyValueItem.upsert({
-        where: { key },
-        update: kv,
-        create: kv,
-      });
-
-      await interaction.reply("Enabled storytime mode for this channel.");
-    }
-
-    if (subcommand === "disable") {
-      const kv = { key, value: false };
-      await prisma.keyValueItem.upsert({
-        where: { key },
-        update: kv,
-        create: kv,
-      });
-      await interaction.reply("Disabled storytime mode for this channel.");
-    }
-
-    if (subcommand === "export") {
-      const channel = client.channels.cache.get(interaction.channel.id);
-
-      await interaction.defer();
-
-      const story = await exportMessagesToString(channel as TextChannel);
-
-      await interaction.editReply({
-        files: [{ name: "storytime.txt", attachment: story }],
-      });
-    }
-  }
 }
 
 const handleMessage: EventHandler<"message"> = async (message: Message) => {

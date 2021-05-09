@@ -1,5 +1,5 @@
 import { Message } from "discord.js";
-import { SerializableMessage } from "../types";
+import { SerializableMessage } from "../internal/types";
 
 export const buildSerializableMessage = (
   message: Message

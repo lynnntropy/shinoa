@@ -1,10 +1,11 @@
-import { Command, Module } from "../types";
 import * as os from "os";
 import { Client1_13 as Client } from "kubernetes-client";
 import { formatDuration, intervalToDuration } from "date-fns";
 import { CommandInteraction } from "discord.js";
+import { Command } from "../internal/command";
+import { Module } from "../internal/types";
 
-class PingCommand implements Command {
+class PingCommand extends Command {
   name = "ping";
   description = "Pong!";
 
@@ -13,7 +14,7 @@ class PingCommand implements Command {
   }
 }
 
-class PongCommand implements Command {
+class PongCommand extends Command {
   name = "pong";
   description = "Ping!";
 
@@ -22,7 +23,7 @@ class PongCommand implements Command {
   }
 }
 
-class InfoCommand implements Command {
+class InfoCommand extends Command {
   name = "stats";
   description = "Get some stats on the current instance of the bot.";
 

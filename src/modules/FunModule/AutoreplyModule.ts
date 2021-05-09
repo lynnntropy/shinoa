@@ -1,7 +1,7 @@
 import { Message } from "discord.js";
 import client from "../../client";
 import environment from "../../environment";
-import { EventHandler, Module } from "../../types";
+import { EventHandler, Module } from "../../internal/types";
 
 const TRIGGER_CHANCE = environment.isProduction ? 0.01 : 1.0;
 

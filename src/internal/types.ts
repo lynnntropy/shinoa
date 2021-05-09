@@ -1,21 +1,5 @@
-import {
-  ApplicationCommandOptionData,
-  ClientEvents,
-  CommandInteraction,
-  PermissionResolvable,
-  Snowflake,
-} from "discord.js";
-
-export interface Command {
-  name: string;
-  description: string;
-  options?: ApplicationCommandOptionData[];
-  requiredPermissions?: PermissionResolvable;
-  isOwnerOnly?: boolean;
-  defaultPermission?: boolean;
-
-  handle: (input: CommandInteraction) => Promise<unknown>;
-}
+import { ClientEvents, Snowflake } from "discord.js";
+import { Command } from "./command";
 
 export interface EventHandler<K extends keyof ClientEvents> {
   (...args: ClientEvents[K]): void;

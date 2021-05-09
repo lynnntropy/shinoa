@@ -1,6 +1,10 @@
-import { ApplicationCommand, ApplicationCommandData } from "discord.js";
+import {
+  ApplicationCommand,
+  ApplicationCommandData,
+  ApplicationCommandOptionData,
+} from "discord.js";
 import { isEqual } from "lodash";
-import { Command } from "../types";
+import { Command } from "../internal/command";
 
 export const buildApplicationCommandDataFromCommand = (
   command: Command
@@ -8,7 +12,7 @@ export const buildApplicationCommandDataFromCommand = (
   return {
     name: command.name,
     description: command.description,
-    options: command.options,
+    options: buildOptionsFromCommand(command),
     defaultPermission: command.defaultPermission,
   };
 };
@@ -24,7 +28,22 @@ export const commandMatchesRegisteredCommand = (
     registeredCommand.defaultPermission !== command.defaultPermission
   )
     return false;
-  if (!isEqual(registeredCommand.options, command.options)) return false;
+  if (!isEqual(registeredCommand.options, buildOptionsFromCommand(command)))
+    return false;
 
   return true;
+};
+
+const buildOptionsFromCommand = (
+  command: Command
+): ApplicationCommandOptionData[] => {
+  return [
+    ...command.options,
+    ...command.subCommands.map<ApplicationCommandOptionData>((sc) => ({
+      name: sc.name,
+      description: sc.description,
+      type: "SUB_COMMAND",
+      options: sc.options,
+    })),
+  ];
 };

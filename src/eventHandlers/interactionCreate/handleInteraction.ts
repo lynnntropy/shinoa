@@ -1,9 +1,10 @@
 import config from "../../config";
 import logger from "../../logger";
-import { Command, EventHandler } from "../../types";
 import { validateInteractionIsAllowed } from "../../utils/permissions";
 import { AxiosError } from "axios";
 import { CommandInteraction } from "discord.js";
+import { EventHandler } from "../../internal/types";
+import { Command } from "../../internal/command";
 
 const handleFoundCommand = async (
   interaction: CommandInteraction,
@@ -17,7 +18,7 @@ const handleFoundCommand = async (
   }
 
   try {
-    await command.handle(interaction);
+    await command.handleInteraction(interaction);
   } catch (e) {
     logger.warn(e);
 

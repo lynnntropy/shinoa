@@ -1,5 +1,5 @@
-import { HandlerCollection, Module } from "../types";
 import { isArray, merge, mergeWith } from "lodash";
+import { HandlerCollection, Module } from "../internal/types";
 
 export const mergeModules = (modules: Module[]): Module => {
   return mergeWith({}, ...modules, (objValue, srcValue) => {

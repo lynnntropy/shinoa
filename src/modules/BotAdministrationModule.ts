@@ -1,9 +1,10 @@
 import { ApplicationCommandOptionData, CommandInteraction } from "discord.js";
 import client from "../client";
+import { Command } from "../internal/command";
+import { Module } from "../internal/types";
 import prisma from "../prisma";
-import { Command, Module } from "../types";
 
-class SayCommand implements Command {
+class SayCommand extends Command {
   name = "say";
   description = "Make Shinoa say something";
   isOwnerOnly = true;
@@ -25,7 +26,7 @@ class SayCommand implements Command {
   }
 }
 
-class EvalCommand implements Command {
+class EvalCommand extends Command {
   name = "eval";
   description = "Runs arbitrary JavaScript (obviously owner-only).";
   isOwnerOnly = true;

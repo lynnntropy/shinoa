@@ -4,7 +4,7 @@ import {
   Permissions,
 } from "discord.js";
 import config from "../config";
-import { Command } from "../types";
+import { Command } from "../internal/command";
 
 export const validateInteractionIsAllowed = async (
   interaction: CommandInteraction,

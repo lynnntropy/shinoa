@@ -1,21 +1,18 @@
-import {
-  ApplicationCommandOptionData,
-  CommandInteraction,
-  TextChannel,
-} from "discord.js";
+import { CommandInteraction, TextChannel } from "discord.js";
 import { PermissionResolvable } from "discord.js";
+import { Command, CommandSubCommand } from "../../internal/command";
+import { EventHandler, Module } from "../../internal/types";
 import prisma from "../../prisma";
-import { Command, EventHandler, Module } from "../../types";
 
-class UsernameCounterAdminCommand implements Command {
+class UsernameCounterAdminCommand extends Command {
   name = "username-counter";
-  description = "Configure username counters for this server.";
+  description = "Configures username counters for this server.";
   requiredPermissions: PermissionResolvable = ["MANAGE_GUILD"];
-  options: ApplicationCommandOptionData[] = [
+
+  subCommands: CommandSubCommand[] = [
     {
       name: "enable",
       description: "Enable counting for a keyword.",
-      type: "SUB_COMMAND",
       options: [
         {
           name: "keyword",
@@ -24,97 +21,105 @@ class UsernameCounterAdminCommand implements Command {
           required: true,
         },
       ],
+
+      async handle(interaction) {
+        const key = `guilds.${interaction.guild.id}.counted_usernames`;
+
+        let kv = await prisma.keyValueItem.findUnique({
+          where: { key },
+        });
+
+        const keyword = interaction.options[0].value as string;
+
+        if (kv === null) {
+          kv = {
+            key,
+            value: [keyword],
+          };
+        } else {
+          kv.value = [...new Set([...(kv.value as string[]), keyword])];
+        }
+
+        await prisma.keyValueItem.upsert({
+          where: { key },
+          update: kv,
+          create: kv,
+        });
+
+        await interaction.reply(`Enabled counting for keyword \`${keyword}\`.`);
+      },
     },
     {
       name: "disable",
-      description: "Disable counting for a keyword.",
-      type: "SUB_COMMAND",
+      description: "Enable counting for a keyword.",
       options: [
         {
           name: "keyword",
-          description: "A keyword to disable counting for.",
+          description: "A keyword to look for in usernames.",
           type: "STRING",
           required: true,
         },
       ],
+
+      async handle(interaction) {
+        const key = `guilds.${interaction.guild.id}.counted_usernames`;
+
+        let kv = await prisma.keyValueItem.findUnique({
+          where: { key },
+        });
+
+        const keyword = interaction.options[0].value as string;
+
+        if (kv === null) {
+          return;
+        } else {
+          kv.value = (kv.value as string[]).filter((v) => v !== keyword);
+        }
+
+        await prisma.keyValueItem.upsert({
+          where: { key },
+          update: kv,
+          create: kv,
+        });
+
+        await interaction.reply(
+          `Disabled counting for keyword \`${keyword}\`.`
+        );
+      },
     },
     {
       name: "list",
-      description: "List keywords currently being counted for this server.",
-      type: "SUB_COMMAND",
+      description: "Lists keywords currently beingt counted for this server.",
+
+      async handle(interaction) {
+        const key = `guilds.${interaction.guild.id}.counted_usernames`;
+
+        let kv = await prisma.keyValueItem.findUnique({
+          where: { key },
+        });
+
+        await interaction.reply(
+          `Counting is currently enabled for these keywords: ${
+            (kv?.value as string[])?.join(", ") ?? "(none)"
+          }`
+        );
+      },
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async commandWillExecute(interaction: CommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
         ephemeral: true,
       });
-      return;
-    }
 
-    const subcommand = interaction.options[0].name as
-      | "enable"
-      | "disable"
-      | "list";
-
-    const key = `guilds.${interaction.guild.id}.counted_usernames`;
-
-    let kv = await prisma.keyValueItem.findUnique({
-      where: { key },
-    });
-
-    if (subcommand === "enable") {
-      const keyword = interaction.options[0].options[0].value;
-
-      if (kv === null) {
-        kv = {
-          key,
-          value: [keyword],
-        };
-      } else {
-        kv.value = [...new Set([...(kv.value as string[]), keyword])];
-      }
-
-      await prisma.keyValueItem.upsert({
-        where: { key },
-        update: kv,
-        create: kv,
-      });
-
-      await interaction.reply(`Enabled counting for keyword \`${keyword}\`.`);
-    }
-
-    if (subcommand === "disable") {
-      const keyword = interaction.options[0].options[0].value;
-
-      if (kv === null) {
-        return;
-      } else {
-        kv.value = (kv.value as string[]).filter((v) => v !== keyword);
-      }
-
-      await prisma.keyValueItem.upsert({
-        where: { key },
-        update: kv,
-        create: kv,
-      });
-
-      await interaction.reply(`Disabled counting for keyword \`${keyword}\`.`);
-    }
-
-    if (subcommand === "list") {
-      await interaction.reply(
-        `Counting is currently enabled for these keywords: ${
-          (kv?.value as string[])?.join(", ") ?? "(none)"
-        }`
-      );
+      throw new Error("Command can't be called outside of a guild.");
     }
   }
 }
 
-const handleMember: EventHandler<"guildMemberAdd"> = async (member) => {
+const onGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
   const guildConfigKey = `guilds.${member.guild.id}.counted_usernames`;
 
   let guildConfigKv = await prisma.keyValueItem.findUnique({
@@ -144,7 +149,6 @@ const handleMember: EventHandler<"guildMemberAdd"> = async (member) => {
         update: countKv,
       });
 
-      // const guild = client.guilds.resolve(guildId);
       const channel =
         (member.guild.channels.cache.find(
           (c) => c.name === "general"
@@ -164,7 +168,7 @@ const handleMember: EventHandler<"guildMemberAdd"> = async (member) => {
 const UsernameCounterModule: Module = {
   commands: [new UsernameCounterAdminCommand()],
   handlers: {
-    guildMemberAdd: [handleMember],
+    guildMemberAdd: [onGuildMemberAdd],
   },
 };
 

@@ -1,87 +1,48 @@
 import {
-  APIInteraction,
-  InteractionResponseType,
-  MessageFlags,
-} from "discord-api-types";
-import {
-  isDMInteraction,
-  isGuildInteraction,
-} from "discord-api-types/utils/v8";
-import { PermissionResolvable, Permissions } from "discord.js";
-import client from "../client";
+  CommandInteraction,
+  PermissionResolvable,
+  Permissions,
+} from "discord.js";
 import config from "../config";
-import { respondToInteraction } from "../discord/api";
 import { Command } from "../types";
 
 export const validateInteractionIsAllowed = async (
-  interaction: APIInteraction,
+  interaction: CommandInteraction,
   command: Command
 ) => {
   if (command.isOwnerOnly) {
-    if (
-      isGuildInteraction(interaction) &&
-      interaction.member.user.id !== config.ownerId
-    ) {
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          flags: MessageFlags.EPHEMERAL,
-          content: "Only the bot owner can use that command.",
-        },
-      });
-
-      throw new Error(
-        `Owner-only command /${command.name} can't be used by user ${interaction.member.user.username}#${interaction.member.user.discriminator}.`
-      );
-    }
-
-    if (
-      isDMInteraction(interaction) &&
-      interaction.user.id !== config.ownerId
-    ) {
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          flags: MessageFlags.EPHEMERAL,
-          content: "Only the bot owner can use that command.",
-        },
+    if (interaction.user.id !== config.ownerId) {
+      await interaction.reply({
+        content: "Only the bot owner can use that command.",
+        ephemeral: true,
       });
 
       throw new Error(
         `Owner-only command /${command.name} can't be used by user ${interaction.user.username}#${interaction.user.discriminator}.`
       );
     }
-  }
 
-  if (command.requiredPermissions) {
-    if (isDMInteraction(interaction)) {
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          flags: MessageFlags.EPHEMERAL,
-          content: "You can't use that command in a DM.",
-        },
-      });
-    }
+    if (command.requiredPermissions) {
+      if (interaction.channel.type !== "text") {
+        await interaction.reply("That command can only be used in a server.");
+        throw new Error(
+          `Command /${command.name} can only be used in a guild.`
+        );
+      }
 
-    if (isGuildInteraction(interaction)) {
       // The bot owner isn't limited by permissions
       if (interaction.member.user.id === config.ownerId) {
         return;
       }
 
-      const member = await (
-        await client.guilds.fetch(interaction.guild_id)
-      ).members.fetch(interaction.member.user.id);
-      if (!member.hasPermission(command.requiredPermissions)) {
-        await respondToInteraction(interaction, {
-          type: InteractionResponseType.ChannelMessageWithSource,
-          data: {
-            flags: MessageFlags.EPHEMERAL,
-            content: `That command requires these permissions: ${formatPermissions(
-              command.requiredPermissions
-            )}`,
-          },
+      const member = await interaction.guild.members.fetch(interaction.user.id);
+
+      if (!member.permissions.has(command.requiredPermissions)) {
+        await interaction.reply({
+          content: `That command requires these permissions: ${formatPermissions(
+            command.requiredPermissions
+          )}`,
+          ephemeral: true,
         });
 
         throw new Error(

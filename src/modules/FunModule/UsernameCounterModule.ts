@@ -1,35 +1,26 @@
 import {
-  APIApplicationCommandOption,
-  APIGuildMember,
-  APIInteraction,
-  ApplicationCommandInteractionDataOptionString,
-  ApplicationCommandInteractionDataOptionSubCommand,
-  ApplicationCommandOptionType,
-  GatewayDispatchEvents,
-  InteractionResponseType,
-} from "discord-api-types";
-import { isGuildInteraction } from "discord-api-types/utils/v8";
-import { TextChannel } from "discord.js";
-import { PermissionResolvable, Snowflake } from "discord.js";
-import client from "../../client";
-import { respondToInteraction } from "../../discord/api";
+  ApplicationCommandOptionData,
+  CommandInteraction,
+  TextChannel,
+} from "discord.js";
+import { PermissionResolvable } from "discord.js";
 import prisma from "../../prisma";
-import { Command, Module } from "../../types";
+import { Command, EventHandler, Module } from "../../types";
 
 class UsernameCounterAdminCommand implements Command {
   name = "username-counter";
   description = "Configure username counters for this server.";
   requiredPermissions: PermissionResolvable = ["MANAGE_GUILD"];
-  options: APIApplicationCommandOption[] = [
+  options: ApplicationCommandOptionData[] = [
     {
       name: "enable",
       description: "Enable counting for a keyword.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
       options: [
         {
           name: "keyword",
           description: "A keyword to look for in usernames.",
-          type: ApplicationCommandOptionType.STRING,
+          type: "STRING",
           required: true,
         },
       ],
@@ -37,12 +28,12 @@ class UsernameCounterAdminCommand implements Command {
     {
       name: "disable",
       description: "Disable counting for a keyword.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
       options: [
         {
           name: "keyword",
           description: "A keyword to disable counting for.",
-          type: ApplicationCommandOptionType.STRING,
+          type: "STRING",
           required: true,
         },
       ],
@@ -50,30 +41,32 @@ class UsernameCounterAdminCommand implements Command {
     {
       name: "list",
       description: "List keywords currently being counted for this server.",
-      type: ApplicationCommandOptionType.SUB_COMMAND,
+      type: "SUB_COMMAND",
     },
   ];
 
-  async handle(interaction: APIInteraction) {
-    if (!isGuildInteraction(interaction)) {
-      throw new Error("This command can only be used in a guild.");
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
     }
 
-    const subcommand = interaction.data.options[0].name as
+    const subcommand = interaction.options[0].name as
       | "enable"
       | "disable"
       | "list";
 
-    const key = `guilds.${interaction.guild_id}.counted_usernames`;
+    const key = `guilds.${interaction.guild.id}.counted_usernames`;
 
     let kv = await prisma.keyValueItem.findUnique({
       where: { key },
     });
 
     if (subcommand === "enable") {
-      const keyword = ((interaction.data
-        .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
-        .options[0] as ApplicationCommandInteractionDataOptionString).value;
+      const keyword = interaction.options[0].options[0].value;
 
       if (kv === null) {
         kv = {
@@ -90,16 +83,11 @@ class UsernameCounterAdminCommand implements Command {
         create: kv,
       });
 
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: { content: `Enabled counting for keyword \`${keyword}\`.` },
-      });
+      await interaction.reply(`Enabled counting for keyword \`${keyword}\`.`);
     }
 
     if (subcommand === "disable") {
-      const keyword = ((interaction.data
-        .options[0] as ApplicationCommandInteractionDataOptionSubCommand)
-        .options[0] as ApplicationCommandInteractionDataOptionString).value;
+      const keyword = interaction.options[0].options[0].value;
 
       if (kv === null) {
         return;
@@ -113,29 +101,21 @@ class UsernameCounterAdminCommand implements Command {
         create: kv,
       });
 
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: { content: `Disabled counting for keyword \`${keyword}\`.` },
-      });
+      await interaction.reply(`Disabled counting for keyword \`${keyword}\`.`);
     }
 
     if (subcommand === "list") {
-      await respondToInteraction(interaction, {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content: `Counting is currently enabled for these keywords: ${
-            (kv?.value as string[])?.join(", ") ?? "(none)"
-          }`,
-        },
-      });
+      await interaction.reply(
+        `Counting is currently enabled for these keywords: ${
+          (kv?.value as string[])?.join(", ") ?? "(none)"
+        }`
+      );
     }
   }
 }
 
-const handleMember = async (member: APIGuildMember) => {
-  const guildId: Snowflake = (member as any).guild_id;
-
-  const guildConfigKey = `guilds.${guildId}.counted_usernames`;
+const handleMember: EventHandler<"guildMemberAdd"> = async (member) => {
+  const guildConfigKey = `guilds.${member.guild.id}.counted_usernames`;
 
   let guildConfigKv = await prisma.keyValueItem.findUnique({
     where: { key: guildConfigKey },
@@ -149,7 +129,7 @@ const handleMember = async (member: APIGuildMember) => {
 
   for (const keyword of keywords) {
     if (member.user.username.toLowerCase().includes(keyword.toLowerCase())) {
-      const countKey = `guilds.${guildId}.counted_usernames.counts.${keyword}`;
+      const countKey = `guilds.${member.guild.id}.counted_usernames.counts.${keyword}`;
       let countKv = await prisma.keyValueItem.findUnique({
         where: { key: countKey },
       });
@@ -164,14 +144,14 @@ const handleMember = async (member: APIGuildMember) => {
         update: countKv,
       });
 
-      const guild = client.guilds.resolve(guildId);
+      // const guild = client.guilds.resolve(guildId);
       const channel =
-        (guild.channels.cache.find(
+        (member.guild.channels.cache.find(
           (c) => c.name === "general"
-        ) as TextChannel) ?? guild.systemChannel;
+        ) as TextChannel) ?? member.guild.systemChannel;
 
       if (channel === null) {
-        throw new Error(`Guild ID ${guildId} has no usable channel!`);
+        throw new Error(`Guild ID ${member.guild.id} has no usable channel!`);
       }
 
       await channel.send(`Welcome to ${keyword} no. **${currentCount}**!`);
@@ -184,7 +164,7 @@ const handleMember = async (member: APIGuildMember) => {
 const UsernameCounterModule: Module = {
   commands: [new UsernameCounterAdminCommand()],
   handlers: {
-    [GatewayDispatchEvents.GuildMemberAdd]: [handleMember],
+    guildMemberAdd: [handleMember],
   },
 };
 

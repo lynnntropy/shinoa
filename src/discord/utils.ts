@@ -1,33 +1,27 @@
-import {
-  APIApplicationCommand,
-  RESTPostAPIApplicationCommandsJSONBody,
-  RESTPostAPIApplicationGuildCommandsJSONBody,
-} from "discord-api-types/v8";
+import { ApplicationCommand, ApplicationCommandData } from "discord.js";
 import { isEqual } from "lodash";
 import { Command } from "../types";
 
-export const buildApplicationCommandBodyFromCommand = (
+export const buildApplicationCommandDataFromCommand = (
   command: Command
-):
-  | RESTPostAPIApplicationCommandsJSONBody
-  | RESTPostAPIApplicationGuildCommandsJSONBody => {
+): ApplicationCommandData => {
   return {
     name: command.name,
     description: command.description,
     options: command.options,
-    default_permission: command.defaultPermission,
+    defaultPermission: command.defaultPermission,
   };
 };
 
 export const commandMatchesRegisteredCommand = (
   command: Command,
-  registeredCommand: APIApplicationCommand
+  registeredCommand: ApplicationCommand
 ) => {
   if (registeredCommand.description !== command.description) return false;
   if (registeredCommand.name !== command.name) return false;
   if (
     command.defaultPermission !== undefined &&
-    registeredCommand.default_permission !== command.defaultPermission
+    registeredCommand.defaultPermission !== command.defaultPermission
   )
     return false;
   if (!isEqual(registeredCommand.options, command.options)) return false;

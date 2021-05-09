@@ -1,59 +1,50 @@
-import { isGuildInteraction } from "discord-api-types/utils/v8";
 import {
-  APIApplicationCommandOption,
-  APIInteraction,
-  ApplicationCommandInteractionDataOptionString,
-  ApplicationCommandInteractionDataOptionUser,
-  ApplicationCommandOptionType,
-  InteractionResponseType,
-} from "discord-api-types/v8";
-import { PermissionResolvable } from "discord.js";
-import client from "../client";
-import { respondToInteraction } from "../discord/api";
+  ApplicationCommandOptionData,
+  CommandInteraction,
+  GuildMember,
+  PermissionResolvable,
+} from "discord.js";
 import { Command, Module } from "../types";
 
 class KickCommand implements Command {
   name = "kick";
   description = "Kick a user.";
   requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
-  options: APIApplicationCommandOption[] = [
+  options: ApplicationCommandOptionData[] = [
     {
       name: "user",
       description: "The user you want to kick.",
-      type: ApplicationCommandOptionType.USER,
+      type: "USER",
       required: true,
     },
     {
       name: "reason",
       description: "The reason for the kick.",
-      type: ApplicationCommandOptionType.STRING,
+      type: "STRING",
     },
   ];
 
-  async handle(interaction: APIInteraction) {
-    if (!isGuildInteraction(interaction)) {
-      throw new Error("Command must be called inside a guild.");
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
     }
 
-    const userId = (interaction.data
-      .options[0] as ApplicationCommandInteractionDataOptionUser).value;
-    const reason = interaction.data.options[1]
-      ? (interaction.data
-          .options[1] as ApplicationCommandInteractionDataOptionString).value
+    const userId = interaction.options[0].value as string;
+    const reason = interaction.options[1]
+      ? (interaction.options[1].value as string)
       : undefined;
 
-    const guild = await client.guilds.fetch(interaction.guild_id);
-    const member = await guild.members.fetch(userId);
-    await member.kick(reason);
+    const member = await interaction.guild.members.fetch(userId);
+    await (member as GuildMember).kick(reason);
 
-    await respondToInteraction(interaction, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content:
-          `${member.user.username}#${member.user.discriminator} has been kicked.` +
-          `\n\n**Reason:** ${reason ?? "(not set)"}`,
-      },
-    });
+    await interaction.reply(
+      `${member.user.username}#${member.user.discriminator} has been kicked.` +
+        `\n\n**Reason:** ${reason ?? "(not set)"}`
+    );
   }
 }
 
@@ -61,44 +52,41 @@ class BanCommand implements Command {
   name = "ban";
   description = "Ban a user.";
   requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
-  options: APIApplicationCommandOption[] = [
+  options: ApplicationCommandOptionData[] = [
     {
       name: "user",
       description: "The user you want to ban.",
-      type: ApplicationCommandOptionType.USER,
+      type: "USER",
       required: true,
     },
     {
       name: "reason",
       description: "The reason for the ban.",
-      type: ApplicationCommandOptionType.STRING,
+      type: "STRING",
     },
   ];
 
-  async handle(interaction: APIInteraction) {
-    if (!isGuildInteraction(interaction)) {
-      throw new Error("Command must be called inside a guild.");
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
     }
 
-    const userId = (interaction.data
-      .options[0] as ApplicationCommandInteractionDataOptionUser).value;
-    const reason = interaction.data.options[1]
-      ? (interaction.data
-          .options[1] as ApplicationCommandInteractionDataOptionString).value
+    const userId = interaction.options[0].value as string;
+    const reason = interaction.options[1]
+      ? (interaction.options[1].value as string)
       : undefined;
 
-    const guild = await client.guilds.fetch(interaction.guild_id);
-    const member = await guild.members.fetch(userId);
+    const member = await interaction.guild.members.fetch(userId);
     await member.ban({ reason });
 
-    await respondToInteraction(interaction, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content:
-          `${member.user.username}#${member.user.discriminator} has been banned.` +
-          `\n\n**Reason:** ${reason ?? "(not set)"}`,
-      },
-    });
+    await interaction.reply(
+      `${member.user.username}#${member.user.discriminator} has been banned.` +
+        `\n\n**Reason:** ${reason ?? "(not set)"}`
+    );
   }
 }
 

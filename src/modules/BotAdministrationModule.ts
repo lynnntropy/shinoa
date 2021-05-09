@@ -1,13 +1,5 @@
-import {
-  APIApplicationCommandOption,
-  APIInteraction,
-  ApplicationCommandInteractionDataOptionString,
-  ApplicationCommandOptionType,
-  InteractionResponseType,
-  MessageFlags,
-} from "discord-api-types/v8";
+import { ApplicationCommandOptionData, CommandInteraction } from "discord.js";
 import client from "../client";
-import { respondToInteraction } from "../discord/api";
 import prisma from "../prisma";
 import { Command, Module } from "../types";
 
@@ -15,29 +7,21 @@ class SayCommand implements Command {
   name = "say";
   description = "Make Shinoa say something";
   isOwnerOnly = true;
-  options: APIApplicationCommandOption[] = [
+  options: ApplicationCommandOptionData[] = [
     {
       name: "content",
       description: "What you want her to say.",
-      type: ApplicationCommandOptionType.STRING,
+      type: "STRING",
       required: true,
     },
   ];
 
-  async handle(interaction: APIInteraction) {
-    const channel = await client.channels.fetch(interaction.channel_id);
-
-    if (channel.isText()) {
-      await channel.send(
-        (interaction.data
-          .options[0] as ApplicationCommandInteractionDataOptionString).value
-      );
+  async handle(interaction: CommandInteraction) {
+    if (interaction.channel.isText()) {
+      await interaction.channel.send(interaction.options[0].value);
     }
 
-    await respondToInteraction(interaction, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { flags: MessageFlags.EPHEMERAL, content: "Done! 🥰" },
-    });
+    interaction.reply({ content: "Done!", ephemeral: true });
   }
 }
 
@@ -45,18 +29,17 @@ class EvalCommand implements Command {
   name = "eval";
   description = "Runs arbitrary JavaScript (obviously owner-only).";
   isOwnerOnly = true;
-  options: APIApplicationCommandOption[] = [
+  options: ApplicationCommandOptionData[] = [
     {
       name: "input",
       description: "The code to run.",
-      type: ApplicationCommandOptionType.STRING,
+      type: "STRING",
       required: true,
     },
   ];
 
-  async handle(interaction: APIInteraction) {
-    const input = (interaction.data
-      .options[0] as ApplicationCommandInteractionDataOptionString).value;
+  async handle(interaction: CommandInteraction) {
+    const input = interaction.options[0].value as string;
 
     const context = {
       client,
@@ -64,11 +47,7 @@ class EvalCommand implements Command {
     };
 
     const output = eval(input);
-
-    await respondToInteraction(interaction, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: `\`\`\`\n${output}\n\`\`\`` },
-    });
+    await interaction.reply(`\`\`\`\n${output}\n\`\`\``);
   }
 }
 

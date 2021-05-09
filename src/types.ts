@@ -1,26 +1,28 @@
 import {
-  APIApplicationCommandOption,
-  APIInteraction,
-} from "discord-api-types/v8";
-import { PermissionResolvable, Snowflake } from "discord.js";
+  ApplicationCommandOptionData,
+  ClientEvents,
+  CommandInteraction,
+  PermissionResolvable,
+  Snowflake,
+} from "discord.js";
 
 export interface Command {
   name: string;
   description: string;
-  options?: APIApplicationCommandOption[];
+  options?: ApplicationCommandOptionData[];
   requiredPermissions?: PermissionResolvable;
   isOwnerOnly?: boolean;
   defaultPermission?: boolean;
 
-  handle: (input: APIInteraction) => Promise<unknown>;
+  handle: (input: CommandInteraction) => Promise<unknown>;
 }
 
-export interface EventHandler<T> {
-  (payload: T): Promise<unknown>;
+export interface EventHandler<K extends keyof ClientEvents> {
+  (...args: ClientEvents[K]): void;
 }
 
 export interface HandlerCollection {
-  [event: string]: EventHandler<unknown>[];
+  [event: string]: EventHandler<keyof ClientEvents>[];
 }
 
 export interface Module {

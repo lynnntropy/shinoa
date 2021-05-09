@@ -12,6 +12,7 @@ import {
   MessageEmbedOptions,
 } from "discord.js";
 import logger from "../logger";
+import config from "../config";
 
 // TODO tie /quote add to a role rather than a permission
 // TODO add some way to page through search results
@@ -86,7 +87,10 @@ class QuotesCommand implements Command {
     ).members.fetch(interaction.member.user.id);
 
     if (subcommand === "add") {
-      if (!member.permissions.has("MANAGE_MESSAGES")) {
+      if (
+        member.user.id !== config.ownerId &&
+        !member.permissions.has("MANAGE_MESSAGES")
+      ) {
         await interaction.reply({
           content: "You need the MANAGE_MESSAGES permission to add quotes.",
           ephemeral: true,

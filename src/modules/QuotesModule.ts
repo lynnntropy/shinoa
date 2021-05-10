@@ -74,6 +74,7 @@ class QuotesCommand extends Command {
             e.code === "P2002"
           ) {
             await interaction.reply("That message has already been quoted.");
+            return;
           } else {
             throw e;
           }

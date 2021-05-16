@@ -39,7 +39,10 @@ class QuotesCommand extends Command {
 
         if (
           member.user.id !== config.ownerId &&
-          !member.permissions.has("MANAGE_MESSAGES")
+          !member.permissions.has("MANAGE_MESSAGES") &&
+          !member.roles.cache.has(
+            config.guilds[interaction.guild.id]?.quotes?.quoteManagerRoleId
+          )
         ) {
           await interaction.reply({
             content: "You need the MANAGE_MESSAGES permission to add quotes.",
@@ -221,7 +224,7 @@ const buildEmbedForQuotedMessage = async (
       iconURL: `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}`,
     },
     description: message.content,
-    timestamp: new Date((message.createdAt as unknown) as string),
+    timestamp: new Date(message.createdAt as unknown as string),
     fields: [],
   };
 

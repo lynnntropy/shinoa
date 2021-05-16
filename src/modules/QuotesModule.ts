@@ -10,10 +10,8 @@ import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
 import { Module, SerializableMessage } from "../internal/types";
 
-// TODO tie /quote add to a role rather than a permission
 // TODO add some way to page through search results
 // TODO migrate images for Philia quotes
-// TODO show IDs and allow get/delete based on those?
 
 class QuotesCommand extends Command {
   name = "quotes";
@@ -63,13 +61,23 @@ class QuotesCommand extends Command {
         );
 
         try {
-          await prisma.quote.create({
+          const quote = await prisma.quote.create({
             data: {
               guildId: message.guild.id,
               userId: message.author.id,
               messageId: message.id,
               message,
             },
+          });
+
+          await interaction.reply({
+            content: "Quote added!",
+            embeds: [
+              await buildEmbedForQuotedMessage(
+                quote.message as SerializableMessage,
+                quote.id
+              ),
+            ],
           });
         } catch (e) {
           if (
@@ -82,10 +90,31 @@ class QuotesCommand extends Command {
             throw e;
           }
         }
+      },
+    },
+    {
+      name: "show",
+      description: "Shows a specific quote.",
+      options: [
+        {
+          name: "quote_number",
+          description: "The number of the quote you want to show.",
+          type: "INTEGER",
+          required: true,
+        },
+      ],
+
+      async handle(interaction) {
+        const number = interaction.options[0].value as number;
+        const quote = await prisma.quote.findUnique({ where: { id: number } });
 
         await interaction.reply({
-          content: "Quote added!",
-          embeds: [await buildEmbedForQuotedMessage(message)],
+          embeds: [
+            await buildEmbedForQuotedMessage(
+              quote.message as SerializableMessage,
+              quote.id
+            ),
+          ],
         });
       },
     },
@@ -150,7 +179,8 @@ class QuotesCommand extends Command {
         await interaction.reply({
           embeds: [
             await buildEmbedForQuotedMessage(
-              quote.message as SerializableMessage
+              quote.message as SerializableMessage,
+              quote.id
             ),
           ],
         });
@@ -195,7 +225,8 @@ class QuotesCommand extends Command {
         await interaction.reply({
           embeds: [
             await buildEmbedForQuotedMessage(
-              quote.message as SerializableMessage
+              quote.message as SerializableMessage,
+              quote.id
             ),
           ],
         });
@@ -216,7 +247,8 @@ class QuotesCommand extends Command {
 }
 
 const buildEmbedForQuotedMessage = async (
-  message: SerializableMessage
+  message: SerializableMessage,
+  quoteId: number
 ): Promise<MessageEmbedOptions> => {
   const embed: MessageEmbedOptions = {
     author: {
@@ -226,6 +258,7 @@ const buildEmbedForQuotedMessage = async (
     description: message.content,
     timestamp: new Date(message.createdAt as unknown as string),
     fields: [],
+    footer: { text: `Quote #${quoteId}` },
   };
 
   try {

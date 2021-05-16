@@ -4,7 +4,7 @@ import client from "../client";
 import prisma from "../prisma";
 import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
-import { Snowflake, MessageEmbedOptions } from "discord.js";
+import { Snowflake, MessageEmbedOptions, GuildMember } from "discord.js";
 import logger from "../logger";
 import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
@@ -35,15 +35,9 @@ class QuotesCommand extends Command {
           await client.guilds.fetch(interaction.guildID)
         ).members.fetch(interaction.member.user.id);
 
-        if (
-          member.user.id !== config.ownerId &&
-          !member.permissions.has("MANAGE_MESSAGES") &&
-          !member.roles.cache.has(
-            config.guilds[interaction.guild.id]?.quotes?.quoteManagerRoleId
-          )
-        ) {
+        if (!memberCanManageQuotes(member)) {
           await interaction.reply({
-            content: "You need the MANAGE_MESSAGES permission to add quotes.",
+            content: "You don't have permission to add quotes.",
             ephemeral: true,
           });
 
@@ -90,6 +84,38 @@ class QuotesCommand extends Command {
             throw e;
           }
         }
+      },
+    },
+    {
+      name: "delete",
+      description: "Deletes a quote.",
+      options: [
+        {
+          name: "quote_number",
+          description: "The number of the quote you want to delete.",
+          type: "INTEGER",
+          required: true,
+        },
+      ],
+
+      async handle(interaction) {
+        const member = await (
+          await client.guilds.fetch(interaction.guildID)
+        ).members.fetch(interaction.member.user.id);
+
+        if (!memberCanManageQuotes(member)) {
+          await interaction.reply({
+            content: "You don't have permission to delete quotes.",
+            ephemeral: true,
+          });
+
+          return;
+        }
+
+        const number = interaction.options[0].value as number;
+        await prisma.quote.delete({ where: { id: number } });
+
+        await interaction.reply(`Quote #${number} deleted.`);
       },
     },
     {
@@ -292,6 +318,23 @@ const buildEmbedForQuotedMessage = async (
   }
 
   return embed;
+};
+
+const memberCanManageQuotes = (member: GuildMember) => {
+  if (member.user.id === config.ownerId) {
+    return true;
+  }
+
+  if (
+    member.permissions.has("MANAGE_MESSAGES") ||
+    member.roles.cache.has(
+      config.guilds[member.guild.id]?.quotes?.quoteManagerRoleId
+    )
+  ) {
+    return true;
+  }
+
+  return false;
 };
 
 const QuotesModule: Module = {

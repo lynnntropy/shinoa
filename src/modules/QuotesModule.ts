@@ -4,13 +4,21 @@ import client from "../client";
 import prisma from "../prisma";
 import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
-import { Snowflake, MessageEmbedOptions, GuildMember } from "discord.js";
+import {
+  Snowflake,
+  MessageEmbedOptions,
+  GuildMember,
+  Message,
+  MessageReaction,
+} from "discord.js";
 import logger from "../logger";
 import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
 import { Module, SerializableMessage } from "../internal/types";
 
-// TODO add some way to page through search results
+const PREVIOUS_REACTION_EMOJI = "⏮";
+const NEXT_REACTION_EMOJI = "⏭";
+
 // TODO migrate images for Philia quotes
 
 class QuotesCommand extends Command {
@@ -163,53 +171,101 @@ class QuotesCommand extends Command {
 
       async handle(interaction) {
         const query = interaction.options[0].value as string;
-
         let userId: Snowflake;
 
         if (interaction.options[1]) {
           userId = interaction.options[1].value as string;
         }
 
-        const results = await prisma.$queryRaw<Quote[]>`
-          SELECT
-          *,
-          ts_rank_cd(
-            to_tsvector(
-              message ->> 'content' || ' ' ||
-              coalesce(message #>> '{author,username}', '') || ' ' ||
-              coalesce(message #>> '{member,nickname}', '')
-            ),
-            plainto_tsquery(${query})
-          ) AS rank
-          FROM "Quote"
-          WHERE "guildId" = ${interaction.guild.id}
-            ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
-            AND to_tsvector(
-              message ->> 'content' || ' ' ||
-              coalesce(message #>> '{author,username}', '') || ' ' ||
-              coalesce(message #>> '{member,nickname}', '')
-            )
-            @@ plainto_tsquery(${query})
-          ORDER BY rank DESC
-          LIMIT 1;
-        `;
+        await interaction.defer();
 
-        if (!results.length) {
-          await interaction.reply("No quotes found for that query.");
+        const result = await searchQuotes({
+          guildId: interaction.guild.id,
+          query,
+          userId,
+        });
 
+        if (!result) {
+          await interaction.editReply("No quotes found for that query.");
           return;
         }
 
-        const quote = results[0];
+        if (result.total_results === 1) {
+          await interaction.editReply({
+            embeds: [
+              await buildEmbedForQuotedMessage(
+                result.message as SerializableMessage,
+                result.id
+              ),
+            ],
+          });
+        } else {
+          let offset = 0;
 
-        await interaction.reply({
-          embeds: [
-            await buildEmbedForQuotedMessage(
-              quote.message as SerializableMessage,
-              quote.id
-            ),
-          ],
-        });
+          const renderCurrentQuote = async () => {
+            const currentQuote =
+              offset === 0
+                ? result
+                : await searchQuotes({
+                    guildId: interaction.guild.id,
+                    query,
+                    userId,
+                    offset,
+                  });
+
+            await interaction.editReply({
+              content: `Showing quote **${offset + 1}** of ${
+                result.total_results
+              } found.`,
+              embeds: [
+                await buildEmbedForQuotedMessage(
+                  currentQuote.message as SerializableMessage,
+                  currentQuote.id
+                ),
+              ],
+            });
+          };
+
+          await renderCurrentQuote();
+
+          const reply = await interaction.fetchReply();
+
+          if (!(reply instanceof Message)) {
+            logger.warn(
+              `Interaction reply ID ${reply.id} wasn't instance of Message.`
+            );
+            return;
+          }
+
+          await reply.react(PREVIOUS_REACTION_EMOJI);
+          await reply.react(NEXT_REACTION_EMOJI);
+
+          const reactionCollector = reply.createReactionCollector(
+            (reaction, user) =>
+              user.id === interaction.user.id &&
+              [PREVIOUS_REACTION_EMOJI, NEXT_REACTION_EMOJI].includes(
+                reaction.emoji.name
+              ),
+            { dispose: true, idle: 300000 }
+          );
+
+          const onReaction = async (reaction: MessageReaction) => {
+            if (reaction.emoji.name === PREVIOUS_REACTION_EMOJI) {
+              if (offset <= 0) return;
+              offset--;
+              await renderCurrentQuote();
+            }
+
+            if (reaction.emoji.name === NEXT_REACTION_EMOJI) {
+              if (offset >= result.total_results - 1) return;
+              offset++;
+              await renderCurrentQuote();
+            }
+          };
+
+          reactionCollector.on("collect", onReaction);
+          reactionCollector.on("remove", onReaction);
+        }
       },
     },
     {
@@ -335,6 +391,69 @@ const memberCanManageQuotes = (member: GuildMember) => {
   }
 
   return false;
+};
+
+interface SearchInput {
+  guildId: Snowflake;
+  query?: string;
+  userId?: Snowflake;
+  offset?: number;
+}
+
+interface SearchResult extends Quote {
+  rank: number;
+  total_results: number;
+}
+
+const searchQuotes = async (input: SearchInput) => {
+  const results = await prisma.$queryRaw<SearchResult[]>`
+    SELECT
+      *,
+      ${
+        input.query
+          ? Prisma.sql`
+            ts_rank_cd(
+              to_tsvector(
+                message ->> 'content' || ' ' ||
+                coalesce(message #>> '{author,username}', '') || ' ' ||
+                coalesce(message #>> '{member,nickname}', '')
+              ),
+              plainto_tsquery(${input.query})
+            ) AS rank,
+          `
+          : Prisma.empty
+      }
+      count(*) OVER() AS total_results
+    FROM "Quote"
+    WHERE "guildId" = ${input.guildId}
+      ${
+        input.userId ? Prisma.sql`AND "userId" = ${input.userId}` : Prisma.empty
+      }
+      ${
+        input.query
+          ? Prisma.sql`
+            AND to_tsvector(
+              message ->> 'content' || ' ' ||
+              coalesce(message #>> '{author,username}', '') || ' ' ||
+              coalesce(message #>> '{member,nickname}', '')
+            )
+            @@ plainto_tsquery(${input.query})
+          `
+          : Prisma.empty
+      }
+      ORDER BY
+        ${input.query ? Prisma.sql`rank DESC,` : Prisma.empty}
+        id DESC
+    LIMIT 1
+    ${
+      input.offset !== undefined
+        ? Prisma.sql`OFFSET ${input.offset}`
+        : Prisma.empty
+    }
+    ;
+  `;
+
+  return results[0];
 };
 
 const QuotesModule: Module = {

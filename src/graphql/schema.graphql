@@ -1,0 +1,53 @@
+type QuoteMessageAttachment {
+  id: String!
+  url: String!
+}
+
+type QuoteMessageAuthor {
+  id: String!
+  avatar: String
+  discriminator: String!
+  username: String!
+}
+
+type QuoteMessageChannel {
+  id: String!
+}
+
+type QuoteMessageGuild {
+  id: String!
+  name: String!
+}
+
+type QuoteMessageMember {
+  nickname: String
+}
+
+type QuoteMessage {
+  id: String!
+  attachments: [QuoteMessageAttachment]
+  author: QuoteMessageAuthor!
+  channel: QuoteMessageChannel!
+  content: String!
+  createdAt: String!
+  guild: QuoteMessageGuild!
+  member: QuoteMessageMember!
+}
+
+type Quote {
+  id: Int!
+  guildId: String!
+  userId: String!
+  messageId: String
+  message: QuoteMessage!
+}
+
+input QuoteSearchInput {
+  guildId: String!
+  query: String
+  userId: String
+}
+
+type Query {
+  quotes(searchInput: QuoteSearchInput): [Quote]
+}

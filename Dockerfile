@@ -17,6 +17,8 @@ ENV LOG_LEVEL=info
 
 RUN chmod +x .infra/docker/entrypoint.sh
 
+EXPOSE 4000
+
 ENTRYPOINT [".infra/docker/entrypoint.sh"]
 
 CMD node dist/index.js

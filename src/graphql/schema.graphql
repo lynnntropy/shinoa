@@ -48,6 +48,28 @@ input QuoteSearchInput {
   userId: String
 }
 
+type User {
+  id: String!
+  username: String!
+  discriminator: String!
+  avatar: String
+}
+
+type GuildMember {
+  user: User
+  nick: String
+}
+
+type Guild {
+  id: String!
+  name: String!
+  icon: String
+
+  members(query: String!, limit: Int = 1): [GuildMember]
+}
+
 type Query {
   quotes(searchInput: QuoteSearchInput): [Quote]
+  guilds: [Guild]
+  guild(id: String!): Guild
 }

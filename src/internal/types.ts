@@ -1,5 +1,4 @@
 import { ClientEvents, Snowflake } from "discord.js";
-import { IResolvers } from "graphql-tools";
 import { Command } from "./command";
 
 export interface EventHandler<K extends keyof ClientEvents> {
@@ -13,7 +12,6 @@ export interface HandlerCollection {
 export interface Module {
   commands: Command[];
   handlers: HandlerCollection;
-  resolvers?: IResolvers;
 }
 
 export interface SerializableMessage {

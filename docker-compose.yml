@@ -3,8 +3,6 @@ version: "3.8"
 services:
   shinoa:
     image: node:14-alpine
-    ports:
-      - 8080:4000
     command: /bin/sh -c "yarn && yarn dev"
     working_dir: /app
     volumes:

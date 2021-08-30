@@ -11,6 +11,8 @@ COPY . .
 RUN yarn prisma generate
 RUN yarn build
 
+RUN npx cpx "src/**/*.graphql" ./dist
+
 ENV NODE_ENV=production
 ENV NODE_OPTIONS=--unhandled-rejections=throw
 ENV LOG_LEVEL=info

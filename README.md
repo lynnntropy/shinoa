@@ -1,6 +1,6 @@
 # shinoa
 
-Shinoa is a small, general-purpose Discord bot, mostly meant for use by servers I spend a lot of time in.
+Shinoa is a ~~small~~ compact general-purpose Discord bot.
 
 ## Built with
 

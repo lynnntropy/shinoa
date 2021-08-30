@@ -15,6 +15,7 @@ import logger from "../logger";
 import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
 import { Module, SerializableMessage } from "../internal/types";
+import { GraphQLFieldResolver } from "graphql";
 
 const PREVIOUS_REACTION_EMOJI = "⏮";
 const NEXT_REACTION_EMOJI = "⏭";
@@ -179,11 +180,11 @@ class QuotesCommand extends Command {
 
         await interaction.defer();
 
-        const result = await searchQuotes({
+        const result = (await searchQuotes({
           guildId: interaction.guild.id,
           query,
           userId,
-        });
+        })) as SearchResult;
 
         if (!result) {
           await interaction.editReply("No quotes found for that query.");
@@ -206,12 +207,12 @@ class QuotesCommand extends Command {
             const currentQuote =
               offset === 0
                 ? result
-                : await searchQuotes({
+                : ((await searchQuotes({
                     guildId: interaction.guild.id,
                     query,
                     userId,
                     offset,
-                  });
+                  })) as SearchResult);
 
             await interaction.editReply({
               content: `Showing quote **${offset + 1}** of ${
@@ -328,6 +329,23 @@ class QuotesCommand extends Command {
   }
 }
 
+const quotesResolver: GraphQLFieldResolver<
+  any,
+  any,
+  { searchInput: { guildId: string; query?: string; userId?: string } }
+> = async (_, args) => {
+  const { searchInput } = args;
+
+  const results = await searchQuotes({
+    returnAll: true,
+    guildId: searchInput.guildId,
+    query: searchInput.query,
+    userId: searchInput.userId,
+  });
+
+  return results;
+};
+
 const buildEmbedForQuotedMessage = async (
   message: SerializableMessage,
   quoteId: number
@@ -398,6 +416,7 @@ interface SearchInput {
   query?: string;
   userId?: Snowflake;
   offset?: number;
+  returnAll?: boolean;
 }
 
 interface SearchResult extends Quote {
@@ -444,7 +463,7 @@ const searchQuotes = async (input: SearchInput) => {
       ORDER BY
         ${input.query ? Prisma.sql`rank DESC,` : Prisma.empty}
         id DESC
-    LIMIT 1
+    ${input.returnAll ? Prisma.empty : Prisma.sql`LIMIT 1`}
     ${
       input.offset !== undefined
         ? Prisma.sql`OFFSET ${input.offset}`
@@ -453,12 +472,21 @@ const searchQuotes = async (input: SearchInput) => {
     ;
   `;
 
-  return results[0];
+  if (input.returnAll) {
+    return results;
+  } else {
+    return results[0];
+  }
 };
 
 const QuotesModule: Module = {
   commands: [new QuotesCommand()],
   handlers: {},
+  resolvers: {
+    Query: {
+      quotes: quotesResolver,
+    },
+  },
 };
 
 export default QuotesModule;

@@ -57,4 +57,5 @@ jobs:
           namespace: "shinoa"
           manifests: |
             .infra/kubernetes/deployment.yaml
+            .infra/kubernetes/service.yaml
           images: omegavesko/shinoa:${{ github.sha }}

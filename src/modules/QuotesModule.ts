@@ -341,6 +341,7 @@ const quotesResolver: GraphQLFieldResolver<
     guildId: searchInput.guildId,
     query: searchInput.query,
     userId: searchInput.userId,
+    fetchMembers: true,
   });
 
   return results;
@@ -417,6 +418,7 @@ interface SearchInput {
   userId?: Snowflake;
   offset?: number;
   returnAll?: boolean;
+  fetchMembers?: boolean;
 }
 
 interface SearchResult extends Quote {
@@ -425,7 +427,7 @@ interface SearchResult extends Quote {
 }
 
 const searchQuotes = async (input: SearchInput) => {
-  const results = await prisma.$queryRaw<SearchResult[]>`
+  let results = await prisma.$queryRaw<SearchResult[]>`
     SELECT
       *,
       ${
@@ -471,6 +473,49 @@ const searchQuotes = async (input: SearchInput) => {
     }
     ;
   `;
+
+  if (input.fetchMembers) {
+    results = await Promise.all(
+      results.map(async (result) => {
+        const initialMessage: SerializableMessage =
+          result.message as unknown as any;
+
+        try {
+          const member = await (
+            await client.guilds.fetch(result.guildId)
+          ).members.fetch(result.userId);
+
+          const message: SerializableMessage = {
+            ...initialMessage,
+            author: {
+              ...initialMessage.author,
+              avatar: member.user.avatar,
+              discriminator: member.user.discriminator,
+              username: member.user.username,
+            },
+            member: {
+              ...initialMessage.member,
+              nickname: member.nickname,
+            },
+          };
+
+          return { ...result, message };
+        } catch (e) {
+          logger.debug(`Couldn't fetch a member for user ID ${result.userId}.`);
+        }
+
+        const message: SerializableMessage = {
+          ...initialMessage,
+          author: {
+            ...initialMessage.author,
+            avatar: null,
+          },
+        };
+
+        return { ...result, message };
+      })
+    );
+  }
 
   if (input.returnAll) {
     return results;

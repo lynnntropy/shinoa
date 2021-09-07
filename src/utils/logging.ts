@@ -25,7 +25,7 @@ export const logInteraction = async (interaction: CommandInteraction) => {
     return;
   }
 
-  if (interaction.channel && interaction.channel.type === "dm") {
+  if (interaction.channel && interaction.channel.type === "DM") {
     logger.info(
       `Command /${interaction.commandName} used by ` +
         `${interaction.user.username}#${interaction.user.discriminator} ` +
@@ -39,7 +39,7 @@ export const logInteraction = async (interaction: CommandInteraction) => {
 export const logMessage = async (message: Message) => {
   logger.trace(message);
 
-  if (message.channel.type === "text") {
+  if (message.channel.type === "GUILD_TEXT") {
     const channel = message.channel as TextChannel | NewsChannel;
     const guild = (channel as TextChannel).guild;
 
@@ -54,7 +54,7 @@ export const logMessage = async (message: Message) => {
     return;
   }
 
-  if (message.channel.type === "dm") {
+  if (message.channel.type === "DM") {
     const channel = message.channel as DMChannel;
 
     logger.debug(

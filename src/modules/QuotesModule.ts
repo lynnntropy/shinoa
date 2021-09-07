@@ -41,7 +41,7 @@ class QuotesCommand extends Command {
 
       async handle(interaction) {
         const member = await (
-          await client.guilds.fetch(interaction.guildID)
+          await client.guilds.fetch(interaction.guildId)
         ).members.fetch(interaction.member.user.id);
 
         if (!memberCanManageQuotes(member)) {
@@ -53,7 +53,7 @@ class QuotesCommand extends Command {
           return;
         }
 
-        const messageId = interaction.options[0].value as string;
+        const messageId = interaction.options.data[0].value as string;
 
         if (!interaction.channel.isText()) {
           throw new Error("Command must be called in a text channel.");
@@ -109,7 +109,7 @@ class QuotesCommand extends Command {
 
       async handle(interaction) {
         const member = await (
-          await client.guilds.fetch(interaction.guildID)
+          await client.guilds.fetch(interaction.guildId)
         ).members.fetch(interaction.member.user.id);
 
         if (!memberCanManageQuotes(member)) {
@@ -121,7 +121,7 @@ class QuotesCommand extends Command {
           return;
         }
 
-        const number = interaction.options[0].value as number;
+        const number = interaction.options.data[0].value as number;
         await prisma.quote.delete({ where: { id: number } });
 
         await interaction.reply(`Quote #${number} deleted.`);
@@ -140,7 +140,7 @@ class QuotesCommand extends Command {
       ],
 
       async handle(interaction) {
-        const number = interaction.options[0].value as number;
+        const number = interaction.options.data[0].value as number;
         const quote = await prisma.quote.findUnique({ where: { id: number } });
 
         await interaction.reply({
@@ -171,14 +171,14 @@ class QuotesCommand extends Command {
       ],
 
       async handle(interaction) {
-        const query = interaction.options[0].value as string;
+        const query = interaction.options.data[0].value as string;
         let userId: Snowflake;
 
-        if (interaction.options[1]) {
-          userId = interaction.options[1].value as string;
+        if (interaction.options.data[1]) {
+          userId = interaction.options.data[1].value as string;
         }
 
-        await interaction.defer();
+        await interaction.deferReply();
 
         const result = (await searchQuotes({
           guildId: interaction.guild.id,
@@ -241,14 +241,15 @@ class QuotesCommand extends Command {
           await reply.react(PREVIOUS_REACTION_EMOJI);
           await reply.react(NEXT_REACTION_EMOJI);
 
-          const reactionCollector = reply.createReactionCollector(
-            (reaction, user) =>
+          const reactionCollector = reply.createReactionCollector({
+            filter: (reaction, user) =>
               user.id === interaction.user.id &&
               [PREVIOUS_REACTION_EMOJI, NEXT_REACTION_EMOJI].includes(
                 reaction.emoji.name
               ),
-            { dispose: true, idle: 300000 }
-          );
+            dispose: true,
+            idle: 300000,
+          });
 
           const onReaction = async (reaction: MessageReaction) => {
             if (reaction.emoji.name === PREVIOUS_REACTION_EMOJI) {
@@ -284,7 +285,7 @@ class QuotesCommand extends Command {
         let userId: Snowflake;
 
         if (interaction.options) {
-          userId = interaction.options[0].value as string;
+          userId = interaction.options.data[0].value as string;
         }
 
         const results = await prisma.$queryRaw<Quote[]>`

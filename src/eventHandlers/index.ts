@@ -13,8 +13,8 @@ let handlers: HandlerCollection = {
     setStatus,
     synchronizeCommands,
   ],
-  interaction: [logInteraction, handleInteraction],
-  message: [logMessage],
+  interactionCreate: [logInteraction, handleInteraction],
+  messageCreate: [logMessage],
 };
 
 handlers = mergeHandlerCollections([handlers, moduleHandlers]);

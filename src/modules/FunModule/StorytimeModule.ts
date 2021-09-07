@@ -59,7 +59,7 @@ class StorytimeCommand extends Command {
       async handle(interaction) {
         const channel = client.channels.cache.get(interaction.channel.id);
 
-        await interaction.defer();
+        await interaction.deferReply();
 
         const story = await exportMessagesToString(channel as TextChannel);
 
@@ -71,7 +71,9 @@ class StorytimeCommand extends Command {
   ];
 }
 
-const handleMessage: EventHandler<"message"> = async (message: Message) => {
+const handleMessage: EventHandler<"messageCreate"> = async (
+  message: Message
+) => {
   if (!(await isEnabledForChannel(message.channel.id))) {
     return;
   }
@@ -159,17 +161,16 @@ const exportMessagesToString = async (
   let cursor: Snowflake | null = null;
 
   while (true) {
-    const batch = await channel.messages.fetch(
-      { limit: EXPORT_BATCH_SIZE, before: cursor },
-      true,
-      true
-    );
+    const batch = await channel.messages.fetch({
+      limit: EXPORT_BATCH_SIZE,
+      before: cursor,
+    });
 
     logger.debug(`Fetched batch of ${batch.size} messages.`);
 
     cursor = batch.last()?.id;
 
-    messages.push(...batch.array());
+    messages.push(...batch.values());
 
     if (batch.size < EXPORT_BATCH_SIZE) {
       break;
@@ -195,7 +196,7 @@ const exportMessagesToString = async (
 const StorytimeModule: Module = {
   commands: [new StorytimeCommand()],
   handlers: {
-    message: [handleMessage],
+    messageCreate: [handleMessage],
     messageUpdate: [handleMessageUpdate],
   },
 };

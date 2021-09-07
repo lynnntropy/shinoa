@@ -15,14 +15,15 @@ interface AppResolvers extends IResolvers {
 
 const resolvers: AppResolvers = {
   Query: {
-    guilds: () => client.guilds.cache.array(),
+    guilds: () => [...client.guilds.cache.values()],
     guild: async (_, args) => await client.guilds.fetch(args.id),
   },
   Guild: {
-    members: async (parent, args) =>
-      (
+    members: async (parent, args) => [
+      ...(
         await parent.members.search({ query: args.query, limit: args.limit })
-      ).array(),
+      ).values(),
+    ],
   },
 };
 

@@ -23,7 +23,7 @@ export const validateInteractionIsAllowed = async (
     }
 
     if (command.requiredPermissions) {
-      if (interaction.channel.type !== "text") {
+      if (interaction.channel.type !== "GUILD_TEXT") {
         await interaction.reply("That command can only be used in a server.");
         throw new Error(
           `Command /${command.name} can only be used in a guild.`

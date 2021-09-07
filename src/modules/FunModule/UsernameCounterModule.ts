@@ -29,7 +29,7 @@ class UsernameCounterAdminCommand extends Command {
           where: { key },
         });
 
-        const keyword = interaction.options[0].value as string;
+        const keyword = interaction.options.data[0].value as string;
 
         if (kv === null) {
           kv = {
@@ -68,7 +68,7 @@ class UsernameCounterAdminCommand extends Command {
           where: { key },
         });
 
-        const keyword = interaction.options[0].value as string;
+        const keyword = interaction.options.data[0].value as string;
 
         if (kv === null) {
           return;

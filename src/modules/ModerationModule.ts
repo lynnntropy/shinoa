@@ -34,9 +34,9 @@ class KickCommand extends Command {
       return;
     }
 
-    const userId = interaction.options[0].value as string;
-    const reason = interaction.options[1]
-      ? (interaction.options[1].value as string)
+    const userId = interaction.options.data[0].value as string;
+    const reason = interaction.options.data[1]
+      ? (interaction.options.data[1].value as string)
       : undefined;
 
     const member = await interaction.guild.members.fetch(userId);
@@ -76,9 +76,9 @@ class BanCommand extends Command {
       return;
     }
 
-    const userId = interaction.options[0].value as string;
-    const reason = interaction.options[1]
-      ? (interaction.options[1].value as string)
+    const userId = interaction.options.data[0].value as string;
+    const reason = interaction.options.data[1]
+      ? (interaction.options.data[1].value as string)
       : undefined;
 
     const member = await interaction.guild.members.fetch(userId);

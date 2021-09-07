@@ -5,7 +5,9 @@ import { EventHandler, Module } from "../../internal/types";
 
 const TRIGGER_CHANCE = environment.isProduction ? 0.01 : 1.0;
 
-const handleMessage: EventHandler<"message"> = async (message: Message) => {
+const handleMessage: EventHandler<"messageCreate"> = async (
+  message: Message
+) => {
   if (message.author.id === client.user.id) {
     return;
   }
@@ -34,7 +36,7 @@ const shouldTrigger = () => Math.random() <= TRIGGER_CHANCE;
 const AutoreplyModule: Module = {
   commands: [],
   handlers: {
-    message: [handleMessage],
+    messageCreate: [handleMessage],
   },
 };
 

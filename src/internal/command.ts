@@ -1,8 +1,11 @@
 import {
   ApplicationCommandOptionData,
+  ApplicationCommandSubCommandData,
   CommandInteraction,
+  CommandInteractionOptionResolver,
   PermissionResolvable,
 } from "discord.js";
+import client from "../client";
 
 export abstract class Command {
   abstract readonly name: string;
@@ -19,14 +22,17 @@ export abstract class Command {
 
     if (
       this.subCommands.length &&
-      interaction.options &&
-      interaction.options[0].type === "SUB_COMMAND"
+      interaction.options.data &&
+      interaction.options.data[0].type === "SUB_COMMAND"
     ) {
       const subCommand = this.subCommands.find(
-        (sc) => sc.name === interaction.options[0].name
+        (sc) => sc.name === interaction.options.getSubcommand()
       );
 
-      interaction.options = interaction.options[0].options;
+      interaction.options = new CommandInteractionOptionResolver(
+        client,
+        interaction.options.data[0].options
+      );
       await subCommand.handle(interaction);
       return;
     } else {
@@ -45,6 +51,6 @@ export abstract class Command {
 }
 
 export type CommandSubCommand = Omit<
-  ApplicationCommandOptionData,
-  "type" | "required" | "choices"
+  ApplicationCommandSubCommandData,
+  "type"
 > & { handle: (interaction: CommandInteraction) => Promise<void> };

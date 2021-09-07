@@ -12,7 +12,9 @@ const synchronizeCommands: EventHandler<"ready"> = async () => {
   logger.info("Synchronizing commands...");
   logger.debug("Synchronizing global commands...");
 
-  const existingCommands = (await client.application.commands.fetch()).array();
+  const existingCommands = [
+    ...(await client.application.commands.fetch()).values(),
+  ];
 
   for (const command of config.globalCommands) {
     const registeredCommand = existingCommands.find(
@@ -47,7 +49,7 @@ const synchronizeCommands: EventHandler<"ready"> = async () => {
     if (config.guilds[guildId].commands) {
       logger.debug(`Synchronizing commands for ${guild.name}...`);
 
-      const existingCommands = (await guild.commands.fetch()).array();
+      const existingCommands = [...(await guild.commands.fetch()).values()];
 
       for (const command of config.guilds[guildId].commands) {
         const registeredCommand = existingCommands.find(
@@ -83,9 +85,9 @@ const synchronizeCommands: EventHandler<"ready"> = async () => {
   // Clean up leftover commands in guilds that used to have guild
   // commands configured, but not anymore
 
-  for (const guild of client.guilds.cache.array()) {
+  for (const guild of client.guilds.cache.values()) {
     if (config.guilds[guild.id] === undefined) {
-      const commands = (await guild.commands.fetch()).array();
+      const commands = [...(await guild.commands.fetch()).values()];
 
       if (commands.length > 0) {
         logger.debug(`Deleting stale commands in guild /${guild.name}...`);

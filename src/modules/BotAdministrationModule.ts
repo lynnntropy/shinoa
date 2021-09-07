@@ -19,7 +19,9 @@ class SayCommand extends Command {
 
   async handle(interaction: CommandInteraction) {
     if (interaction.channel.isText()) {
-      await interaction.channel.send(interaction.options[0].value);
+      await interaction.channel.send(
+        interaction.options.data[0].value as string
+      );
     }
 
     interaction.reply({ content: "Done!", ephemeral: true });
@@ -40,7 +42,7 @@ class EvalCommand extends Command {
   ];
 
   async handle(interaction: CommandInteraction) {
-    const input = interaction.options[0].value as string;
+    const input = interaction.options.data[0].value as string;
 
     const context = {
       client,

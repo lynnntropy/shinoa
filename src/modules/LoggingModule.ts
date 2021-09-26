@@ -121,7 +121,45 @@ const handleVoiceStateUpdate: EventHandler<"voiceStateUpdate"> = async (
     embed.setDescription(`Left voice channel: **${oldState.channel.name}**`);
   }
 
-  loggingChannel.send({ embeds: [embed] });
+  await loggingChannel.send({ embeds: [embed] });
+};
+
+const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
+  if (!getLoggingConfigForGuild(member.guild.id)) {
+    return;
+  }
+
+  const loggingChannel = getDefaultLoggingChannel(member.guild.id, "joins");
+
+  const embed = new MessageEmbed()
+    .setColor("GREEN")
+    .setAuthor(
+      `${member.user.username}#${member.user.discriminator}`,
+      member.user.avatarURL()
+    )
+    .setDescription("Member joined");
+
+  await loggingChannel.send({ embeds: [embed] });
+};
+
+const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
+  member
+) => {
+  if (!getLoggingConfigForGuild(member.guild.id)) {
+    return;
+  }
+
+  const loggingChannel = getDefaultLoggingChannel(member.guild.id, "joins");
+
+  const embed = new MessageEmbed()
+    .setColor("RED")
+    .setAuthor(
+      `${member.user.username}#${member.user.discriminator}`,
+      member.user.avatarURL()
+    )
+    .setDescription("Member left");
+
+  await loggingChannel.send({ embeds: [embed] });
 };
 
 const getLoggingConfigForGuild = (id: string) => config.guilds[id]?.logging;
@@ -147,6 +185,8 @@ const LoggingModule: Module = {
     messageUpdate: [handleMessageUpdate],
     messageDelete: [handleMessageDelete],
     voiceStateUpdate: [handleVoiceStateUpdate],
+    guildMemberAdd: [handleGuildMemberAdd],
+    guildMemberRemove: [handleGuildMemberRemove],
   },
 };
 

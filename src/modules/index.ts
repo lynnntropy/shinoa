@@ -3,6 +3,7 @@ import { mergeResolverDefinitions } from "../utils/graphql";
 import { mergeHandlerCollections } from "../utils/modules";
 import BotAdministrationModule from "./BotAdministrationModule";
 import FunModule from "./FunModule";
+import LoggingModule from "./LoggingModule";
 import MiscModule from "./MiscModule";
 import ModerationModule from "./ModerationModule";
 import QuotesModule from "./QuotesModule";
@@ -13,6 +14,7 @@ const modules = [
   MiscModule,
   ModerationModule,
   QuotesModule,
+  LoggingModule,
 ];
 
 export const commands = flatten(modules.map((m) => m.commands));

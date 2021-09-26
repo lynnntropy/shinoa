@@ -1,3 +1,4 @@
+import { MessageEmbed, TextBasedChannels } from "discord.js";
 import client from "../client";
 import config from "../config";
 import { EventHandler, Module } from "../internal/types";
@@ -48,10 +49,70 @@ const handleReady: EventHandler<"ready"> = async () => {
   }
 };
 
+const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
+  oldMessage,
+  newMessage
+) => {
+  if (!getLoggingConfigForGuild(newMessage.guildId)) {
+    return;
+  }
+
+  const loggingChannel = getDefaultLoggingChannel(
+    newMessage.guildId,
+    "messages"
+  );
+
+  const embed = new MessageEmbed()
+    .setColor("YELLOW")
+    .setTitle(
+      `${newMessage.author.username}#${newMessage.author.discriminator} edited their message`
+    )
+    .addField("Before", oldMessage.cleanContent)
+    .addField("After", newMessage.cleanContent)
+    .setURL(newMessage.url);
+
+  loggingChannel.send({ embeds: [embed] });
+};
+
+const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
+  if (!getLoggingConfigForGuild(message.guildId)) {
+    return;
+  }
+
+  const loggingChannel = getDefaultLoggingChannel(message.guildId, "messages");
+
+  const embed = new MessageEmbed()
+    .setColor("RED")
+    .setTitle(
+      `${message.author.username}#${message.author.discriminator}'s message was deleted`
+    )
+    .setDescription(message.cleanContent);
+
+  loggingChannel.send({ embeds: [embed] });
+};
+
+const getLoggingConfigForGuild = (id: string) => config.guilds[id]?.logging;
+
+const getDefaultLoggingChannel = (
+  guildId: string,
+  eventType: keyof typeof defaultChannels
+) => {
+  const guildConfig = config.guilds[guildId];
+  const guild = client.guilds.resolve(guildId);
+
+  return guild.channels.cache.find(
+    (c) =>
+      c.parentId === guildConfig.logging.categoryId &&
+      c.name === defaultChannels[eventType]
+  ) as TextBasedChannels;
+};
+
 const LoggingModule: Module = {
   commands: [],
   handlers: {
     ready: [handleReady],
+    messageUpdate: [handleMessageUpdate],
+    messageDelete: [handleMessageDelete],
   },
 };
 

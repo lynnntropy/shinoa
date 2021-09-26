@@ -88,6 +88,39 @@ const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
     )
     .setDescription(message.cleanContent);
 
+  await loggingChannel.send({ embeds: [embed] });
+};
+
+const handleVoiceStateUpdate: EventHandler<"voiceStateUpdate"> = async (
+  oldState,
+  newState
+) => {
+  if (!getLoggingConfigForGuild(newState.guild.id)) {
+    return;
+  }
+
+  // We're only interested in channel changes
+  if (oldState.channelId === newState.channelId) {
+    return;
+  }
+
+  const loggingChannel = getDefaultLoggingChannel(newState.guild.id, "voice");
+
+  const joined = !!newState.channelId;
+
+  const embed = new MessageEmbed().setAuthor(
+    `${newState.member.user.username}#${newState.member.user.discriminator}`,
+    newState.member.user.avatarURL()
+  );
+
+  if (joined) {
+    embed.setColor("GREEN");
+    embed.setDescription(`Joined voice channel: **${newState.channel.name}**`);
+  } else {
+    embed.setColor("RED");
+    embed.setDescription(`Left voice channel: **${oldState.channel.name}**`);
+  }
+
   loggingChannel.send({ embeds: [embed] });
 };
 
@@ -113,6 +146,7 @@ const LoggingModule: Module = {
     ready: [handleReady],
     messageUpdate: [handleMessageUpdate],
     messageDelete: [handleMessageDelete],
+    voiceStateUpdate: [handleVoiceStateUpdate],
   },
 };
 

@@ -3,6 +3,8 @@ import client from "../client";
 import config from "../config";
 import { EventHandler, Module } from "../internal/types";
 import logger from "../logger";
+import { detailedDiff } from "deep-object-diff";
+import { isEmpty } from "lodash";
 
 const defaultChannels = {
   moderation: "mod-logs",
@@ -162,6 +164,67 @@ const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
   await loggingChannel.send({ embeds: [embed] });
 };
 
+const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
+  oldMember,
+  newMember
+) => {
+  if (!getLoggingConfigForGuild(newMember.guild.id)) {
+    return;
+  }
+
+  const loggingChannel = getDefaultLoggingChannel(
+    newMember.guild.id,
+    "userUpdates"
+  );
+
+  const diff: any = detailedDiff(oldMember, newMember);
+
+  let embedBody = ``;
+
+  embedBody =
+    `${embedBody}` +
+    `\nOriginal data\n\`\`\`\n` +
+    JSON.stringify(oldMember, undefined, 2) +
+    `\n\`\`\``;
+
+  if (!isEmpty(diff.added)) {
+    embedBody =
+      `${embedBody}` +
+      `\nProperties added\n\`\`\`\n` +
+      JSON.stringify(diff.added, undefined, 2) +
+      `\n\`\`\``;
+  }
+
+  if (!isEmpty(diff.deleted)) {
+    embedBody =
+      `${embedBody}` +
+      `\nProperties deleted\n\`\`\`\n` +
+      JSON.stringify(diff.deleted, undefined, 2) +
+      `\n\`\`\``;
+  }
+
+  if (!isEmpty(diff.updated)) {
+    embedBody =
+      `${embedBody}` +
+      `\nProperties updated\n\`\`\`\n` +
+      JSON.stringify(diff.updated, undefined, 2) +
+      `\n\`\`\``;
+  }
+
+  embedBody = embedBody.trim();
+
+  const embed = new MessageEmbed()
+    .setColor("BLURPLE")
+    .setAuthor(
+      `${newMember.user.username}#${newMember.user.discriminator}`,
+      newMember.user.avatarURL()
+    )
+    .setTitle("Member updated")
+    .setDescription(embedBody);
+
+  await loggingChannel.send({ embeds: [embed] });
+};
+
 const getLoggingConfigForGuild = (id: string) => config.guilds[id]?.logging;
 
 const getDefaultLoggingChannel = (
@@ -187,6 +250,7 @@ const LoggingModule: Module = {
     voiceStateUpdate: [handleVoiceStateUpdate],
     guildMemberAdd: [handleGuildMemberAdd],
     guildMemberRemove: [handleGuildMemberRemove],
+    guildMemberUpdate: [handleGuildMemberUpdate],
   },
 };
 

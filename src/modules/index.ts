@@ -1,4 +1,5 @@
 import { flatten } from "lodash";
+import emitter from "../emitter";
 import { mergeResolverDefinitions } from "../utils/graphql";
 import { mergeHandlerCollections } from "../utils/modules";
 import BotAdministrationModule from "./BotAdministrationModule";
@@ -16,6 +17,16 @@ const modules = [
   QuotesModule,
   LoggingModule,
 ];
+
+for (const module of modules) {
+  if (!module.appEventHandlers) {
+    continue;
+  }
+
+  for (const eventHandler of module.appEventHandlers) {
+    emitter.on(eventHandler[0], eventHandler[1]);
+  }
+}
 
 export const commands = flatten(modules.map((m) => m.commands));
 export const handlers = mergeHandlerCollections(modules.map((m) => m.handlers));

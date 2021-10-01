@@ -4,6 +4,7 @@ import {
   GuildMember,
   PermissionResolvable,
 } from "discord.js";
+import emitter, { ModerationEventType } from "../emitter";
 import { Command } from "../internal/command";
 import { Module } from "../internal/types";
 
@@ -41,6 +42,13 @@ class KickCommand extends Command {
 
     const member = await interaction.guild.members.fetch(userId);
     await (member as GuildMember).kick(reason);
+
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.KICK,
+      target: member,
+      moderator: interaction.member as GuildMember,
+      reason,
+    });
 
     await interaction.reply(
       `${member.user.username}#${member.user.discriminator} has been kicked.` +
@@ -83,6 +91,13 @@ class BanCommand extends Command {
 
     const member = await interaction.guild.members.fetch(userId);
     await member.ban({ reason });
+
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.BAN,
+      target: member,
+      moderator: interaction.member as GuildMember,
+      reason,
+    });
 
     await interaction.reply(
       `${member.user.username}#${member.user.discriminator} has been banned.` +

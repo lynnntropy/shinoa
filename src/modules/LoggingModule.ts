@@ -5,6 +5,7 @@ import { EventHandler, Module } from "../internal/types";
 import logger from "../logger";
 import { detailedDiff } from "deep-object-diff";
 import { isEmpty } from "lodash";
+import { ModerationEvent, ModerationEventType } from "../emitter";
 
 const defaultChannels = {
   moderation: "mod-logs",
@@ -225,6 +226,40 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   await loggingChannel.send({ embeds: [embed] });
 };
 
+const handleModerationEvent = async (event: ModerationEvent) => {
+  const {
+    target: { guild },
+  } = event;
+
+  if (!getLoggingConfigForGuild(guild.id)) {
+    return;
+  }
+
+  const loggingChannel = getDefaultLoggingChannel(guild.id, "moderation");
+
+  const embed = new MessageEmbed().setAuthor(
+    `${event.target.user.username}#${event.target.user.discriminator}`,
+    event.target.user.avatarURL()
+  );
+
+  if (event.type === ModerationEventType.KICK) {
+    embed.setTitle("Kicked");
+  } else if (event.type === ModerationEventType.BAN) {
+    embed.setTitle("Banned");
+  }
+
+  embed.addField(
+    "Moderator",
+    `${event.moderator.user.username}#${event.moderator.user.discriminator}`
+  );
+
+  if (event.reason) {
+    embed.addField("Reason", event.reason);
+  }
+
+  await loggingChannel.send({ embeds: [embed] });
+};
+
 const getLoggingConfigForGuild = (id: string) => config.guilds[id]?.logging;
 
 const getDefaultLoggingChannel = (
@@ -252,6 +287,7 @@ const LoggingModule: Module = {
     guildMemberRemove: [handleGuildMemberRemove],
     guildMemberUpdate: [handleGuildMemberUpdate],
   },
+  appEventHandlers: [["moderationEvent", handleModerationEvent]],
 };
 
 export default LoggingModule;

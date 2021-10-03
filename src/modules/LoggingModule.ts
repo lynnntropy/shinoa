@@ -1,5 +1,7 @@
 import {
+  Message,
   MessageEmbed,
+  PartialMessage,
   PermissionResolvable,
   TextBasedChannels,
 } from "discord.js";
@@ -175,6 +177,14 @@ const handleReady: EventHandler<"ready"> = async () => {
   }
 };
 
+const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
+  if (!getLoggingConfigForGuild(message.guildId)) {
+    return;
+  }
+
+  checkForKeywords(message);
+};
+
 const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
   oldMessage,
   newMessage
@@ -182,6 +192,8 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
   if (!getLoggingConfigForGuild(newMessage.guildId)) {
     return;
   }
+
+  checkForKeywords(newMessage);
 
   const loggingChannel = getDefaultLoggingChannel(
     newMessage.guildId,
@@ -383,6 +395,37 @@ const handleModerationEvent = async (event: ModerationEvent) => {
   await loggingChannel.send({ embeds: [embed] });
 };
 
+const checkForKeywords = async (message: Message | PartialMessage) => {
+  const keywords = await getKeyValueItem<string[]>(
+    `guilds.${message.guildId}.logging.keywords`
+  );
+
+  if (keywords === null || keywords.length === 0) {
+    return;
+  }
+
+  const loggingChannel = getDefaultLoggingChannel(message.guildId, "keywords");
+
+  for (const keyword of keywords) {
+    const regex = new RegExp(`\\b${keyword}\\b`, "gi");
+    const matches = message.content.match(regex);
+
+    if (matches !== null && matches.length > 0) {
+      const embed = new MessageEmbed()
+        .setAuthor(
+          `${message.author.username}#${message.author.discriminator}`,
+          message.author.avatarURL()
+        )
+        .setTitle("Found keyword in message")
+        .setURL(message.url)
+        .setDescription(message.cleanContent)
+        .addField("Keyword found", keyword);
+
+      await loggingChannel.send({ embeds: [embed] });
+    }
+  }
+};
+
 const getLoggingConfigForGuild = (id: string) => config.guilds[id]?.logging;
 
 const getDefaultLoggingChannel = (
@@ -403,6 +446,7 @@ const LoggingModule: Module = {
   commands: [new KeywordsCommand()],
   handlers: {
     ready: [handleReady],
+    messageCreate: [handleMessageCreate],
     messageUpdate: [handleMessageUpdate],
     messageDelete: [handleMessageDelete],
     voiceStateUpdate: [handleVoiceStateUpdate],

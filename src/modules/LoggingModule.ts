@@ -99,7 +99,7 @@ class KeywordsCommand extends Command {
     },
     {
       name: "remove",
-      description: "Removesa keyword.",
+      description: "Removes a keyword.",
       options: [
         {
           type: "STRING",

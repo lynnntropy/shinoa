@@ -1,4 +1,8 @@
-import { MessageEmbed, TextBasedChannels } from "discord.js";
+import {
+  MessageEmbed,
+  PermissionResolvable,
+  TextBasedChannels,
+} from "discord.js";
 import client from "../client";
 import config from "../config";
 import { EventHandler, Module } from "../internal/types";
@@ -6,6 +10,8 @@ import logger from "../logger";
 import { detailedDiff } from "deep-object-diff";
 import { isEmpty } from "lodash";
 import { ModerationEvent, ModerationEventType } from "../emitter";
+import { Command, CommandSubCommand } from "../internal/command";
+import { getKeyValueItem, setKeyValueItem } from "../keyValueStore";
 
 const defaultChannels = {
   moderation: "mod-logs",
@@ -15,6 +21,123 @@ const defaultChannels = {
   userUpdates: "user-logs",
   keywords: "keyword-logs",
 };
+
+class KeywordsCommand extends Command {
+  name = "keywords";
+  description = "Configures keywords for this server.";
+  requiredPermissions: PermissionResolvable = ["MANAGE_GUILD"];
+
+  subCommands: CommandSubCommand[] = [
+    {
+      name: "list",
+      description: "List the current keywords.",
+
+      async handle(interaction) {
+        const keywords = await getKeyValueItem<string[]>(
+          `guilds.${interaction.guildId}.logging.keywords`
+        );
+
+        if (keywords === null || keywords.length === 0) {
+          await setKeyValueItem(
+            `guilds.${interaction.guildId}.logging.keywords`,
+            []
+          );
+
+          await interaction.reply({
+            content: "No keywords currently configured for this server.",
+          });
+
+          return;
+        }
+
+        let replyContent = "";
+        replyContent += "Keywords currently configured for this server:\n\n";
+
+        for (const keyword of keywords) {
+          replyContent += `${keyword}\n`;
+        }
+
+        await interaction.reply({
+          content: replyContent,
+        });
+      },
+    },
+    {
+      name: "add",
+      description: "Adds a keyword.",
+      options: [
+        {
+          type: "STRING",
+          description: "The keyword you want to add.",
+          name: "keyword",
+          required: true,
+        },
+      ],
+
+      async handle(interaction) {
+        let keywords =
+          (await getKeyValueItem<string[]>(
+            `guilds.${interaction.guildId}.logging.keywords`
+          )) ?? [];
+
+        const newKeyword = interaction.options.getString("keyword");
+
+        keywords = [...keywords, newKeyword];
+        keywords = [...new Set(keywords)];
+
+        await setKeyValueItem(
+          `guilds.${interaction.guildId}.logging.keywords`,
+          keywords
+        );
+
+        await interaction.reply({
+          content: `Added \`${newKeyword}\` to this server's keywords.`,
+        });
+      },
+    },
+    {
+      name: "remove",
+      description: "Removesa keyword.",
+      options: [
+        {
+          type: "STRING",
+          description: "The keyword you want to remove.",
+          name: "keyword",
+          required: true,
+        },
+      ],
+
+      async handle(interaction) {
+        let keywords = await getKeyValueItem<string[]>(
+          `guilds.${interaction.guildId}.logging.keywords`
+        );
+
+        if (keywords === null || keywords.length === 0) {
+          await interaction.reply({
+            content: `This server doesn't have any keywords configured.`,
+          });
+
+          return;
+        }
+
+        const toRemove = interaction.options.getString("keyword").trim();
+
+        keywords = keywords.filter(
+          (k) => k.trim().toLowerCase() !== toRemove.toLowerCase()
+        );
+
+        await setKeyValueItem(
+          `guilds.${interaction.guildId}.logging.keywords`,
+          keywords
+        );
+
+        await interaction.reply({
+          content: `Removed \`${toRemove}\` from this server's keywords.`,
+        });
+      },
+    },
+  ];
+}
 
 const handleReady: EventHandler<"ready"> = async () => {
   logger.info("Booting up logging module...");
@@ -277,7 +400,7 @@ const getDefaultLoggingChannel = (
 };
 
 const LoggingModule: Module = {
-  commands: [],
+  commands: [new KeywordsCommand()],
   handlers: {
     ready: [handleReady],
     messageUpdate: [handleMessageUpdate],

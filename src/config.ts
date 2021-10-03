@@ -13,6 +13,17 @@ interface Config {
       quotes?: {
         quoteManagerRoleId?: string;
       };
+      logging?: {
+        categoryId?: string;
+        channelIds?: {
+          moderation?: string;
+          messages?: string;
+          voice?: string;
+          joins?: string;
+          userUpdates?: string;
+          keywords?: string;
+        };
+      };
     };
   };
 }
@@ -46,6 +57,9 @@ const config: Config = {
           commands,
           quotes: {
             quoteManagerRoleId: "843467841696170036",
+          },
+          logging: {
+            categoryId: "891738612314554398",
           },
         },
       },

@@ -25,6 +25,7 @@
     "apollo-server": "^2.25.0",
     "axios": "^0.21.1",
     "date-fns": "^2.21.1",
+    "deep-object-diff": "^1.1.0",
     "discord-api-types": "^0.18.1",
     "discord.js": "^13.0.0",
     "form-data": "^4.0.0",
@@ -32,6 +33,7 @@
     "kubernetes-client": "^9.0.0",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.30",
-    "pino": "^6.11.3"
+    "pino": "^6.11.3",
+    "tiny-typed-emitter": "^2.1.0"
   }
 }

@@ -29,10 +29,13 @@ export abstract class Command {
         (sc) => sc.name === interaction.options.getSubcommand()
       );
 
-      interaction.options = new CommandInteractionOptionResolver(
-        client,
-        interaction.options.data[0].options
-      );
+      if (interaction.options.data[0].options) {
+        interaction.options = new CommandInteractionOptionResolver(
+          client,
+          interaction.options.data[0].options
+        );
+      }
+
       await subCommand.handle(interaction);
       return;
     } else {

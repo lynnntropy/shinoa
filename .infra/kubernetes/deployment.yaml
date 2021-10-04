@@ -28,3 +28,5 @@ spec:
                 secretKeyRef:
                   name: token
                   key: token
+            - name: LOG_LEVEL
+              value: DEBUG

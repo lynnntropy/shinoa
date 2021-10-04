@@ -49,6 +49,9 @@ const config: Config = {
           quotes: {
             quoteManagerRoleId: "614118005416263762",
           },
+          logging: {
+            categoryId: "619980910527512577",
+          },
         },
       }
     : {

@@ -1,11 +1,11 @@
 import prisma from "./prisma";
 
 export const getKeyValueItem = async <T>(key: string): Promise<T | null> => {
-  const { value } = await prisma.keyValueItem.findUnique({
+  const kv = await prisma.keyValueItem.findUnique({
     where: { key },
   });
 
-  return value as unknown as T;
+  return (kv?.value as unknown as T) ?? null;
 };
 
 export const setKeyValueItem = async (key: string, value: any) =>

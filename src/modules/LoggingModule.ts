@@ -202,8 +202,8 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
     .setTitle(
       `${newMessage.author.username}#${newMessage.author.discriminator} edited their message`
     )
-    .addField("Before", oldMessage.cleanContent)
-    .addField("After", newMessage.cleanContent)
+    .addField("Before", oldMessage.cleanContent ?? "not available")
+    .addField("After", newMessage.cleanContent ?? "not available")
     .setURL(newMessage.url);
 
   loggingChannel.send({ embeds: [embed] });

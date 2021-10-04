@@ -3,10 +3,10 @@ import {
   MessageEmbed,
   PartialMessage,
   PermissionResolvable,
-  TextBasedChannels,
+  TextChannel,
 } from "discord.js";
 import client from "../client";
-import config from "../config";
+import config, { Config } from "../config";
 import { EventHandler, Module } from "../internal/types";
 import logger from "../logger";
 import { detailedDiff } from "deep-object-diff";
@@ -195,10 +195,7 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
 
   checkForKeywords(newMessage);
 
-  const loggingChannel = getDefaultLoggingChannel(
-    newMessage.guildId,
-    "messages"
-  );
+  const loggingChannel = getLoggingChannel(newMessage.guildId, "messages");
 
   const embed = new MessageEmbed()
     .setColor("YELLOW")
@@ -217,7 +214,7 @@ const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
     return;
   }
 
-  const loggingChannel = getDefaultLoggingChannel(message.guildId, "messages");
+  const loggingChannel = getLoggingChannel(message.guildId, "messages");
 
   const embed = new MessageEmbed()
     .setColor("RED")
@@ -242,7 +239,7 @@ const handleVoiceStateUpdate: EventHandler<"voiceStateUpdate"> = async (
     return;
   }
 
-  const loggingChannel = getDefaultLoggingChannel(newState.guild.id, "voice");
+  const loggingChannel = getLoggingChannel(newState.guild.id, "voice");
 
   const joined = !!newState.channelId;
 
@@ -267,7 +264,7 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
     return;
   }
 
-  const loggingChannel = getDefaultLoggingChannel(member.guild.id, "joins");
+  const loggingChannel = getLoggingChannel(member.guild.id, "joins");
 
   const embed = new MessageEmbed()
     .setColor("GREEN")
@@ -287,7 +284,7 @@ const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
     return;
   }
 
-  const loggingChannel = getDefaultLoggingChannel(member.guild.id, "joins");
+  const loggingChannel = getLoggingChannel(member.guild.id, "joins");
 
   const embed = new MessageEmbed()
     .setColor("RED")
@@ -308,10 +305,7 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
     return;
   }
 
-  const loggingChannel = getDefaultLoggingChannel(
-    newMember.guild.id,
-    "userUpdates"
-  );
+  const loggingChannel = getLoggingChannel(newMember.guild.id, "userUpdates");
 
   const diff: any = detailedDiff(oldMember, newMember);
 
@@ -370,7 +364,7 @@ const handleModerationEvent = async (event: ModerationEvent) => {
     return;
   }
 
-  const loggingChannel = getDefaultLoggingChannel(guild.id, "moderation");
+  const loggingChannel = getLoggingChannel(guild.id, "moderation");
 
   const embed = new MessageEmbed().setAuthor(
     `${event.target.user.username}#${event.target.user.discriminator}`,
@@ -404,7 +398,7 @@ const checkForKeywords = async (message: Message | PartialMessage) => {
     return;
   }
 
-  const loggingChannel = getDefaultLoggingChannel(message.guildId, "keywords");
+  const loggingChannel = getLoggingChannel(message.guildId, "keywords");
 
   for (const keyword of keywords) {
     const regex = new RegExp(`\\b${keyword}\\b`, "gi");
@@ -428,10 +422,34 @@ const checkForKeywords = async (message: Message | PartialMessage) => {
 
 const getLoggingConfigForGuild = (id: string) => config.guilds[id]?.logging;
 
+const getLoggingChannel = (
+  guildId: string,
+  eventType: keyof Config["guilds"][0]["logging"]["channelIds"]
+): TextChannel => {
+  const guildConfig = config.guilds[guildId];
+  const guild = client.guilds.resolve(guildId);
+
+  if (guildConfig.logging.categoryId) {
+    return getDefaultLoggingChannel(guildId, eventType);
+  }
+
+  if (guildConfig.logging.channelIds[eventType]) {
+    return guild.channels.resolve(
+      guildConfig.logging.channelIds[eventType]
+    ) as TextChannel;
+  }
+
+  logger.error(
+    `No logging channel configured for event type '${eventType}' in guild ${guild.name}.`
+  );
+
+  return undefined;
+};
+
 const getDefaultLoggingChannel = (
   guildId: string,
   eventType: keyof typeof defaultChannels
-) => {
+): TextChannel => {
   const guildConfig = config.guilds[guildId];
   const guild = client.guilds.resolve(guildId);
 
@@ -439,7 +457,7 @@ const getDefaultLoggingChannel = (
     (c) =>
       c.parentId === guildConfig.logging.categoryId &&
       c.name === defaultChannels[eventType]
-  ) as TextBasedChannels;
+  ) as TextChannel;
 };
 
 const LoggingModule: Module = {

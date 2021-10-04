@@ -3,7 +3,7 @@ import environment from "./environment";
 import { Command } from "./internal/command";
 export { handlers } from "./modules";
 
-interface Config {
+export interface Config {
   ownerId: string;
   applicationId: string;
   globalCommands: Command[];

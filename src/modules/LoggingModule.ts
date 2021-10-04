@@ -3,6 +3,7 @@ import {
   MessageEmbed,
   PartialMessage,
   PermissionResolvable,
+  ReactionUserManager,
   TextChannel,
 } from "discord.js";
 import client from "../client";
@@ -193,6 +194,11 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
     return;
   }
 
+  // We're only interested in messages that were actually edited
+  if (oldMessage.content === newMessage.content) {
+    return;
+  }
+
   checkForKeywords(newMessage);
 
   const loggingChannel = getLoggingChannel(newMessage.guildId, "messages");
@@ -202,18 +208,8 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
     .setTitle(
       `${newMessage.author.username}#${newMessage.author.discriminator} edited their message`
     )
-    .addField(
-      "Before",
-      oldMessage.cleanContent.length > 0
-        ? oldMessage.cleanContent
-        : "(not available)"
-    )
-    .addField(
-      "After",
-      newMessage.cleanContent.length > 0
-        ? newMessage.cleanContent
-        : "(not available)"
-    )
+    .addField("Before", oldMessage.cleanContent)
+    .addField("After", newMessage.cleanContent)
     .setURL(newMessage.url);
 
   loggingChannel.send({ embeds: [embed] });

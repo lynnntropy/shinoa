@@ -307,6 +307,10 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   oldMember,
   newMember
 ) => {
+  logger.debug("guildMemberUpdate:");
+  logger.debug(oldMember);
+  logger.debug(newMember);
+
   if (!getLoggingConfigForGuild(newMember.guild.id)) {
     return;
   }

@@ -4,7 +4,8 @@
     "skipLibCheck": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "strict": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

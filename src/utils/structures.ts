@@ -18,10 +18,10 @@ export const buildSerializableMessage = (
   content: message.content,
   createdAt: message.createdAt,
   guild: {
-    id: message.guild.id,
-    name: message.guild.name,
+    id: message.guild!.id,
+    name: message.guild!.name,
   },
   member: {
-    nickname: message.member.nickname,
+    nickname: message.member!.nickname,
   },
 });

@@ -8,7 +8,7 @@ export interface EventHandler<K extends keyof ClientEvents> {
 }
 
 export interface HandlerCollection {
-  [event: string]: EventHandler<keyof ClientEvents>[];
+  [event: string]: EventHandler<any>[];
 }
 
 export interface Module {

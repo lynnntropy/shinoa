@@ -1,7 +1,7 @@
 import config from "../../config";
 import logger from "../../logger";
 import { validateInteractionIsAllowed } from "../../utils/permissions";
-import { AxiosError } from "axios";
+import axios from "axios";
 import { CommandInteraction } from "discord.js";
 import { EventHandler } from "../../internal/types";
 import { Command } from "../../internal/command";
@@ -12,18 +12,18 @@ const handleFoundCommand = async (
 ) => {
   try {
     await validateInteractionIsAllowed(interaction, command);
-  } catch (e) {
+  } catch (e: any) {
     logger.warn(e);
     return;
   }
 
   try {
     await command.handleInteraction(interaction);
-  } catch (e) {
+  } catch (e: any) {
     logger.warn(e);
 
-    if (e.isAxiosError) {
-      logger.warn((e as AxiosError).response.data);
+    if (axios.isAxiosError(e) && e.response) {
+      logger.warn(e.response.data);
     }
 
     return;
@@ -43,7 +43,7 @@ const handleInteraction: EventHandler<"interaction"> = async (interaction) => {
     config.guilds[interaction.guild.id] &&
     config.guilds[interaction.guild.id].commands
   ) {
-    for (const command of config.guilds[interaction.guild.id].commands) {
+    for (const command of config.guilds[interaction.guild.id].commands!) {
       if (command.name === interaction.commandName) {
         await handleFoundCommand(interaction, command);
         return;

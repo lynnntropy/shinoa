@@ -29,6 +29,12 @@ export abstract class Command {
         (sc) => sc.name === interaction.options.getSubcommand()
       );
 
+      if (subCommand === undefined) {
+        throw Error(
+          `Failed to find subcommand '${interaction.options.getSubcommand()}'.`
+        );
+      }
+
       if (interaction.options.data[0].options) {
         interaction.options = new CommandInteractionOptionResolver(
           client,
@@ -45,11 +51,11 @@ export abstract class Command {
   }
 
   protected handle(interaction: CommandInteraction): Promise<void> {
-    return;
+    return Promise.resolve();
   }
 
   protected commandWillExecute(interaction: CommandInteraction): Promise<void> {
-    return;
+    return Promise.resolve();
   }
 }
 

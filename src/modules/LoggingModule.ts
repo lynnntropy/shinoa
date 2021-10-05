@@ -322,6 +322,10 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
 
   const loggingChannel = getLoggingChannel(newMember.guild.id, "userUpdates");
 
+  if (newMember.partial) {
+    newMember = await newMember.fetch();
+  }
+
   const diff: any = detailedDiff(oldMember, newMember);
 
   let embedBody = ``;

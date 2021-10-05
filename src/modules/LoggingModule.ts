@@ -322,9 +322,9 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
 
   logger.trace("LoggingModule: Handling guildMemberUpdate event");
   logger.trace("oldMember:");
-  logger.trace(oldMember);
+  logger.trace(JSON.stringify(oldMember, undefined, 2));
   logger.trace("newMember:");
-  logger.trace(newMember);
+  logger.trace(JSON.stringify(newMember, undefined, 2));
 
   const loggingChannel = getLoggingChannel(newMember.guild.id, "userUpdates");
 

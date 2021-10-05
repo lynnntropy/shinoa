@@ -320,6 +320,12 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
     return;
   }
 
+  logger.trace("LoggingModule: Handling guildMemberUpdate event");
+  logger.trace("oldMember:");
+  logger.trace(oldMember);
+  logger.trace("newMember:");
+  logger.trace(newMember);
+
   const loggingChannel = getLoggingChannel(newMember.guild.id, "userUpdates");
 
   if (newMember.partial) {

@@ -12,7 +12,7 @@ const client = new Client({
     Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
     Intents.FLAGS.GUILD_VOICE_STATES,
   ],
-  partials: ["USER"],
+  partials: ["USER", "GUILD_MEMBER"],
 });
 
 for (const event in handlers) {

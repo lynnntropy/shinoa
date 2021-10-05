@@ -326,7 +326,20 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
     newMember = await newMember.fetch();
   }
 
-  const diff: any = detailedDiff(oldMember, newMember);
+  const diff: any = detailedDiff(
+    {
+      nickname: oldMember.nickname,
+      displayName: oldMember.displayName,
+    },
+    {
+      nickname: newMember.nickname,
+      displayName: newMember.displayName,
+    }
+  );
+
+  if (isEmpty(diff.added) && isEmpty(diff.deleted) && isEmpty(diff.updated)) {
+    return;
+  }
 
   let embedBody = ``;
 

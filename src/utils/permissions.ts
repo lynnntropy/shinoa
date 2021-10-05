@@ -21,35 +21,35 @@ export const validateInteractionIsAllowed = async (
         `Owner-only command /${command.name} can't be used by user ${interaction.user.username}#${interaction.user.discriminator}.`
       );
     }
+  }
 
-    if (command.requiredPermissions) {
-      if (interaction.channel.type !== "GUILD_TEXT") {
-        await interaction.reply("That command can only be used in a server.");
-        throw new Error(
-          `Command /${command.name} can only be used in a guild.`
-        );
-      }
+  if (command.requiredPermissions) {
+    if (interaction.channel?.type !== "GUILD_TEXT") {
+      await interaction.reply("That command can only be used in a server.");
+      throw new Error(`Command /${command.name} can only be used in a guild.`);
+    }
 
-      // The bot owner isn't limited by permissions
-      if (interaction.member.user.id === config.ownerId) {
-        return;
-      }
+    // The bot owner isn't limited by permissions
+    if (interaction.member?.user.id === config.ownerId) {
+      return;
+    }
 
-      const member = await interaction.guild.members.fetch(interaction.user.id);
+    const member = await interaction.guild!.members.fetch(interaction.user.id);
 
-      if (!member.permissions.has(command.requiredPermissions)) {
-        await interaction.reply({
-          content: `That command requires these permissions: ${formatPermissions(
-            command.requiredPermissions
-          )}`,
-          ephemeral: true,
-        });
+    if (!member.permissions.has(command.requiredPermissions)) {
+      await interaction.reply({
+        content: `That command requires these permissions: ${formatPermissions(
+          command.requiredPermissions
+        )}`,
+        ephemeral: true,
+      });
 
-        throw new Error(
-          `${interaction.member.user.username}#${interaction.member.user.discriminator} ` +
-            `tried to use a command they don't have the permissions for (/${command.name}).`
-        );
-      }
+      throw new Error(
+        `${interaction.member!.user.username}#${
+          interaction.member!.user.discriminator
+        } ` +
+          `tried to use a command they don't have the permissions for (/${command.name}).`
+      );
     }
   }
 };

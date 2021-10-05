@@ -45,8 +45,10 @@ export const logMessage = async (message: Message) => {
 
     logger.debug(
       `[${guild.name} -> #${channel.name}] [type ${message.type}] ` +
-        (message.member.nickname
-          ? `${message.member.nickname} (${message.author.username}#${message.author.discriminator}) `
+        (message.member!.nickname
+          ? `${message.member!.nickname} (${message.author.username}#${
+              message.author.discriminator
+            }) `
           : `${message.author.username}#${message.author.discriminator} `) +
         message.content
     );

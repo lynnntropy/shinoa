@@ -23,7 +23,7 @@ class UsernameCounterAdminCommand extends Command {
       ],
 
       async handle(interaction) {
-        const key = `guilds.${interaction.guild.id}.counted_usernames`;
+        const key = `guilds.${interaction.guild!.id}.counted_usernames`;
 
         let kv = await prisma.keyValueItem.findUnique({
           where: { key },
@@ -62,7 +62,7 @@ class UsernameCounterAdminCommand extends Command {
       ],
 
       async handle(interaction) {
-        const key = `guilds.${interaction.guild.id}.counted_usernames`;
+        const key = `guilds.${interaction.guild!.id}.counted_usernames`;
 
         let kv = await prisma.keyValueItem.findUnique({
           where: { key },
@@ -92,7 +92,7 @@ class UsernameCounterAdminCommand extends Command {
       description: "Lists keywords currently beingt counted for this server.",
 
       async handle(interaction) {
-        const key = `guilds.${interaction.guild.id}.counted_usernames`;
+        const key = `guilds.${interaction.guild!.id}.counted_usernames`;
 
         let kv = await prisma.keyValueItem.findUnique({
           where: { key },

@@ -55,7 +55,8 @@ class InfoCommand extends Command {
       const k8sClient = new Client({ version: "1.20" });
       const nodes = await k8sClient.api.v1.nodes.get();
       const master = nodes.body.items.find(
-        (n) => n.metadata.labels["node-role.kubernetes.io/master"] === "true"
+        (n: any) =>
+          n.metadata.labels["node-role.kubernetes.io/master"] === "true"
       );
       const host = master.metadata.labels["kubernetes.io/hostname"];
       const os = master.metadata.labels["kubernetes.io/os"];

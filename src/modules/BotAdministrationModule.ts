@@ -18,13 +18,13 @@ class SayCommand extends Command {
   ];
 
   async handle(interaction: CommandInteraction) {
-    if (interaction.channel.isText()) {
+    if (interaction.channel?.isText()) {
       await interaction.channel.send(
         interaction.options.data[0].value as string
       );
-    }
 
-    interaction.reply({ content: "Done!", ephemeral: true });
+      await interaction.reply({ content: "Done!", ephemeral: true });
+    }
   }
 }
 

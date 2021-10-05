@@ -1,9 +1,9 @@
 import {
+  GuildChannelResolvable,
   Message,
   MessageEmbed,
   PartialMessage,
   PermissionResolvable,
-  ReactionUserManager,
   TextChannel,
 } from "discord.js";
 import client from "../client";
@@ -83,7 +83,7 @@ class KeywordsCommand extends Command {
             `guilds.${interaction.guildId}.logging.keywords`
           )) ?? [];
 
-        const newKeyword = interaction.options.getString("keyword");
+        const newKeyword = interaction.options.getString("keyword", true);
 
         keywords = [...keywords, newKeyword];
         keywords = [...new Set(keywords)];
@@ -123,7 +123,7 @@ class KeywordsCommand extends Command {
           return;
         }
 
-        const toRemove = interaction.options.getString("keyword").trim();
+        const toRemove = interaction.options.getString("keyword", true).trim();
 
         keywords = keywords.filter(
           (k) => k.trim().toLowerCase() !== toRemove.toLowerCase()
@@ -153,22 +153,23 @@ const handleReady: EventHandler<"ready"> = async () => {
       continue;
     }
 
-    logger.debug(`Initializing logging channels for guild ${guild.name}...`);
+    logger.debug(`Initializing logging channels for guild ${guild!.name}...`);
 
     // If we have a category ID, we'll look for
     // the channels from `defaultChannels` there
-    if (guildConfig.logging?.categoryId) {
+    if (guildConfig.logging.categoryId) {
       // Check if the category contains the right channels and
       // create them if not
       for (const key in defaultChannels) {
-        const channelName: string = defaultChannels[key];
+        const channelName: string =
+          defaultChannels[key as keyof typeof defaultChannels];
 
-        guild.channels.cache.find(
+        guild!.channels.cache.find(
           (c) =>
-            c.parentId === guildConfig.logging.categoryId &&
+            c.parentId === guildConfig.logging?.categoryId &&
             c.name === channelName
         ) ??
-          (await guild.channels.create(channelName, {
+          (await guild!.channels.create(channelName, {
             parent: guildConfig.logging.categoryId,
           }));
       }
@@ -179,7 +180,7 @@ const handleReady: EventHandler<"ready"> = async () => {
 };
 
 const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
-  if (!getLoggingConfigForGuild(message.guildId)) {
+  if (!getLoggingConfigForGuild(message.guildId!)) {
     return;
   }
 
@@ -190,8 +191,16 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
   oldMessage,
   newMessage
 ) => {
-  if (!getLoggingConfigForGuild(newMessage.guildId)) {
+  if (!getLoggingConfigForGuild(newMessage.guildId!)) {
     return;
+  }
+
+  if (oldMessage.partial) {
+    oldMessage = await oldMessage.fetch();
+  }
+
+  if (newMessage.partial) {
+    newMessage = await newMessage.fetch();
   }
 
   // We're only interested in messages that were actually edited
@@ -201,7 +210,7 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
 
   checkForKeywords(newMessage);
 
-  const loggingChannel = getLoggingChannel(newMessage.guildId, "messages");
+  const loggingChannel = getLoggingChannel(newMessage.guildId!, "messages");
 
   const embed = new MessageEmbed()
     .setColor("YELLOW")
@@ -216,18 +225,18 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
 };
 
 const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
-  if (!getLoggingConfigForGuild(message.guildId)) {
+  if (!getLoggingConfigForGuild(message.guildId!)) {
     return;
   }
 
-  const loggingChannel = getLoggingChannel(message.guildId, "messages");
+  const loggingChannel = getLoggingChannel(message.guildId!, "messages");
 
   const embed = new MessageEmbed()
     .setColor("RED")
     .setTitle(
-      `${message.author.username}#${message.author.discriminator}'s message was deleted`
+      `${message.author?.username}#${message.author?.discriminator}'s message was deleted`
     )
-    .setDescription(message.cleanContent);
+    .setDescription(message.cleanContent!);
 
   await loggingChannel.send({ embeds: [embed] });
 };
@@ -247,11 +256,11 @@ const handleVoiceStateUpdate: EventHandler<"voiceStateUpdate"> = async (
 
   const loggingChannel = getLoggingChannel(newState.guild.id, "voice");
 
-  const joined = !!newState.channelId;
+  const joined = !!newState.channel;
 
   const embed = new MessageEmbed().setAuthor(
-    `${newState.member.user.username}#${newState.member.user.discriminator}`,
-    newState.member.user.avatarURL()
+    `${newState.member?.user.username}#${newState.member?.user.discriminator}`,
+    newState.member?.user?.avatarURL() ?? undefined
   );
 
   if (joined) {
@@ -259,7 +268,7 @@ const handleVoiceStateUpdate: EventHandler<"voiceStateUpdate"> = async (
     embed.setDescription(`Joined voice channel: **${newState.channel.name}**`);
   } else {
     embed.setColor("RED");
-    embed.setDescription(`Left voice channel: **${oldState.channel.name}**`);
+    embed.setDescription(`Left voice channel: **${oldState.channel?.name}**`);
   }
 
   await loggingChannel.send({ embeds: [embed] });
@@ -276,7 +285,7 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
     .setColor("GREEN")
     .setAuthor(
       `${member.user.username}#${member.user.discriminator}`,
-      member.user.avatarURL()
+      member.user?.avatarURL() ?? undefined
     )
     .setDescription("Member joined");
 
@@ -295,8 +304,8 @@ const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
   const embed = new MessageEmbed()
     .setColor("RED")
     .setAuthor(
-      `${member.user.username}#${member.user.discriminator}`,
-      member.user.avatarURL()
+      `${member.user?.username}#${member.user?.discriminator}`,
+      member.user?.avatarURL() ?? undefined
     )
     .setDescription("Member left");
 
@@ -353,7 +362,7 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
     .setColor("BLURPLE")
     .setAuthor(
       `${newMember.user.username}#${newMember.user.discriminator}`,
-      newMember.user.avatarURL()
+      newMember.user?.avatarURL() ?? undefined
     )
     .setTitle("Member updated")
     .setDescription(embedBody);
@@ -374,7 +383,7 @@ const handleModerationEvent = async (event: ModerationEvent) => {
 
   const embed = new MessageEmbed().setAuthor(
     `${event.target.user.username}#${event.target.user.discriminator}`,
-    event.target.user.avatarURL()
+    event.target.user?.avatarURL() ?? undefined
   );
 
   if (event.type === ModerationEventType.KICK) {
@@ -395,7 +404,7 @@ const handleModerationEvent = async (event: ModerationEvent) => {
   await loggingChannel.send({ embeds: [embed] });
 };
 
-const checkForKeywords = async (message: Message | PartialMessage) => {
+const checkForKeywords = async (message: Message) => {
   const keywords = await getKeyValueItem<string[]>(
     `guilds.${message.guildId}.logging.keywords`
   );
@@ -404,7 +413,7 @@ const checkForKeywords = async (message: Message | PartialMessage) => {
     return;
   }
 
-  const loggingChannel = getLoggingChannel(message.guildId, "keywords");
+  const loggingChannel = getLoggingChannel(message.guildId!, "keywords");
 
   for (const keyword of keywords) {
     const regex = new RegExp(`\\b${keyword}\\b`, "gi");
@@ -414,7 +423,7 @@ const checkForKeywords = async (message: Message | PartialMessage) => {
       const embed = new MessageEmbed()
         .setAuthor(
           `${message.author.username}#${message.author.discriminator}`,
-          message.author.avatarURL()
+          message.author.avatarURL() ?? undefined
         )
         .setTitle("Found keyword in message")
         .setURL(message.url)
@@ -430,26 +439,26 @@ const getLoggingConfigForGuild = (id: string) => config.guilds[id]?.logging;
 
 const getLoggingChannel = (
   guildId: string,
-  eventType: keyof Config["guilds"][0]["logging"]["channelIds"]
+  eventType: keyof typeof defaultChannels
 ): TextChannel => {
   const guildConfig = config.guilds[guildId];
   const guild = client.guilds.resolve(guildId);
 
-  if (guildConfig.logging.categoryId) {
+  if (guildConfig.logging?.categoryId) {
     return getDefaultLoggingChannel(guildId, eventType);
   }
 
-  if (guildConfig.logging.channelIds[eventType]) {
-    return guild.channels.resolve(
-      guildConfig.logging.channelIds[eventType]
+  if (guildConfig.logging?.channelIds?.[eventType] !== undefined) {
+    return guild!.channels.resolve(
+      guildConfig.logging?.channelIds![eventType] as GuildChannelResolvable
     ) as TextChannel;
   }
 
-  logger.error(
-    `No logging channel configured for event type '${eventType}' in guild ${guild.name}.`
+  throw Error(
+    `No logging channel configured for event type '${eventType}' in guild ${
+      guild!.name
+    }.`
   );
-
-  return undefined;
 };
 
 const getDefaultLoggingChannel = (
@@ -459,9 +468,9 @@ const getDefaultLoggingChannel = (
   const guildConfig = config.guilds[guildId];
   const guild = client.guilds.resolve(guildId);
 
-  return guild.channels.cache.find(
+  return guild!.channels.cache.find(
     (c) =>
-      c.parentId === guildConfig.logging.categoryId &&
+      c.parentId === guildConfig.logging!.categoryId &&
       c.name === defaultChannels[eventType]
   ) as TextChannel;
 };

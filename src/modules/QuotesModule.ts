@@ -10,6 +10,7 @@ import {
   GuildMember,
   Message,
   MessageReaction,
+  CommandInteraction,
 } from "discord.js";
 import logger from "../logger";
 import config from "../config";
@@ -41,8 +42,8 @@ class QuotesCommand extends Command {
 
       async handle(interaction) {
         const member = await (
-          await client.guilds.fetch(interaction.guildId)
-        ).members.fetch(interaction.member.user.id);
+          await client.guilds.fetch(interaction.guildId!)
+        ).members.fetch(interaction.member!.user.id);
 
         if (!memberCanManageQuotes(member)) {
           await interaction.reply({
@@ -55,7 +56,7 @@ class QuotesCommand extends Command {
 
         const messageId = interaction.options.data[0].value as string;
 
-        if (!interaction.channel.isText()) {
+        if (!interaction.channel!.isText()) {
           throw new Error("Command must be called in a text channel.");
         }
 
@@ -109,8 +110,8 @@ class QuotesCommand extends Command {
 
       async handle(interaction) {
         const member = await (
-          await client.guilds.fetch(interaction.guildId)
-        ).members.fetch(interaction.member.user.id);
+          await client.guilds.fetch(interaction.guildId!)
+        ).members.fetch(interaction.member!.user.id);
 
         if (!memberCanManageQuotes(member)) {
           await interaction.reply({
@@ -143,6 +144,13 @@ class QuotesCommand extends Command {
         const number = interaction.options.data[0].value as number;
         const quote = await prisma.quote.findUnique({ where: { id: number } });
 
+        if (quote === null) {
+          await interaction.reply({
+            content: "Sorry, I couldn't find that quote.",
+          });
+          return;
+        }
+
         await interaction.reply({
           embeds: [
             await buildEmbedForQuotedMessage(
@@ -172,7 +180,7 @@ class QuotesCommand extends Command {
 
       async handle(interaction) {
         const query = interaction.options.data[0].value as string;
-        let userId: Snowflake;
+        let userId: Snowflake | undefined = undefined;
 
         if (interaction.options.data[1]) {
           userId = interaction.options.data[1].value as string;
@@ -181,7 +189,7 @@ class QuotesCommand extends Command {
         await interaction.deferReply();
 
         const result = (await searchQuotes({
-          guildId: interaction.guild.id,
+          guildId: interaction.guild!.id,
           query,
           userId,
         })) as SearchResult;
@@ -208,7 +216,7 @@ class QuotesCommand extends Command {
               offset === 0
                 ? result
                 : ((await searchQuotes({
-                    guildId: interaction.guild.id,
+                    guildId: interaction.guild!.id,
                     query,
                     userId,
                     offset,
@@ -245,7 +253,7 @@ class QuotesCommand extends Command {
             filter: (reaction, user) =>
               user.id === interaction.user.id &&
               [PREVIOUS_REACTION_EMOJI, NEXT_REACTION_EMOJI].includes(
-                reaction.emoji.name
+                reaction.emoji.name!
               ),
             dispose: true,
             idle: 300000,
@@ -282,7 +290,7 @@ class QuotesCommand extends Command {
       ],
 
       async handle(interaction) {
-        let userId: Snowflake;
+        let userId: Snowflake | undefined = undefined;
 
         if (interaction.options) {
           userId = interaction.options.data[0].value as string;
@@ -292,7 +300,7 @@ class QuotesCommand extends Command {
         SELECT
         *
         FROM "Quote"
-        WHERE "guildId" = ${interaction.guild.id}
+        WHERE "guildId" = ${interaction.guild!.id}
           ${userId ? Prisma.sql`AND "userId" = ${userId}` : Prisma.empty}
         ORDER BY random()
         LIMIT 1;
@@ -318,7 +326,7 @@ class QuotesCommand extends Command {
     },
   ];
 
-  async commandWillExecute(interaction) {
+  async commandWillExecute(interaction: CommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -390,7 +398,7 @@ const buildEmbedForQuotedMessage = async (
   }
 
   if (video !== undefined) {
-    embed.fields.push({ name: "Video", value: video.url, inline: false });
+    embed.fields!.push({ name: "Video", value: video.url, inline: false });
   }
 
   return embed;
@@ -404,7 +412,7 @@ const memberCanManageQuotes = (member: GuildMember) => {
   if (
     member.permissions.has("MANAGE_MESSAGES") ||
     member.roles.cache.has(
-      config.guilds[member.guild.id]?.quotes?.quoteManagerRoleId
+      config.guilds[member.guild.id]!.quotes!.quoteManagerRoleId!
     )
   ) {
     return true;

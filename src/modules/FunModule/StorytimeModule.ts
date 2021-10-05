@@ -3,6 +3,7 @@ import {
   PermissionResolvable,
   Snowflake,
   TextChannel,
+  Collection,
 } from "discord.js";
 import client from "../../client";
 import { Command, CommandSubCommand } from "../../internal/command";
@@ -23,7 +24,7 @@ class StorytimeCommand extends Command {
       description: "Enable storytime mode for this channel.",
 
       async handle(interaction) {
-        const key = getSettingKey(interaction.channel.id);
+        const key = getSettingKey(interaction.channel!.id);
 
         const kv = { key, value: true };
         await prisma.keyValueItem.upsert({
@@ -40,7 +41,7 @@ class StorytimeCommand extends Command {
       description: "Disable storytime mode for this channel.",
 
       async handle(interaction) {
-        const key = getSettingKey(interaction.channel.id);
+        const key = getSettingKey(interaction.channel!.id);
 
         const kv = { key, value: false };
         await prisma.keyValueItem.upsert({
@@ -57,7 +58,7 @@ class StorytimeCommand extends Command {
       description: "Export all messages so far as a text file.",
 
       async handle(interaction) {
-        const channel = client.channels.cache.get(interaction.channel.id);
+        const channel = client.channels.cache.get(interaction.channel!.id);
 
         await interaction.deferReply();
 
@@ -80,7 +81,7 @@ const handleMessage: EventHandler<"messageCreate"> = async (
 
   const channel = client.channels.cache.get(message.channel.id);
 
-  if (!channel.isText()) {
+  if (!channel!.isText()) {
     logger.warn(
       `Storytime mode is enabled for non-text channel ID ${message.channel.id}.`
     );
@@ -92,9 +93,7 @@ const handleMessage: EventHandler<"messageCreate"> = async (
   }
 };
 
-const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
-  message: Message
-) => {
+const handleMessageUpdate: EventHandler<"messageUpdate"> = async (message) => {
   if (!(await isEnabledForChannel(message.channel.id))) {
     return;
   }
@@ -104,7 +103,7 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
 
   const channel = client.channels.cache.get(message.channel.id);
 
-  if (!channel.isText()) {
+  if (!channel!.isText()) {
     logger.warn(
       `Storytime mode is enabled for non-text channel ID ${message.channel.id}.`
     );
@@ -118,7 +117,7 @@ const isMessageAllowed = async (
   channel: TextChannel,
   message: Message
 ): Promise<boolean> => {
-  if (message.author.id === client.user.id) {
+  if (message.author.id === client.user!.id) {
     return true;
   }
 
@@ -126,7 +125,7 @@ const isMessageAllowed = async (
     await channel.messages.fetch({ limit: 1, before: message.id })
   ).first();
 
-  if (previousMessage.author.id === message.author.id) {
+  if (previousMessage!.author.id === message.author.id) {
     return false;
   }
 
@@ -161,14 +160,14 @@ const exportMessagesToString = async (
   let cursor: Snowflake | null = null;
 
   while (true) {
-    const batch = await channel.messages.fetch({
+    const batch: Collection<string, Message> = await channel.messages.fetch({
       limit: EXPORT_BATCH_SIZE,
-      before: cursor,
+      before: cursor ?? undefined,
     });
 
     logger.debug(`Fetched batch of ${batch.size} messages.`);
 
-    cursor = batch.last()?.id;
+    cursor = batch.last()!.id;
 
     messages.push(...batch.values());
 
@@ -178,7 +177,7 @@ const exportMessagesToString = async (
   }
 
   messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-  messages = messages.filter((m) => m.author.id !== client.user.id);
+  messages = messages.filter((m) => m.author.id !== client.user!.id);
 
   let combinedContent = "";
   for (const message of messages) {

@@ -12,6 +12,12 @@ const synchronizeCommands: EventHandler<"ready"> = async () => {
   logger.info("Synchronizing commands...");
   logger.debug("Synchronizing global commands...");
 
+  if (client.application === null) {
+    throw Error(
+      `Failed to synchronize commands: \`client.application\` is null.`
+    );
+  }
+
   const existingCommands = [
     ...(await client.application.commands.fetch()).values(),
   ];
@@ -46,12 +52,14 @@ const synchronizeCommands: EventHandler<"ready"> = async () => {
   for (const guildId in config.guilds) {
     const guild = await client.guilds.fetch(guildId);
 
-    if (config.guilds[guildId].commands) {
+    const commands = config.guilds[guildId].commands;
+
+    if (commands) {
       logger.debug(`Synchronizing commands for ${guild.name}...`);
 
       const existingCommands = [...(await guild.commands.fetch()).values()];
 
-      for (const command of config.guilds[guildId].commands) {
+      for (const command of commands) {
         const registeredCommand = existingCommands.find(
           (c) => c.name === command.name
         );
@@ -70,11 +78,7 @@ const synchronizeCommands: EventHandler<"ready"> = async () => {
       }
 
       for (const command of existingCommands) {
-        if (
-          config.guilds[guildId].commands.find(
-            (c) => c.name === command.name
-          ) === undefined
-        ) {
+        if (commands.find((c) => c.name === command.name) === undefined) {
           logger.debug(`Deleting stale command /${command.name}...`);
           await command.delete();
         }

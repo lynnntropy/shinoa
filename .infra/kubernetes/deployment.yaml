@@ -29,6 +29,6 @@ spec:
                   name: token
                   key: token
             - name: LOG_LEVEL
-              value: trace
+              value: debug
             - name: SENTRY_DSN
               value: https://a16130edcd654fe2a89fe58ab5315a6f@o345514.ingest.sentry.io/5991672

@@ -16,6 +16,7 @@ import { isEmpty, pick } from "lodash";
 import { ModerationEvent, ModerationEventType } from "../emitter";
 import { Command, CommandSubCommand } from "../internal/command";
 import { getKeyValueItem, setKeyValueItem } from "../keyValueStore";
+import { formatDate } from "../utils/date";
 
 const defaultChannels = {
   moderation: "mod-logs",
@@ -288,7 +289,15 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
       `${member.user.username}#${member.user.discriminator}`,
       member.user?.avatarURL() ?? undefined
     )
-    .setDescription("Member joined");
+    .setDescription(
+      `
+      Member joined.
+
+      **ID:** ${member.user.id}
+      **Username:** ${member.user.tag}
+      **Account created:** ${formatDate(member.user.createdAt)}
+      `.trim()
+    );
 
   await loggingChannel.send({ embeds: [embed] });
 };
@@ -308,7 +317,17 @@ const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
       `${member.user?.username}#${member.user?.discriminator}`,
       member.user?.avatarURL() ?? undefined
     )
-    .setDescription("Member left");
+    .setDescription(
+      `
+      Member left.
+
+      **ID:** ${member.id}
+      **Username:** ${member.user?.tag ?? "(?)"}
+      **Account created:** ${
+        member.user ? formatDate(member.user.createdAt) : "(?)"
+      }
+      `.trim()
+    );
 
   await loggingChannel.send({ embeds: [embed] });
 };

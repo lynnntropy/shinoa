@@ -2,16 +2,17 @@ import {
   GuildChannelResolvable,
   Message,
   MessageEmbed,
-  PartialMessage,
   PermissionResolvable,
   TextChannel,
+  User,
+  Role,
 } from "discord.js";
 import client from "../client";
-import config, { Config } from "../config";
+import config from "../config";
 import { EventHandler, Module } from "../internal/types";
 import logger from "../logger";
 import { detailedDiff } from "deep-object-diff";
-import { isEmpty } from "lodash";
+import { isEmpty, pick } from "lodash";
 import { ModerationEvent, ModerationEventType } from "../emitter";
 import { Command, CommandSubCommand } from "../internal/command";
 import { getKeyValueItem, setKeyValueItem } from "../keyValueStore";
@@ -316,8 +317,12 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   oldMember,
   newMember
 ) => {
-  if (!getLoggingConfigForGuild(newMember.guild.id)) {
-    return;
+  if (oldMember.partial) {
+    oldMember = await oldMember.fetch();
+  }
+
+  if (newMember.partial) {
+    newMember = await newMember.fetch();
   }
 
   logger.trace("LoggingModule: Handling guildMemberUpdate event");
@@ -330,22 +335,116 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   logger.trace("newMember.user:");
   logger.trace(JSON.stringify(newMember.user, undefined, 2));
 
-  const loggingChannel = getLoggingChannel(newMember.guild.id, "userUpdates");
-
-  if (newMember.partial) {
-    newMember = await newMember.fetch();
+  if (!getLoggingConfigForGuild(newMember.guild.id)) {
+    return;
   }
 
-  const diff: any = detailedDiff(
-    {
-      nickname: oldMember.nickname,
-      displayName: oldMember.displayName,
-    },
-    {
-      nickname: newMember.nickname,
-      displayName: newMember.displayName,
-    }
-  );
+  const loggingChannel = getLoggingChannel(newMember.guild.id, "userUpdates");
+
+  if (oldMember.user !== null) {
+    handleUserUpdate(newMember.guild.id, oldMember.user, newMember.user);
+  }
+
+  const oldMemberStripped = pick(oldMember, ["nickname", "pending"]);
+  const newMemberStripped = pick(newMember, ["nickname", "pending"]);
+
+  const diff: any = detailedDiff(oldMemberStripped, newMemberStripped);
+
+  const addedRoles: Role[] = [
+    ...newMember.roles.cache
+      .filter((r) => oldMember.roles.cache.get(r.id) === undefined)
+      .values(),
+  ];
+  const removedRoles: Role[] = [
+    ...oldMember.roles.cache
+      .filter((r) => newMember.roles.cache.get(r.id) === undefined)
+      .values(),
+  ];
+
+  if (
+    isEmpty(diff.added) &&
+    isEmpty(diff.deleted) &&
+    isEmpty(diff.updated) &&
+    isEmpty(addedRoles) &&
+    isEmpty(removedRoles)
+  ) {
+    return;
+  }
+
+  let embedBody = ``;
+
+  if (
+    !isEmpty(diff.added) ||
+    !isEmpty(diff.deleted) ||
+    !isEmpty(diff.updated)
+  ) {
+    embedBody =
+      `${embedBody}` +
+      `\nOriginal data\n\`\`\`\n` +
+      JSON.stringify(oldMemberStripped, undefined, 2) +
+      `\n\`\`\``;
+  }
+
+  if (!isEmpty(diff.added)) {
+    embedBody =
+      `${embedBody}` +
+      `\nProperties added\n\`\`\`\n` +
+      JSON.stringify(diff.added, undefined, 2) +
+      `\n\`\`\``;
+  }
+
+  if (!isEmpty(diff.deleted)) {
+    embedBody =
+      `${embedBody}` +
+      `\nProperties deleted\n\`\`\`\n` +
+      JSON.stringify(diff.deleted, undefined, 2) +
+      `\n\`\`\``;
+  }
+
+  if (!isEmpty(diff.updated)) {
+    embedBody =
+      `${embedBody}` +
+      `\nProperties updated\n\`\`\`\n` +
+      JSON.stringify(diff.updated, undefined, 2) +
+      `\n\`\`\``;
+  }
+
+  if (!isEmpty(addedRoles)) {
+    embedBody =
+      `${embedBody}` +
+      `\nRole(s) added: ` +
+      addedRoles.map((r) => `**${r.name}**`).join(", ");
+  }
+
+  if (!isEmpty(removedRoles)) {
+    embedBody =
+      `${embedBody}` +
+      `\nRole(s) removed: ` +
+      removedRoles.map((r) => `**${r.name}**`).join(", ");
+  }
+
+  embedBody = embedBody.trim();
+
+  const embed = new MessageEmbed()
+    .setColor("BLURPLE")
+    .setAuthor(
+      `${newMember.user.username}#${newMember.user.discriminator}`,
+      newMember.user?.avatarURL() ?? undefined
+    )
+    .setTitle("Member updated")
+    .setDescription(embedBody);
+
+  await loggingChannel.send({ embeds: [embed] });
+};
+
+const handleUserUpdate = async (
+  guildId: string,
+  oldUser: User,
+  newUser: User
+) => {
+  const loggingChannel = getLoggingChannel(guildId, "userUpdates");
+
+  const diff: any = detailedDiff(oldUser, newUser);
 
   if (isEmpty(diff.added) && isEmpty(diff.deleted) && isEmpty(diff.updated)) {
     return;
@@ -356,7 +455,7 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   embedBody =
     `${embedBody}` +
     `\nOriginal data\n\`\`\`\n` +
-    JSON.stringify(oldMember, undefined, 2) +
+    JSON.stringify(oldUser, undefined, 2) +
     `\n\`\`\``;
 
   if (!isEmpty(diff.added)) {
@@ -388,10 +487,10 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   const embed = new MessageEmbed()
     .setColor("BLURPLE")
     .setAuthor(
-      `${newMember.user.username}#${newMember.user.discriminator}`,
-      newMember.user?.avatarURL() ?? undefined
+      `${newUser.username}#${newUser.discriminator}`,
+      newUser?.avatarURL() ?? undefined
     )
-    .setTitle("Member updated")
+    .setTitle("User updated")
     .setDescription(embedBody);
 
   await loggingChannel.send({ embeds: [embed] });

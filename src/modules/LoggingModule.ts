@@ -4,7 +4,7 @@ import {
   MessageEmbed,
   PermissionResolvable,
   TextChannel,
-  User,
+  Guild,
   Role,
 } from "discord.js";
 import client from "../client";
@@ -356,25 +356,11 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
     newMember = await newMember.fetch();
   }
 
-  logger.trace("LoggingModule: Handling guildMemberUpdate event");
-  logger.trace("oldMember:");
-  logger.trace(JSON.stringify(oldMember, undefined, 2));
-  logger.trace("oldMember.user:");
-  logger.trace(JSON.stringify(oldMember.user, undefined, 2));
-  logger.trace("newMember:");
-  logger.trace(JSON.stringify(newMember, undefined, 2));
-  logger.trace("newMember.user:");
-  logger.trace(JSON.stringify(newMember.user, undefined, 2));
-
   if (!getLoggingConfigForGuild(newMember.guild.id)) {
     return;
   }
 
   const loggingChannel = getLoggingChannel(newMember.guild.id, "userUpdates");
-
-  if (oldMember.user !== null) {
-    logUserUpdate(newMember.guild.id, oldMember.user, newMember.user);
-  }
 
   const oldMemberStripped = pick(oldMember, ["nickname", "pending"]);
   const newMemberStripped = pick(newMember, ["nickname", "pending"]);
@@ -480,16 +466,6 @@ const handleUserUpdate: EventHandler<"userUpdate"> = async (
     newUser = await newUser.fetch();
   }
 
-  logger.trace("LoggingModule: Handling userUpdate event");
-  logger.trace("oldUser:");
-  logger.trace(JSON.stringify(oldUser, undefined, 2));
-  logger.trace("newUser:");
-  logger.trace(JSON.stringify(newUser, undefined, 2));
-};
-
-const logUserUpdate = async (guildId: string, oldUser: User, newUser: User) => {
-  const loggingChannel = getLoggingChannel(guildId, "userUpdates");
-
   const diff: any = detailedDiff(oldUser, newUser);
 
   if (isEmpty(diff.added) && isEmpty(diff.deleted) && isEmpty(diff.updated)) {
@@ -539,7 +515,28 @@ const logUserUpdate = async (guildId: string, oldUser: User, newUser: User) => {
     .setTitle("User updated")
     .setDescription(embedBody);
 
-  await loggingChannel.send({ embeds: [embed] });
+  if (diff.updated.avatar !== undefined && newUser.avatarURL() !== null) {
+    embed.setImage(newUser.avatarURL() as string);
+  }
+
+  const guilds = (
+    await Promise.all(
+      client.guilds.cache.map(async (guild) => ({
+        guildId: guild.id,
+        member: await guild.members.fetch(newUser.id).catch(() => null),
+      }))
+    )
+  )
+    .filter((result) => result.member !== null)
+    .map((result) => client.guilds.resolve(result.guildId) as Guild);
+
+  for (const guild of guilds) {
+    if (!getLoggingConfigForGuild(guild.id)) {
+      continue;
+    }
+
+    await getLoggingChannel(guild.id, "userUpdates").send({ embeds: [embed] });
+  }
 };
 
 const handleModerationEvent = async (event: ModerationEvent) => {
@@ -657,7 +654,7 @@ const LoggingModule: Module = {
     voiceStateUpdate: [handleVoiceStateUpdate],
     guildMemberAdd: [handleGuildMemberAdd],
     guildMemberRemove: [handleGuildMemberRemove],
-    // guildMemberUpdate: [handleGuildMemberUpdate],
+    guildMemberUpdate: [handleGuildMemberUpdate],
     userUpdate: [handleUserUpdate],
   },
   appEventHandlers: [["moderationEvent", handleModerationEvent]],

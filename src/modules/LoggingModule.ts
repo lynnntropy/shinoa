@@ -657,7 +657,7 @@ const LoggingModule: Module = {
     voiceStateUpdate: [handleVoiceStateUpdate],
     guildMemberAdd: [handleGuildMemberAdd],
     guildMemberRemove: [handleGuildMemberRemove],
-    guildMemberUpdate: [handleGuildMemberUpdate],
+    // guildMemberUpdate: [handleGuildMemberUpdate],
     userUpdate: [handleUserUpdate],
   },
   appEventHandlers: [["moderationEvent", handleModerationEvent]],

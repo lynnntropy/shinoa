@@ -186,6 +186,10 @@ const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
     return;
   }
 
+  if (message.author.bot) {
+    return;
+  }
+
   checkForKeywords(message);
 };
 
@@ -203,6 +207,10 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
 
   if (newMessage.partial) {
     newMessage = await newMessage.fetch();
+  }
+
+  if (newMessage.author.bot) {
+    return;
   }
 
   // We're only interested in messages that were actually edited
@@ -228,6 +236,10 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
 
 const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
   if (!getLoggingConfigForGuild(message.guildId!)) {
+    return;
+  }
+
+  if (message.author?.bot) {
     return;
   }
 

@@ -373,7 +373,7 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   const loggingChannel = getLoggingChannel(newMember.guild.id, "userUpdates");
 
   if (oldMember.user !== null) {
-    handleUserUpdate(newMember.guild.id, oldMember.user, newMember.user);
+    logUserUpdate(newMember.guild.id, oldMember.user, newMember.user);
   }
 
   const oldMemberStripped = pick(oldMember, ["nickname", "pending"]);
@@ -468,11 +468,26 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   await loggingChannel.send({ embeds: [embed] });
 };
 
-const handleUserUpdate = async (
-  guildId: string,
-  oldUser: User,
-  newUser: User
+const handleUserUpdate: EventHandler<"userUpdate"> = async (
+  oldUser,
+  newUser
 ) => {
+  if (oldUser.partial) {
+    oldUser = await oldUser.fetch();
+  }
+
+  if (newUser.partial) {
+    newUser = await newUser.fetch();
+  }
+
+  logger.trace("LoggingModule: Handling userUpdate event");
+  logger.trace("oldUser:");
+  logger.trace(JSON.stringify(oldUser, undefined, 2));
+  logger.trace("newUser:");
+  logger.trace(JSON.stringify(newUser, undefined, 2));
+};
+
+const logUserUpdate = async (guildId: string, oldUser: User, newUser: User) => {
   const loggingChannel = getLoggingChannel(guildId, "userUpdates");
 
   const diff: any = detailedDiff(oldUser, newUser);
@@ -643,6 +658,7 @@ const LoggingModule: Module = {
     guildMemberAdd: [handleGuildMemberAdd],
     guildMemberRemove: [handleGuildMemberRemove],
     guildMemberUpdate: [handleGuildMemberUpdate],
+    userUpdate: [handleUserUpdate],
   },
   appEventHandlers: [["moderationEvent", handleModerationEvent]],
 };

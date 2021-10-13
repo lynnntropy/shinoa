@@ -57,10 +57,7 @@ const handleInteraction: EventHandler<"interaction"> = async (interaction) => {
   ) {
     for (const command of config.guilds[interaction.guild.id].commands!) {
       if (command.name === interaction.commandName) {
-        Sentry.withScope(async (scope) => {
-          await handleFoundCommand(interaction, command);
-        });
-
+        await handleFoundCommand(interaction, command);
         return;
       }
     }

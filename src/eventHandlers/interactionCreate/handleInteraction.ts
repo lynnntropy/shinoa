@@ -6,15 +6,23 @@ import { CommandInteraction } from "discord.js";
 import { EventHandler } from "../../internal/types";
 import { Command } from "../../internal/command";
 import * as Sentry from "@sentry/node";
+import { Context } from "@sentry/types";
 
 const handleFoundCommand = async (
   interaction: CommandInteraction,
   command: Command
 ) => {
+  const sentryScope = new Sentry.Scope();
+  sentryScope.setUser({
+    id: interaction.user.id,
+    username: interaction.user.tag,
+  });
+  sentryScope.setContext("interaction", interaction as unknown as Context);
+
   try {
     await validateInteractionIsAllowed(interaction, command);
   } catch (e: any) {
-    Sentry.captureException(e);
+    Sentry.captureException(e, sentryScope);
     logger.warn(e);
 
     return;
@@ -23,7 +31,7 @@ const handleFoundCommand = async (
   try {
     await command.handleInteraction(interaction);
   } catch (e: any) {
-    Sentry.captureException(e);
+    Sentry.captureException(e, sentryScope);
     logger.warn(e);
 
     if (axios.isAxiosError(e) && e.response) {
@@ -49,7 +57,10 @@ const handleInteraction: EventHandler<"interaction"> = async (interaction) => {
   ) {
     for (const command of config.guilds[interaction.guild.id].commands!) {
       if (command.name === interaction.commandName) {
-        await handleFoundCommand(interaction, command);
+        Sentry.withScope(async (scope) => {
+          await handleFoundCommand(interaction, command);
+        });
+
         return;
       }
     }

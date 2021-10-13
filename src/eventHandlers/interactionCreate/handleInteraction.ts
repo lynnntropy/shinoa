@@ -5,6 +5,7 @@ import axios from "axios";
 import { CommandInteraction } from "discord.js";
 import { EventHandler } from "../../internal/types";
 import { Command } from "../../internal/command";
+import * as Sentry from "@sentry/node";
 
 const handleFoundCommand = async (
   interaction: CommandInteraction,
@@ -13,13 +14,16 @@ const handleFoundCommand = async (
   try {
     await validateInteractionIsAllowed(interaction, command);
   } catch (e: any) {
+    Sentry.captureException(e);
     logger.warn(e);
+
     return;
   }
 
   try {
     await command.handleInteraction(interaction);
   } catch (e: any) {
+    Sentry.captureException(e);
     logger.warn(e);
 
     if (axios.isAxiosError(e) && e.response) {

@@ -24,6 +24,9 @@ export interface Config {
           keywords?: string;
         };
       };
+      moderation?: {
+        mutedRoleId?: string;
+      };
     };
   };
 }

@@ -16,6 +16,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@discordjs/builders": "^0.6.0",
     "@prisma/client": "^2.21.2",
     "@sentry/node": "^6.13.2",
     "@sentry/tracing": "^6.13.2",
@@ -34,6 +35,7 @@
     "kubernetes-client": "^9.0.0",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.30",
+    "parse-duration": "^1.0.1",
     "pino": "^6.11.3",
     "pino-pretty": "^7",
     "tiny-typed-emitter": "^2.1.0"

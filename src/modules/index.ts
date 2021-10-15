@@ -28,6 +28,16 @@ for (const module of modules) {
   }
 }
 
+for (const module of modules) {
+  if (!module.cronJobs) {
+    continue;
+  }
+
+  for (const cronJob of module.cronJobs) {
+    cronJob.start();
+  }
+}
+
 export const commands = flatten(modules.map((m) => m.commands));
 export const handlers = mergeHandlerCollections(modules.map((m) => m.handlers));
 export const resolvers = mergeResolverDefinitions(

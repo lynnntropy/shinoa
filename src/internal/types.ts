@@ -1,3 +1,4 @@
+import { CronJob } from "cron";
 import { ClientEvents, Snowflake } from "discord.js";
 import { IResolvers } from "graphql-tools";
 import { AppEventHandler } from "../emitter";
@@ -16,6 +17,7 @@ export interface Module {
   handlers: HandlerCollection;
   resolvers?: IResolvers;
   appEventHandlers?: AppEventHandler[];
+  cronJobs?: CronJob[];
 }
 
 export interface SerializableMessage {

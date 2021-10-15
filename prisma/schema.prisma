@@ -22,3 +22,10 @@ model Quote {
   messageId String? @unique
   message   Json
 }
+
+model Mute {
+  id       Int      @id @default(autoincrement())
+  guildId  String
+  memberId String
+  endsAt   DateTime
+}

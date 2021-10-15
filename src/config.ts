@@ -9,6 +9,7 @@ export interface Config {
   globalCommands: Command[];
   guilds: {
     [key: string]: {
+      generalMessageChannelId?: string;
       commands?: Command[];
       quotes?: {
         quoteManagerRoleId?: string;

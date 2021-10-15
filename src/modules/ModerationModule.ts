@@ -12,8 +12,13 @@ import emitter, { ModerationEventType } from "../emitter";
 import { Command } from "../internal/command";
 import { Module } from "../internal/types";
 import parseDuration from "parse-duration";
-import { formatDuration, intervalToDuration } from "date-fns";
+import { add, formatDuration, intervalToDuration } from "date-fns";
 import { userMention } from "@discordjs/builders";
+import { CronJob } from "cron";
+import prisma from "../prisma";
+import client from "../client";
+import * as Sentry from "@sentry/node";
+import { getGeneralMessageChannelForGuild } from "../utils/guilds";
 
 class KickCommand extends Command {
   name = "kick";
@@ -165,13 +170,18 @@ class MuteCommand extends Command {
       .setDescription(`${userMention(member.user.id)} has been muted.`);
 
     if (durationInput !== null) {
-      const duration = parseDuration(durationInput, "ms") as number;
-      embed.addField(
-        "Duration",
-        formatDuration(intervalToDuration({ start: 0, end: duration }))
-      );
+      const durationMs = parseDuration(durationInput, "ms") as number;
+      const duration = intervalToDuration({ start: 0, end: durationMs });
 
-      // todo do something w/ the duration lol
+      embed.addField("Duration", formatDuration(duration));
+
+      await prisma.mute.create({
+        data: {
+          guildId: interaction.guild.id,
+          memberId: member.id,
+          endsAt: add(new Date(), duration),
+        },
+      });
     } else {
       embed.addField("Duration", "indefinite");
     }
@@ -179,6 +189,8 @@ class MuteCommand extends Command {
     if (reason) {
       embed.addField("Reason", reason);
     }
+
+    // TODO send internal event
 
     await interaction.reply({
       embeds: [embed],
@@ -227,7 +239,9 @@ class UnmuteCommand extends Command {
 
     await member.roles.remove(role, reason ?? undefined);
 
-    // todo don't forget to clear the scheduled unmute if there is one
+    await prisma.mute.deleteMany({
+      where: { guildId: interaction.guild.id, memberId: member.id },
+    });
 
     const embed = new MessageEmbed()
       .setColor("GREEN")
@@ -236,6 +250,8 @@ class UnmuteCommand extends Command {
     if (reason) {
       embed.addField("Reason", reason);
     }
+
+    // TODO send internal event
 
     await interaction.reply({
       embeds: [embed],
@@ -272,6 +288,39 @@ const getMutedRoleForGuild = async (
   return role;
 };
 
+const clearExpiredMutes = async () => {
+  const expiredMutes = await prisma.mute.findMany({
+    where: { endsAt: { lte: new Date() } },
+  });
+
+  for (const mute of expiredMutes) {
+    try {
+      const guild = await client.guilds.fetch(mute.guildId);
+      const member = await guild.members.fetch(mute.memberId);
+
+      const role = (await getMutedRoleForGuild(guild)) as Role;
+
+      if (member.roles.cache.has(role.id)) {
+        const reason = "Mute has expired";
+        await member.roles.remove(role, reason);
+
+        const messageChannel = await getGeneralMessageChannelForGuild(guild);
+
+        const embed = new MessageEmbed()
+          .setColor("GREEN")
+          .setDescription(`${userMention(member.user.id)} has been unmuted.`);
+        embed.addField("Reason", reason);
+
+        await messageChannel.send({ embeds: [embed] });
+      }
+
+      await prisma.mute.delete({ where: { id: mute.id } });
+    } catch (e) {
+      Sentry.captureException(e, { contexts: { mute } });
+    }
+  }
+};
+
 const ModerationModule: Module = {
   commands: [
     new KickCommand(),
@@ -280,6 +329,7 @@ const ModerationModule: Module = {
     new UnmuteCommand(),
   ],
   handlers: {},
+  cronJobs: [new CronJob("0 * * * * *", clearExpiredMutes)],
 };
 
 export default ModerationModule;

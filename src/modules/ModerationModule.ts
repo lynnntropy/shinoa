@@ -190,7 +190,12 @@ class MuteCommand extends Command {
       embed.addField("Reason", reason);
     }
 
-    // TODO send internal event
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.MUTE,
+      target: member,
+      moderator: interaction.member as GuildMember,
+      reason: reason ?? undefined,
+    });
 
     await interaction.reply({
       embeds: [embed],
@@ -251,7 +256,12 @@ class UnmuteCommand extends Command {
       embed.addField("Reason", reason);
     }
 
-    // TODO send internal event
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.UNMUTE,
+      target: member,
+      moderator: interaction.member as GuildMember,
+      reason: reason ?? undefined,
+    });
 
     await interaction.reply({
       embeds: [embed],

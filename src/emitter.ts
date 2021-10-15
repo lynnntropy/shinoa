@@ -15,6 +15,8 @@ export interface ModerationEvent {
 export enum ModerationEventType {
   BAN,
   KICK,
+  MUTE,
+  UNMUTE,
 }
 
 const emitter = new TypedEmitter<AppEvents>();

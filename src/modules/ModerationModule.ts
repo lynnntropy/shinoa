@@ -167,7 +167,8 @@ class MuteCommand extends Command {
 
     const embed = new MessageEmbed()
       .setColor("RED")
-      .setDescription(`${userMention(member.user.id)} has been muted.`);
+      .setDescription(`${userMention(member.user.id)} has been muted.`)
+      .setImage("https://i.ibb.co/74J5ZWs/image0.png");
 
     if (durationInput !== null) {
       const durationMs = parseDuration(durationInput, "ms") as number;

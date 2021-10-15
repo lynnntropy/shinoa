@@ -56,6 +56,9 @@ const config: Config = {
           logging: {
             categoryId: "619980910527512577",
           },
+          moderation: {
+            mutedRoleId: "201454485669675008",
+          },
         },
       }
     : {

@@ -14,3 +14,17 @@ export const setKeyValueItem = async (key: string, value: any) =>
     update: { value },
     create: { key, value },
   });
+
+export const updateKeyValueItem = async <T>(
+  key: string,
+  predicate: (current: T | null) => T
+) => {
+  const current = await getKeyValueItem<T>(key);
+  const updated = predicate(current);
+
+  await prisma.keyValueItem.upsert({
+    where: { key },
+    update: { value: updated },
+    create: { key, value: updated },
+  });
+};

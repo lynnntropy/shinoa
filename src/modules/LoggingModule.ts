@@ -540,9 +540,7 @@ const handleUserUpdate: EventHandler<"userUpdate"> = async (
 };
 
 const handleModerationEvent = async (event: ModerationEvent) => {
-  const {
-    target: { guild },
-  } = event;
+  const { guild } = event;
 
   if (!getLoggingConfigForGuild(guild.id)) {
     return;
@@ -550,10 +548,7 @@ const handleModerationEvent = async (event: ModerationEvent) => {
 
   const loggingChannel = getLoggingChannel(guild.id, "moderation");
 
-  const embed = new MessageEmbed().setAuthor(
-    `${event.target.user.username}#${event.target.user.discriminator}`,
-    event.target.user?.avatarURL() ?? undefined
-  );
+  const embed = new MessageEmbed();
 
   if (event.type === ModerationEventType.KICK) {
     embed.setTitle("Kicked");
@@ -563,12 +558,29 @@ const handleModerationEvent = async (event: ModerationEvent) => {
     embed.setTitle("Muted");
   } else if (event.type === ModerationEventType.UNMUTE) {
     embed.setTitle("Unmuted");
+  } else if (event.type === ModerationEventType.BLACKLIST) {
+    embed.setTitle("Blacklisted");
+  } else if (event.type === ModerationEventType.UNBLACKLIST) {
+    embed.setTitle("Unblacklisted");
   }
 
-  embed.addField(
-    "Moderator",
-    `${event.moderator.user.username}#${event.moderator.user.discriminator}`
-  );
+  if (event.note) {
+    embed.setDescription(event.note);
+  }
+
+  if (event.target) {
+    embed.setAuthor(
+      `${event.target.user.username}#${event.target.user.discriminator}`,
+      event.target.user?.avatarURL() ?? undefined
+    );
+  }
+
+  if (event.moderator) {
+    embed.addField(
+      "Moderator",
+      `${event.moderator.user.username}#${event.moderator.user.discriminator}`
+    );
+  }
 
   if (event.reason) {
     embed.addField("Reason", event.reason);

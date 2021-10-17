@@ -1,4 +1,4 @@
-import { GuildMember } from "discord.js";
+import { Guild, GuildMember } from "discord.js";
 import { TypedEmitter } from "tiny-typed-emitter";
 
 interface AppEvents {
@@ -7,8 +7,10 @@ interface AppEvents {
 
 export interface ModerationEvent {
   type: ModerationEventType;
-  target: GuildMember;
-  moderator: GuildMember;
+  guild: Guild;
+  note?: string;
+  target?: GuildMember;
+  moderator?: GuildMember;
   reason?: string;
 }
 
@@ -17,6 +19,8 @@ export enum ModerationEventType {
   KICK,
   MUTE,
   UNMUTE,
+  BLACKLIST,
+  UNBLACKLIST,
 }
 
 const emitter = new TypedEmitter<AppEvents>();

@@ -8,9 +8,12 @@ export const mergeModules = (modules: Module[]): Module => {
     }
   });
 };
-
 export const mergeHandlerCollections = (
   handlers: HandlerCollection[]
 ): HandlerCollection => {
-  return merge({}, ...handlers);
+  return mergeWith({}, ...handlers, (objValue: any, srcValue: any) => {
+    if (isArray(objValue)) {
+      return objValue.concat(srcValue);
+    }
+  });
 };

@@ -3,6 +3,7 @@ import {
   DMChannel,
   Message,
   NewsChannel,
+  PartialMessage,
   TextChannel,
 } from "discord.js";
 import logger from "../logger";
@@ -36,7 +37,11 @@ export const logInteraction = async (interaction: CommandInteraction) => {
   }
 };
 
-export const logMessage = async (message: Message) => {
+export const logMessage = async (message: Message | PartialMessage) => {
+  if (message.partial) {
+    message = await message.fetch();
+  }
+
   logger.trace(message);
 
   if (message.channel.type === "GUILD_TEXT") {

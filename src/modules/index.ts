@@ -8,6 +8,7 @@ import LoggingModule from "./LoggingModule";
 import MiscModule from "./MiscModule";
 import ModerationModule from "./ModerationModule";
 import QuotesModule from "./QuotesModule";
+import JoinLeaveMessagesModule from "./JoinLeaveMessagesModule";
 
 const modules = [
   FunModule,
@@ -16,6 +17,7 @@ const modules = [
   ModerationModule,
   QuotesModule,
   LoggingModule,
+  JoinLeaveMessagesModule,
 ];
 
 for (const module of modules) {

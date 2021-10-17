@@ -7,6 +7,7 @@ import {
   MessageOptions,
   PartialGuildMember,
 } from "discord.js";
+import { channelMention, userMention } from "@discordjs/builders";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -69,6 +70,22 @@ const config: Config = {
 
         // /r/SwordArtOnline
         ["191709045646688256"]: {
+          joinLeaveMessages: {
+            enabled: true,
+            joinMessageBuilder: (guild, member) => ({
+              content:
+                `**Link Start!** Welcome to ${guild.name}, ${userMention(
+                  member.user.id
+                )}! ` +
+                `Please notice ${channelMention("708772331526422597")} ` +
+                `for information on rules, roles, and a mandatory gameplay tutorial, and enjoy your stay.`,
+            }),
+            leaveMessageBuilder: (guild, member) => ({
+              content: `${
+                member.user?.tag ?? member.displayName
+              } found the logout button and has returned to real life... A fate worse than death.`,
+            }),
+          },
           quotes: {
             quoteManagerRoleId: "614118005416263762",
           },

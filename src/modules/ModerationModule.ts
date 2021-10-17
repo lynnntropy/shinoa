@@ -6,6 +6,7 @@ import {
   MessageEmbed,
   PermissionResolvable,
   Role,
+  Permissions,
 } from "discord.js";
 import config from "../config";
 import emitter, { ModerationEventType } from "../emitter";
@@ -447,6 +448,106 @@ class UnblacklistCommand extends Command {
   }
 }
 
+class LockChannelCommand extends Command {
+  name = "lock-channel";
+  description =
+    "Locks the current channel so that only people with elevated permissions can talk in it.";
+  requiredPermissions: PermissionResolvable = ["MANAGE_CHANNELS"];
+
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (interaction.channel === null) {
+      throw Error("`interaction.channel` can't be null for this command.");
+    }
+
+    if (interaction.channel.type !== "GUILD_TEXT") {
+      await interaction.reply({
+        content: `This type of channel (\`${interaction.channel.type}\`) can't be locked.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const channel = interaction.channel;
+    const roles = await interaction.guild.roles.fetch();
+
+    for (const [_, role] of roles) {
+      if (channel.permissionsFor(role).has(Permissions.FLAGS.SEND_MESSAGES)) {
+        await channel.permissionOverwrites.create(role, {
+          SEND_MESSAGES: role.permissions.has(
+            Permissions.FLAGS.MANAGE_CHANNELS
+          ),
+        });
+      }
+    }
+
+    const embed = new MessageEmbed()
+      .setColor("RED")
+      .setDescription(
+        `The channel has been locked.\n\nSending messages has been restricted to members with the **Manage Channels** permission.`
+      );
+
+    await interaction.reply({
+      embeds: [embed],
+    });
+  }
+}
+
+class UnlockChannelCommand extends Command {
+  name = "unlock-channel";
+  description = "Unlocks a previously locked channel.";
+  requiredPermissions: PermissionResolvable = ["MANAGE_CHANNELS"];
+
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (interaction.channel === null) {
+      throw Error("`interaction.channel` can't be null for this command.");
+    }
+
+    if (interaction.channel.type !== "GUILD_TEXT") {
+      await interaction.reply({
+        content: `This type of channel (\`${interaction.channel.type}\`) can't be locked.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const channel = interaction.channel;
+    const roles = await interaction.guild.roles.fetch();
+
+    for (const [_, role] of roles) {
+      if (
+        role.permissions.has(Permissions.FLAGS.SEND_MESSAGES) &&
+        !channel.permissionsFor(role).has(Permissions.FLAGS.SEND_MESSAGES)
+      ) {
+        await channel.permissionOverwrites.delete(role);
+      }
+    }
+
+    const embed = new MessageEmbed()
+      .setColor("GREEN")
+      .setDescription(`The channel has been unlocked.`);
+
+    await interaction.reply({
+      embeds: [embed],
+    });
+  }
+}
+
 const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
   const blacklist = await getKeyValueItem<string[]>(
     `guilds.${member.guild.id}.blacklist`
@@ -548,6 +649,8 @@ const ModerationModule: Module = {
     new UnmuteCommand(),
     new BlacklistCommand(),
     new UnblacklistCommand(),
+    new LockChannelCommand(),
+    new UnlockChannelCommand(),
   ],
   handlers: {
     guildMemberAdd: [handleGuildMemberAdd],

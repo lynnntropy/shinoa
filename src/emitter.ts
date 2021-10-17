@@ -21,6 +21,8 @@ export enum ModerationEventType {
   UNMUTE,
   BLACKLIST,
   UNBLACKLIST,
+  DUNGEON,
+  UNDUNGEON,
 }
 
 const emitter = new TypedEmitter<AppEvents>();

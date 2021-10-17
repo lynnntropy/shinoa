@@ -27,6 +27,7 @@ export interface Config {
       };
       moderation?: {
         mutedRoleId?: string;
+        dungeonRoleId?: string;
       };
     };
   };

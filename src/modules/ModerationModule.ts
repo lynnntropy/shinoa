@@ -548,6 +548,138 @@ class UnlockChannelCommand extends Command {
   }
 }
 
+class DungeonCommand extends Command {
+  name = "dungeon";
+  description =
+    "Throws a user into the dungeon (restricts them to a dungeon channel).";
+  requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
+  options: ApplicationCommandOptionData[] = [
+    {
+      name: "user",
+      description: "The user you want to dungeon.",
+      type: "USER",
+      required: true,
+    },
+    {
+      name: "reason",
+      description: "The reason for the unmute.",
+      type: "STRING",
+    },
+  ];
+
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const role = (await getDungeonRoleForGuild(interaction.guild)) as Role;
+    const member = interaction.options.getMember("user", true) as GuildMember;
+    const reason = interaction.options.getString("reason");
+
+    if (member.roles.cache.has(role.id)) {
+      await interaction.reply({
+        content: "User is already in the dungeon.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await member.roles.add(role, reason ?? undefined);
+
+    const embed = new MessageEmbed()
+      .setColor("RED")
+      .setDescription(
+        `${userMention(member.user.id)} has been thrown into the dungeon.`
+      )
+      .setImage("https://i.ibb.co/xzVTSXC/ezgif-com-optimize-2.gif");
+
+    if (reason) {
+      embed.addField("Reason", reason);
+    }
+
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.DUNGEON,
+      guild: interaction.guild,
+      target: member,
+      moderator: interaction.member as GuildMember,
+      reason: reason ?? undefined,
+    });
+
+    await interaction.reply({
+      embeds: [embed],
+    });
+  }
+}
+
+class UndungeonCommand extends Command {
+  name = "undungeon";
+  description = "Releases a user from the dungeon.";
+  requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
+  options: ApplicationCommandOptionData[] = [
+    {
+      name: "user",
+      description: "The user you want to dungeon.",
+      type: "USER",
+      required: true,
+    },
+    {
+      name: "reason",
+      description: "The reason for the unmute.",
+      type: "STRING",
+    },
+  ];
+
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const role = (await getDungeonRoleForGuild(interaction.guild)) as Role;
+    const member = interaction.options.getMember("user", true) as GuildMember;
+    const reason = interaction.options.getString("reason");
+
+    if (!member.roles.cache.has(role.id)) {
+      await interaction.reply({
+        content: "User isn't in the dungeon.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await member.roles.remove(role, reason ?? undefined);
+
+    const embed = new MessageEmbed()
+      .setColor("GREEN")
+      .setDescription(
+        `${userMention(member.user.id)} has been released from the dungeon.`
+      );
+
+    if (reason) {
+      embed.addField("Reason", reason);
+    }
+
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.UNDUNGEON,
+      guild: interaction.guild,
+      target: member,
+      moderator: interaction.member as GuildMember,
+      reason: reason ?? undefined,
+    });
+
+    await interaction.reply({
+      embeds: [embed],
+    });
+  }
+}
+
 const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
   const blacklist = await getKeyValueItem<string[]>(
     `guilds.${member.guild.id}.blacklist`
@@ -608,6 +740,36 @@ const getMutedRoleForGuild = async (
   return role;
 };
 
+const getDungeonRoleForGuild = async (
+  guild: Guild,
+  throwOnNotFound: boolean = true
+): Promise<Role | null> => {
+  const roleId = config.guilds[guild.id].moderation?.dungeonRoleId;
+
+  if (roleId) {
+    const role = await guild.roles.fetch(roleId);
+
+    if (role === null && throwOnNotFound) {
+      throw Error(`Guild has no role ID ${roleId}.`);
+    }
+
+    return role;
+  }
+
+  const roles = await guild.roles.fetch();
+  const role =
+    roles.find((r) => r.name.toLowerCase().trim().startsWith("dungeon")) ??
+    null;
+
+  if (role === null && throwOnNotFound) {
+    throw Error(
+      `Guild has no configured dungeon role and no role could be found automatically.`
+    );
+  }
+
+  return role;
+};
+
 const clearExpiredMutes = async () => {
   const expiredMutes = await prisma.mute.findMany({
     where: { endsAt: { lte: new Date() } },
@@ -651,6 +813,8 @@ const ModerationModule: Module = {
     new UnblacklistCommand(),
     new LockChannelCommand(),
     new UnlockChannelCommand(),
+    new DungeonCommand(),
+    new UndungeonCommand(),
   ],
   handlers: {
     guildMemberAdd: [handleGuildMemberAdd],

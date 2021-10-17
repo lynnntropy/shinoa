@@ -562,6 +562,10 @@ const handleModerationEvent = async (event: ModerationEvent) => {
     embed.setTitle("Blacklisted");
   } else if (event.type === ModerationEventType.UNBLACKLIST) {
     embed.setTitle("Unblacklisted");
+  } else if (event.type === ModerationEventType.DUNGEON) {
+    embed.setTitle("Dungeoned");
+  } else if (event.type === ModerationEventType.UNDUNGEON) {
+    embed.setTitle("Undungeoned");
   }
 
   if (event.note) {

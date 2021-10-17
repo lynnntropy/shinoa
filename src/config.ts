@@ -1,6 +1,12 @@
 import { commands } from "./modules";
 import environment from "./environment";
 import { Command } from "./internal/command";
+import {
+  Guild,
+  GuildMember,
+  MessageOptions,
+  PartialGuildMember,
+} from "discord.js";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -10,6 +16,18 @@ export interface Config {
   guilds: {
     [key: string]: {
       generalMessageChannelId?: string;
+      joinLeaveMessages?: {
+        enabled: true;
+        channelId?: string;
+        joinMessageBuilder?: (
+          guild: Guild,
+          member: GuildMember
+        ) => MessageOptions;
+        leaveMessageBuilder?: (
+          guild: Guild,
+          member: GuildMember | PartialGuildMember
+        ) => MessageOptions;
+      };
       commands?: Command[];
       quotes?: {
         quoteManagerRoleId?: string;
@@ -66,6 +84,9 @@ const config: Config = {
         // Vesko's Workshop
         ["161167668131397642"]: {
           commands,
+          joinLeaveMessages: {
+            enabled: true,
+          },
           quotes: {
             quoteManagerRoleId: "843467841696170036",
           },

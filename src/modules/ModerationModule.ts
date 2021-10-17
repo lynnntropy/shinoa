@@ -49,26 +49,28 @@ class KickCommand extends Command {
       return;
     }
 
-    const userId = interaction.options.data[0].value as string;
-    const reason = interaction.options.data[1]
-      ? (interaction.options.data[1].value as string)
-      : undefined;
+    const member = interaction.options.getMember("user", true) as GuildMember;
+    const reason = interaction.options.getString("reason");
 
-    const member = await interaction.guild.members.fetch(userId);
-    await (member as GuildMember).kick(reason);
+    await member.kick(reason ?? undefined);
 
     emitter.emit("moderationEvent", {
       type: ModerationEventType.KICK,
       guild: interaction.guild,
       target: member,
       moderator: interaction.member as GuildMember,
-      reason,
+      reason: reason ?? undefined,
     });
 
-    await interaction.reply(
-      `${member.user.username}#${member.user.discriminator} has been kicked.` +
-        `\n\n**Reason:** ${reason ?? "(not set)"}`
-    );
+    const embed = new MessageEmbed()
+      .setColor("RED")
+      .setDescription(`${bold(member.user.tag)} has been kicked.`);
+
+    if (reason) {
+      embed.addField("Reason", reason);
+    }
+
+    await interaction.reply({ embeds: [embed] });
   }
 }
 
@@ -82,6 +84,12 @@ class BanCommand extends Command {
       description: "The user you want to ban.",
       type: "USER",
       required: true,
+    },
+    {
+      name: "purge",
+      description:
+        "Turning this on will purge the last 7 days of messages from this user.",
+      type: "BOOLEAN",
     },
     {
       name: "reason",
@@ -99,26 +107,32 @@ class BanCommand extends Command {
       return;
     }
 
-    const userId = interaction.options.data[0].value as string;
-    const reason = interaction.options.data[1]
-      ? (interaction.options.data[1].value as string)
-      : undefined;
+    const member = interaction.options.getMember("user", true) as GuildMember;
+    const purge = interaction.options.getBoolean("purge") ?? false;
+    const reason = interaction.options.getString("reason");
 
-    const member = await interaction.guild.members.fetch(userId);
-    await member.ban({ reason });
+    await member.ban({
+      reason: reason ?? undefined,
+      days: purge ? 7 : undefined,
+    });
 
     emitter.emit("moderationEvent", {
       type: ModerationEventType.BAN,
       guild: interaction.guild,
       target: member,
       moderator: interaction.member as GuildMember,
-      reason,
+      reason: reason ?? undefined,
     });
 
-    await interaction.reply(
-      `${member.user.username}#${member.user.discriminator} has been banned.` +
-        `\n\n**Reason:** ${reason ?? "(not set)"}`
-    );
+    const embed = new MessageEmbed()
+      .setColor("RED")
+      .setDescription(`${bold(member.user.tag)} has been banned.`);
+
+    if (reason) {
+      embed.addField("Reason", reason);
+    }
+
+    await interaction.reply({ embeds: [embed] });
   }
 }
 

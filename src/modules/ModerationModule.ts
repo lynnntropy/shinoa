@@ -10,15 +10,17 @@ import {
 import config from "../config";
 import emitter, { ModerationEventType } from "../emitter";
 import { Command } from "../internal/command";
-import { Module } from "../internal/types";
+import { EventHandler, Module } from "../internal/types";
 import parseDuration from "parse-duration";
 import { add, formatDuration, intervalToDuration } from "date-fns";
-import { userMention } from "@discordjs/builders";
+import { bold, userMention } from "@discordjs/builders";
 import { CronJob } from "cron";
 import prisma from "../prisma";
 import client from "../client";
 import * as Sentry from "@sentry/node";
 import { getGeneralMessageChannelForGuild } from "../utils/guilds";
+import { getKeyValueItem, updateKeyValueItem } from "../keyValueStore";
+import logger from "../logger";
 
 class KickCommand extends Command {
   name = "kick";
@@ -57,6 +59,7 @@ class KickCommand extends Command {
 
     emitter.emit("moderationEvent", {
       type: ModerationEventType.KICK,
+      guild: interaction.guild,
       target: member,
       moderator: interaction.member as GuildMember,
       reason,
@@ -106,6 +109,7 @@ class BanCommand extends Command {
 
     emitter.emit("moderationEvent", {
       type: ModerationEventType.BAN,
+      guild: interaction.guild,
       target: member,
       moderator: interaction.member as GuildMember,
       reason,
@@ -193,6 +197,7 @@ class MuteCommand extends Command {
 
     emitter.emit("moderationEvent", {
       type: ModerationEventType.MUTE,
+      guild: interaction.guild,
       target: member,
       moderator: interaction.member as GuildMember,
       reason: reason ?? undefined,
@@ -259,6 +264,7 @@ class UnmuteCommand extends Command {
 
     emitter.emit("moderationEvent", {
       type: ModerationEventType.UNMUTE,
+      guild: interaction.guild,
       target: member,
       moderator: interaction.member as GuildMember,
       reason: reason ?? undefined,
@@ -269,6 +275,211 @@ class UnmuteCommand extends Command {
     });
   }
 }
+
+class BlacklistCommand extends Command {
+  name = "blacklist";
+  description = "Blacklists a user ID.";
+  requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
+  options: ApplicationCommandOptionData[] = [
+    {
+      name: "user-id",
+      description: "The ID of the user you want to blacklist.",
+      type: "STRING",
+      required: true,
+    },
+    {
+      name: "reason",
+      description: "The reason for the blacklist.",
+      type: "STRING",
+    },
+  ];
+
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const userId = interaction.options.getString("user-id", true).trim();
+    const reason = interaction.options.getString("reason");
+
+    if (/^\d{10,}$/.test(userId) !== true) {
+      await interaction.reply({
+        content: "That doesn't seem to be a valid ID.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const member = await interaction.guild.members
+      .fetch(userId)
+      .catch(() => null);
+
+    if (member !== null) {
+      await interaction.reply({
+        content: `It looks like ${member.user.tag} is already in this server. Did you mean to ban them instead?`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const blacklist = await getKeyValueItem<string[]>(
+      `guilds.${interaction.guild.id}.blacklist`
+    );
+    if (blacklist !== null && blacklist.includes(userId)) {
+      await interaction.reply({
+        content: `User ID ${userId} is already on the blacklist.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await updateKeyValueItem<string[]>(
+      `guilds.${interaction.guild.id}.blacklist`,
+      (current) => {
+        const blacklist = current ?? [];
+        return [...blacklist, userId];
+      }
+    );
+
+    const embed = new MessageEmbed()
+      .setColor("RED")
+      .setDescription(`User ID ${userId} has been blacklisted.`);
+
+    if (reason) {
+      embed.addField("Reason", reason);
+    }
+
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.BLACKLIST,
+      note: `Blacklisted user ID ${bold(userId)}.`,
+      guild: interaction.guild,
+      moderator: interaction.member as GuildMember,
+      reason: reason ?? undefined,
+    });
+
+    await interaction.reply({
+      embeds: [embed],
+    });
+  }
+}
+
+class UnblacklistCommand extends Command {
+  name = "unblacklist";
+  description = "Removes a user ID from the blacklist.";
+  requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
+  options: ApplicationCommandOptionData[] = [
+    {
+      name: "user-id",
+      description: "The ID of the user you want to unblacklist.",
+      type: "STRING",
+      required: true,
+    },
+    {
+      name: "reason",
+      description: "The reason for the unblacklist.",
+      type: "STRING",
+    },
+  ];
+
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const userId = interaction.options.getString("user-id", true).trim();
+    const reason = interaction.options.getString("reason");
+
+    if (/^\d{10,}$/.test(userId) !== true) {
+      await interaction.reply({
+        content: "That doesn't seem to be a valid ID.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const blacklist =
+      (await getKeyValueItem<string[]>(
+        `guilds.${interaction.guild.id}.blacklist`
+      )) ?? [];
+
+    if (!blacklist.includes(userId)) {
+      await interaction.reply({
+        content: `User ID ${userId} isn't on the blacklist.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await updateKeyValueItem<string[]>(
+      `guilds.${interaction.guild.id}.blacklist`,
+      (current) => {
+        const blacklist = current ?? [];
+        return blacklist.filter((item) => item !== userId);
+      }
+    );
+
+    const embed = new MessageEmbed()
+      .setColor("GREEN")
+      .setDescription(`User ID ${userId} has been unblacklisted.`);
+
+    if (reason) {
+      embed.addField("Reason", reason);
+    }
+
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.UNBLACKLIST,
+      note: `Unblacklisted user ID ${bold(userId)}.`,
+      guild: interaction.guild,
+      moderator: interaction.member as GuildMember,
+      reason: reason ?? undefined,
+    });
+
+    await interaction.reply({
+      embeds: [embed],
+    });
+  }
+}
+
+const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
+  logger.debug(member);
+
+  const blacklist = await getKeyValueItem<string[]>(
+    `guilds.${member.guild.id}.blacklist`
+  );
+
+  if (blacklist === null) {
+    return;
+  }
+
+  if (blacklist.includes(member.user.id)) {
+    const reason = `User ID ${member.user.id} is blacklisted`;
+
+    await member.ban({ reason });
+
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.BAN,
+      guild: member.guild,
+      target: member,
+      reason,
+    });
+
+    const embed = new MessageEmbed()
+      .setColor("RED")
+      .setDescription(`${bold(member.user.tag)} has been banned.`)
+      .addField("Reason", reason);
+
+    const channel = await getGeneralMessageChannelForGuild(member.guild);
+    await channel.send({ embeds: [embed] });
+  }
+};
 
 const getMutedRoleForGuild = async (
   guild: Guild,
@@ -338,8 +549,12 @@ const ModerationModule: Module = {
     new BanCommand(),
     new MuteCommand(),
     new UnmuteCommand(),
+    new BlacklistCommand(),
+    new UnblacklistCommand(),
   ],
-  handlers: {},
+  handlers: {
+    guildMemberAdd: [handleGuildMemberAdd],
+  },
   cronJobs: [new CronJob("0 * * * * *", clearExpiredMutes)],
 };
 

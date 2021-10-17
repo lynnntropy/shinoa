@@ -20,7 +20,6 @@ import client from "../client";
 import * as Sentry from "@sentry/node";
 import { getGeneralMessageChannelForGuild } from "../utils/guilds";
 import { getKeyValueItem, updateKeyValueItem } from "../keyValueStore";
-import logger from "../logger";
 
 class KickCommand extends Command {
   name = "kick";
@@ -449,8 +448,6 @@ class UnblacklistCommand extends Command {
 }
 
 const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
-  logger.debug(member);
-
   const blacklist = await getKeyValueItem<string[]>(
     `guilds.${member.guild.id}.blacklist`
   );

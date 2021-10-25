@@ -9,6 +9,7 @@ import MiscModule from "./MiscModule";
 import ModerationModule from "./ModerationModule";
 import QuotesModule from "./QuotesModule";
 import JoinLeaveMessagesModule from "./JoinLeaveMessagesModule";
+import SauceNAOModule from "./SauceNAOModule";
 
 const modules = [
   FunModule,
@@ -18,6 +19,7 @@ const modules = [
   QuotesModule,
   LoggingModule,
   JoinLeaveMessagesModule,
+  SauceNAOModule,
 ];
 
 for (const module of modules) {

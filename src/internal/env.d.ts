@@ -5,6 +5,7 @@ declare global {
       SENTRY_DSN: string;
       LOG_LEVEL?: string;
       DATABASE_URL?: string;
+      SAUCENAO_API_KEY?: string;
     }
   }
 }

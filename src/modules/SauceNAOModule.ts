@@ -56,7 +56,7 @@ class SauceNAOCommand extends Command {
       const embed = new MessageEmbed()
         .setColor("GREEN")
         .setThumbnail(result.header.thumbnail)
-        .setTitle(result.data.title)
+        .setTitle(result.data.title ?? "[no title]")
         .setURL(result.data.ext_urls[0])
         .setFooter(result.header.index_name);
 
@@ -101,7 +101,7 @@ interface SauceNAOResponse {
     };
     data: {
       ext_urls: string[];
-      title: string;
+      title?: string;
       author_name?: string;
       author_url?: string;
       member_name?: string;

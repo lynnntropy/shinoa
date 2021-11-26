@@ -29,3 +29,20 @@ model Mute {
   memberId String
   endsAt   DateTime
 }
+
+model Poll {
+  id         String @id
+  guildId    String
+  channelId  String
+  messsageId String
+  votes      Vote[]
+}
+
+model Vote {
+  id     Int    @id @default(autoincrement())
+  poll   Poll   @relation(fields: [pollId], references: [id])
+  pollId String
+  userId String
+
+  @@unique([pollId, userId])
+}

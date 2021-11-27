@@ -1,8 +1,10 @@
-import { Poll } from ".prisma/client";
-import { bold, hyperlink } from "@discordjs/builders";
+import { Poll, Vote } from ".prisma/client";
+import { bold, hyperlink, inlineCode, userMention } from "@discordjs/builders";
+import { logger } from "@sentry/utils";
 import {
   GuildChannel,
   MessageActionRow,
+  MessageEmbed,
   MessageOptions,
   MessageSelectMenu,
   MessageSelectOptionData,
@@ -13,6 +15,9 @@ import { Command, CommandSubCommand } from "../internal/command";
 import { EventHandler, Module } from "../internal/types";
 import prisma from "../prisma";
 
+type PollOptions = MessageSelectOptionData[];
+type PollResults = { [key: string]: number };
+
 class PollCommand extends Command {
   name = "poll";
   description = "Manage polls.";
@@ -22,16 +27,125 @@ class PollCommand extends Command {
     {
       name: "show",
       description: "Show the results of a specific poll.",
-      // TODO allow ephemeral to be configurable
+      options: [
+        {
+          type: "STRING",
+          name: "id",
+          description: "The ID of the poll.",
+          required: true,
+        },
+        {
+          type: "BOOLEAN",
+          name: "public",
+          description:
+            "Whether to show the results to *everyone* in the channel, instead of just to you.",
+          required: false,
+        },
+        {
+          type: "BOOLEAN",
+          name: "sort",
+          description: "Whether to sort the results by number of votes.",
+          required: false,
+        },
+        {
+          type: "BOOLEAN",
+          name: "verbose",
+          description:
+            "Whether to show individual votes instead of just cumulative results.",
+          required: false,
+        },
+      ],
 
-      async handle(interaction) {},
+      async handle(interaction) {
+        const id = interaction.options.getString("id", true);
+        const makePublic = interaction.options.getBoolean("public") ?? false;
+        const sort = interaction.options.getBoolean("sort") ?? true;
+        const verbose = interaction.options.getBoolean("verbose") ?? false;
+
+        if (!interaction.inGuild()) {
+          interaction.reply({
+            content: `Polls can only be managed in a server.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const poll = await prisma.poll.findUnique({
+          where: {
+            guildId_localId: { guildId: interaction.guildId, localId: id },
+          },
+          include: {
+            votes: true,
+          },
+        });
+        if (poll === null) {
+          await interaction.reply({
+            content: "There's no poll with that ID.",
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const embed = buildPollResultsEmbed(poll, poll.votes, sort, verbose);
+
+        await interaction.reply({ embeds: [embed], ephemeral: !makePublic });
+      },
     },
     {
       name: "show-active",
       description: "Show all active polls, with the current results.",
-      // TODO allow ephemeral to be configurable
+      options: [
+        {
+          type: "BOOLEAN",
+          name: "public",
+          description:
+            "Whether to show the results to *everyone* in the channel, instead of just to you.",
+          required: false,
+        },
+        {
+          type: "BOOLEAN",
+          name: "sort",
+          description: "Whether to sort the results by number of votes.",
+          required: false,
+        },
+      ],
 
-      async handle(interaction) {},
+      async handle(interaction) {
+        const makePublic = interaction.options.getBoolean("public") ?? false;
+        const sort = interaction.options.getBoolean("sort") ?? true;
+
+        if (!interaction.inGuild()) {
+          interaction.reply({
+            content: `Polls can only be managed in a server.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const polls = await prisma.poll.findMany({
+          where: {
+            guildId: interaction.guildId,
+            active: true,
+          },
+          include: {
+            votes: true,
+          },
+        });
+
+        if (polls.length === 0) {
+          await interaction.reply({
+            content: "There currently aren't any active polls.",
+            ephemeral: !makePublic,
+          });
+          return;
+        }
+
+        const embeds = polls.map((p) =>
+          buildPollResultsEmbed(p, p.votes, sort, false)
+        );
+
+        await interaction.reply({ embeds, ephemeral: !makePublic });
+      },
     },
     {
       name: "new",
@@ -191,12 +305,17 @@ class PollCommand extends Command {
           data: { active: false },
         });
 
+        const embed = new MessageEmbed()
+          .setTitle(`Poll: ${bold(poll.name)}`)
+          .setDescription("This poll has been closed.")
+          .setFooter(`Poll ID: ${poll.localId}`);
+
         const channel = (await interaction.guild?.channels.fetch(
           poll.channelId
         )) as TextChannel;
         const message = await channel.messages.fetch(poll.messsageId);
         await message.edit({
-          content: `Poll ${bold(poll.name)} has been closed.`,
+          embeds: [embed],
           components: [],
         });
 
@@ -367,12 +486,79 @@ const buildPollMessage = (
       .addOptions(options)
   );
 
+  const embed = new MessageEmbed()
+    .setTitle(`Poll: ${bold(name)}`)
+    .setFooter(`Poll ID: ${localId}`);
+
   const message: MessageOptions = {
-    content: `Poll: ${bold(name)}`,
+    embeds: [embed],
     components: [actionRow],
   };
 
   return message;
+};
+
+const buildPollResultsEmbed = (
+  poll: Poll,
+  votes: Vote[],
+  sort: boolean = true,
+  verbose: boolean = false
+): MessageEmbed => {
+  const options = poll.options as unknown as PollOptions;
+  const results: PollResults = {};
+
+  if (verbose) {
+    const embed = new MessageEmbed()
+      .setTitle(`Poll Responses: ${poll.name}`)
+      .setDescription(
+        votes
+          .map((vote) => {
+            return (
+              `${userMention(vote.userId)}: ` +
+              (options.find((o) => o.value === vote.value)?.label ??
+                inlineCode(vote.value))
+            );
+          })
+          .join("\n")
+      )
+      .setFooter(`Poll ID: ${poll.localId}`);
+
+    return embed;
+  }
+
+  for (const option of options) {
+    results[option.value] = 0;
+  }
+
+  for (const vote of votes) {
+    if (!(vote.value in results)) {
+      logger.error(`Vote ID ${vote.id} has invalid value '${vote.value}'.`);
+      continue;
+    }
+
+    results[vote.value]++;
+  }
+
+  let keys = Object.keys(results);
+  if (sort) {
+    keys = keys.sort((a, b) => results[b] - results[a]);
+  }
+
+  const embed = new MessageEmbed()
+    .setTitle(`Poll Results: ${poll.name}`)
+    .setDescription(
+      keys
+        .map((key) => {
+          const label = options.find((o) => o.value === key)!.label;
+          const result = results[key];
+
+          return `${label}: ${bold(result.toString())} votes`;
+        })
+        .join("\n")
+    )
+    .setFooter(`Poll ID: ${poll.localId}`);
+
+  return embed;
 };
 
 const PollModule: Module = {

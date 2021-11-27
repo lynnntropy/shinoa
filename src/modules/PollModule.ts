@@ -10,7 +10,7 @@ import {
   TextChannel,
 } from "discord.js";
 import { Command, CommandSubCommand } from "../internal/command";
-import { Module } from "../internal/types";
+import { EventHandler, Module } from "../internal/types";
 import prisma from "../prisma";
 
 class PollCommand extends Command {
@@ -274,6 +274,87 @@ class PollCommand extends Command {
   ];
 }
 
+const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
+  interaction
+) => {
+  if (!interaction.inGuild()) {
+    return;
+  }
+
+  if (!interaction.isSelectMenu()) {
+    return;
+  }
+
+  const message = await prisma.poll.findUnique({
+    where: {
+      messsageId: interaction.message.id,
+    },
+  });
+
+  if (message === null) {
+    // This interaction isn't for a known poll message
+    return;
+  }
+
+  const poll = await prisma.poll.findUnique({
+    where: {
+      guildId_localId: {
+        guildId: interaction.guildId,
+        localId: interaction.customId,
+      },
+    },
+  });
+
+  if (poll === null) {
+    throw Error(
+      `Poll SelectMenuInteraction references unknown poll ID ${interaction.customId} in guild ID ${interaction.guildId}.`
+    );
+  }
+
+  if (!poll.active) {
+    throw Error(
+      `Poll SelectMenuInteraction references inactive poll ID ${interaction.customId} in guild ID ${interaction.guildId}.`
+    );
+  }
+
+  const existingVote = await prisma.vote.findUnique({
+    where: {
+      pollId_userId: {
+        pollId: poll.id,
+        userId: interaction.user.id,
+      },
+    },
+  });
+
+  if (existingVote !== null) {
+    await interaction.reply({
+      content: "Sorry, you've already voted in this poll.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  if (interaction.values.length !== 1) {
+    throw Error(
+      `Poll SelectMenuInteraction somehow has fewer or more than one value: ` +
+        `\`${JSON.stringify(interaction.values)}\``
+    );
+  }
+
+  await prisma.vote.create({
+    data: {
+      pollId: poll.id,
+      userId: interaction.user.id,
+      value: interaction.values[0],
+    },
+  });
+
+  await interaction.reply({
+    content: "Your vote has been cast successfully!",
+    ephemeral: true,
+  });
+};
+
 const buildPollMessage = (
   localId: string,
   name: string,
@@ -294,14 +375,11 @@ const buildPollMessage = (
   return message;
 };
 
-// TODO listen for incoming votes
-// probably best to do this by remembering the message ID for each poll
-// and then setting up a collector on that message?
-// alternatively, we could just listen for interactions directly
-
 const PollModule: Module = {
   commands: [new PollCommand()],
-  handlers: {},
+  handlers: {
+    interactionCreate: [handleInteractionCreate],
+  },
 };
 
 export default PollModule;

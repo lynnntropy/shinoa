@@ -49,6 +49,7 @@ model Vote {
   poll   Poll   @relation(fields: [pollId], references: [id])
   pollId Int
   userId String
+  value  String
 
   @@unique([pollId, userId])
 }

@@ -250,7 +250,7 @@ const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
     .setTitle(
       `${message.author?.username}#${message.author?.discriminator}'s message was deleted`
     )
-    .setDescription(message.cleanContent!);
+    .setDescription(message.cleanContent ?? "(empty message)");
 
   await loggingChannel.send({ embeds: [embed] });
 };

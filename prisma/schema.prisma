@@ -53,3 +53,10 @@ model Vote {
 
   @@unique([pollId, userId])
 }
+
+model StarboardItem {
+  id                 Int    @id @default(autoincrement())
+  guildId            String
+  messageId          String @unique
+  starboardMessageId String
+}

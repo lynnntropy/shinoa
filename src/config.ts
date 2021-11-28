@@ -44,6 +44,12 @@ export interface Config {
           keywords?: string;
         };
       };
+      starboard?: {
+        enabled: true;
+        threshold?: number;
+        channelId?: string;
+        channelWhitelist?: string[];
+      };
       moderation?: {
         mutedRoleId?: string;
         dungeonRoleId?: string;
@@ -92,6 +98,11 @@ const config: Config = {
           logging: {
             categoryId: "619980910527512577",
           },
+          starboard: {
+            enabled: true,
+            threshold: 5,
+            channelWhitelist: ["191977603526033408", "851936718839218197"],
+          },
           moderation: {
             mutedRoleId: "201454485669675008",
           },
@@ -109,6 +120,10 @@ const config: Config = {
           },
           logging: {
             categoryId: "891738612314554398",
+          },
+          starboard: {
+            enabled: true,
+            threshold: 1,
           },
         },
       },

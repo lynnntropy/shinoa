@@ -98,6 +98,11 @@ const config: Config = {
           logging: {
             categoryId: "619980910527512577",
           },
+          starboard: {
+            enabled: true,
+            threshold: 5,
+            channelWhitelist: ["191977603526033408", "851936718839218197"],
+          },
           moderation: {
             mutedRoleId: "201454485669675008",
           },

@@ -100,7 +100,7 @@ const config: Config = {
           },
           starboard: {
             enabled: true,
-            threshold: 1,
+            threshold: 5,
             channelWhitelist: ["191977603526033408", "851936718839218197"],
           },
           moderation: {

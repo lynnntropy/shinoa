@@ -47,6 +47,12 @@ const handleMessageUpdate = async (message: Message | PartialMessage) => {
     message = await message.fetch();
   }
 
+  logger.debug(
+    `[StarboardModule] ` +
+      `Reactions changed for message ID ${message.id}: ` +
+      JSON.stringify(message.reactions.valueOf())
+  );
+
   const starboardItem = await prisma.starboardItem.findUnique({
     where: { messageId: message.id },
   });

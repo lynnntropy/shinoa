@@ -6,4 +6,5 @@ export default {
   LOG_LEVEL: process.env.LOG_LEVEL ?? "info",
   DATABASE_URL:
     process.env.DATABASE_URL ?? "postgresql://postgres:postgres@db/shinoa",
+  WEEB_SH_API_KEY: getEnvironmentVariableOrThrow("WEEB_SH_API_KEY"),
 };

@@ -15,6 +15,7 @@ services:
       TOKEN: ~
       LOG_LEVEL: ~
       SAUCENAO_API_KEY: ~
+      WEEB_SH_API_KEY: ~
     depends_on:
       - db
 

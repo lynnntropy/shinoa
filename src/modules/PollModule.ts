@@ -188,6 +188,12 @@ class PollCommand extends Command {
           description:
             "The maximum number of items that can be chosen (default: 1, max: 25).",
         },
+        {
+          type: "BOOLEAN",
+          name: "allow-changing-vote",
+          description:
+            "Set to True to allow people to change their vote after they've voted.",
+        },
       ],
 
       async handle(interaction) {
@@ -200,6 +206,8 @@ class PollCommand extends Command {
         const rawOptions = interaction.options.getString("options", true);
         const minValues = interaction.options.getInteger("min-values") ?? 1;
         const maxValues = interaction.options.getInteger("max-values") ?? 1;
+        const allowChangingVote =
+          interaction.options.getBoolean("allow-changing-vote") ?? false;
 
         if (!interaction.inGuild()) {
           interaction.reply({
@@ -257,9 +265,10 @@ class PollCommand extends Command {
             name,
             channelId: channel.id,
             messsageId: message.id,
+            options: options as any[],
             minValues,
             maxValues,
-            options: options as any[],
+            allowChangingVote,
           },
         });
 
@@ -466,10 +475,26 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
   });
 
   if (existingVote !== null) {
+    if (!poll.allowChangingVote) {
+      await interaction.reply({
+        content: "Sorry, you've already voted in this poll.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await prisma.vote.update({
+      where: { id: existingVote.id },
+      data: {
+        values: interaction.values,
+      },
+    });
+
     await interaction.reply({
-      content: "Sorry, you've already voted in this poll.",
+      content: "Your vote has been changed successfully!",
       ephemeral: true,
     });
+
     return;
   }
 

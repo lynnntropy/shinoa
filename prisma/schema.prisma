@@ -31,17 +31,18 @@ model Mute {
 }
 
 model Poll {
-  id         Int     @id @default(autoincrement())
-  guildId    String
-  localId    String
-  name       String
-  channelId  String
-  messsageId String  @unique
-  active     Boolean @default(true)
-  options    Json
-  minValues  Int
-  maxValues  Int
-  votes      Vote[]
+  id                Int     @id @default(autoincrement())
+  guildId           String
+  localId           String
+  name              String
+  channelId         String
+  messsageId        String  @unique
+  active            Boolean @default(true)
+  options           Json
+  minValues         Int
+  maxValues         Int
+  allowChangingVote Boolean
+  votes             Vote[]
 
   @@unique([guildId, localId])
 }

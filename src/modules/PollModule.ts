@@ -18,6 +18,8 @@ import prisma from "../prisma";
 type PollOptions = MessageSelectOptionData[];
 type PollResults = { [key: string]: number };
 
+type PollResultsInput = { options: PollOptions; votes: Vote[]; sort?: boolean };
+
 class PollCommand extends Command {
   name = "poll";
   description = "Manage polls.";
@@ -176,6 +178,30 @@ class PollCommand extends Command {
           description: `A JSON array with the shape Array<{ label: string, value: string, description?: string }>.`,
           required: true,
         },
+        {
+          type: "INTEGER",
+          name: "min-values",
+          description:
+            "The minimum number of items that must be chosen (default: 1, max: 25).",
+        },
+        {
+          type: "INTEGER",
+          name: "max-values",
+          description:
+            "The maximum number of items that can be chosen (default: 1, max: 25).",
+        },
+        {
+          type: "BOOLEAN",
+          name: "allow-changing-vote",
+          description:
+            "Set to True to allow people to change their vote after they've voted.",
+        },
+        {
+          type: "BOOLEAN",
+          name: "show-results",
+          description:
+            "Set to True to *publicly* show the poll results in real time.",
+        },
       ],
 
       async handle(interaction) {
@@ -186,6 +212,12 @@ class PollCommand extends Command {
           true
         ) as GuildChannel;
         const rawOptions = interaction.options.getString("options", true);
+        const minValues = interaction.options.getInteger("min-values") ?? 1;
+        const maxValues = interaction.options.getInteger("max-values") ?? 1;
+        const allowChangingVote =
+          interaction.options.getBoolean("allow-changing-vote") ?? false;
+        const showResults =
+          interaction.options.getBoolean("show-results") ?? false;
 
         if (!interaction.inGuild()) {
           interaction.reply({
@@ -232,7 +264,21 @@ class PollCommand extends Command {
           throw e;
         }
 
-        const message = await channel.send(buildPollMessage(id, name, options));
+        const message = await channel.send(
+          buildPollMessage(
+            id,
+            name,
+            options,
+            minValues,
+            maxValues,
+            showResults
+              ? {
+                  options,
+                  votes: [],
+                }
+              : undefined
+          )
+        );
 
         await prisma.poll.create({
           data: {
@@ -242,6 +288,10 @@ class PollCommand extends Command {
             channelId: channel.id,
             messsageId: message.id,
             options: options as any[],
+            minValues,
+            maxValues,
+            allowChangingVote,
+            showResults,
           },
         });
 
@@ -381,7 +431,9 @@ class PollCommand extends Command {
           buildPollMessage(
             poll.localId,
             poll.name,
-            poll.options as unknown as MessageSelectOptionData[]
+            poll.options as unknown as MessageSelectOptionData[],
+            poll.minValues,
+            poll.maxValues
           )
         );
 
@@ -446,49 +498,99 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
   });
 
   if (existingVote !== null) {
+    if (!poll.allowChangingVote) {
+      await interaction.reply({
+        content: "Sorry, you've already voted in this poll.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await prisma.vote.update({
+      where: { id: existingVote.id },
+      data: {
+        values: interaction.values,
+      },
+    });
+
     await interaction.reply({
-      content: "Sorry, you've already voted in this poll.",
+      content: "Your vote has been changed successfully!",
       ephemeral: true,
     });
-    return;
+  } else {
+    await prisma.vote.create({
+      data: {
+        pollId: poll.id,
+        userId: interaction.user.id,
+        values: interaction.values,
+      },
+    });
+
+    await interaction.reply({
+      content: "Your vote has been cast successfully!",
+      ephemeral: true,
+    });
   }
 
-  if (interaction.values.length !== 1) {
-    throw Error(
-      `Poll SelectMenuInteraction somehow has fewer or more than one value: ` +
-        `\`${JSON.stringify(interaction.values)}\``
+  // Update the poll message if the poll is configured to show results
+
+  if (poll.showResults) {
+    const poll = (await prisma.poll.findUnique({
+      where: {
+        guildId_localId: {
+          guildId: interaction.guildId,
+          localId: interaction.customId,
+        },
+      },
+      include: { votes: true },
+    }))!;
+
+    const options = poll.options as unknown as PollOptions;
+
+    const channel = (await interaction.guild?.channels.fetch(
+      poll.channelId
+    )) as TextChannel;
+    const message = await channel.messages.fetch(poll.messsageId);
+    await message.edit(
+      buildPollMessage(
+        poll.localId,
+        poll.name,
+        poll.options as unknown as MessageSelectOptionData[],
+        poll.minValues,
+        poll.maxValues,
+        {
+          options,
+          votes: poll.votes,
+        }
+      )
     );
   }
-
-  await prisma.vote.create({
-    data: {
-      pollId: poll.id,
-      userId: interaction.user.id,
-      value: interaction.values[0],
-    },
-  });
-
-  await interaction.reply({
-    content: "Your vote has been cast successfully!",
-    ephemeral: true,
-  });
 };
 
 const buildPollMessage = (
   localId: string,
   name: string,
-  options: MessageSelectOptionData[]
+  options: MessageSelectOptionData[],
+  minValues: number = 1,
+  maxValues: number = 1,
+  resultsInput?: PollResultsInput
 ): MessageOptions => {
   const actionRow = new MessageActionRow().addComponents(
     new MessageSelectMenu()
       .setCustomId(localId)
       .setPlaceholder("Select an option to cast your vote.")
+      .setMinValues(minValues)
+      .setMaxValues(maxValues)
       .addOptions(options)
   );
 
   const embed = new MessageEmbed()
     .setTitle(`Poll: ${bold(name)}`)
     .setFooter(`Poll ID: ${localId}`);
+
+  if (resultsInput) {
+    embed.setDescription(buildPollResultsString(resultsInput));
+  }
 
   const message: MessageOptions = {
     embeds: [embed],
@@ -505,8 +607,6 @@ const buildPollResultsEmbed = (
   verbose: boolean = false
 ): MessageEmbed => {
   const options = poll.options as unknown as PollOptions;
-  const results: PollResults = {};
-
   if (verbose) {
     const embed = new MessageEmbed()
       .setTitle(`Poll Responses: ${poll.name}`)
@@ -515,8 +615,12 @@ const buildPollResultsEmbed = (
           .map((vote) => {
             return (
               `${userMention(vote.userId)}: ` +
-              (options.find((o) => o.value === vote.value)?.label ??
-                inlineCode(vote.value))
+              vote.values
+                .map(
+                  (v) =>
+                    options.find((o) => o.value === v)?.label ?? inlineCode(v)
+                )
+                .join(", ")
             );
           })
           .join("\n")
@@ -526,17 +630,31 @@ const buildPollResultsEmbed = (
     return embed;
   }
 
+  const embed = new MessageEmbed()
+    .setTitle(`Poll Results: ${poll.name}`)
+    .setDescription(buildPollResultsString({ options, votes, sort }))
+    .setFooter(`Poll ID: ${poll.localId}`);
+
+  return embed;
+};
+
+const buildPollResultsString = (input: PollResultsInput): string => {
+  const { options, votes, sort = true } = input;
+  const results: PollResults = {};
+
   for (const option of options) {
     results[option.value] = 0;
   }
 
   for (const vote of votes) {
-    if (!(vote.value in results)) {
-      logger.error(`Vote ID ${vote.id} has invalid value '${vote.value}'.`);
-      continue;
-    }
+    for (const value of vote.values) {
+      if (!(value in results)) {
+        logger.error(`Vote ID ${vote.id} has invalid value '${value}'.`);
+        continue;
+      }
 
-    results[vote.value]++;
+      results[value]++;
+    }
   }
 
   let keys = Object.keys(results);
@@ -544,21 +662,14 @@ const buildPollResultsEmbed = (
     keys = keys.sort((a, b) => results[b] - results[a]);
   }
 
-  const embed = new MessageEmbed()
-    .setTitle(`Poll Results: ${poll.name}`)
-    .setDescription(
-      keys
-        .map((key) => {
-          const label = options.find((o) => o.value === key)!.label;
-          const result = results[key];
+  return keys
+    .map((key) => {
+      const label = options.find((o) => o.value === key)!.label;
+      const result = results[key];
 
-          return `${label}: ${bold(result.toString())} votes`;
-        })
-        .join("\n")
-    )
-    .setFooter(`Poll ID: ${poll.localId}`);
-
-  return embed;
+      return `${label}: ${bold(result.toString())} votes`;
+    })
+    .join("\n");
 };
 
 const PollModule: Module = {

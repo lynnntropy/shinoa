@@ -42,6 +42,7 @@ model Poll {
   minValues         Int
   maxValues         Int
   allowChangingVote Boolean
+  showResults       Boolean
   votes             Vote[]
 
   @@unique([guildId, localId])

@@ -18,6 +18,8 @@ import prisma from "../prisma";
 type PollOptions = MessageSelectOptionData[];
 type PollResults = { [key: string]: number };
 
+type PollResultsInput = { options: PollOptions; votes: Vote[]; sort?: boolean };
+
 class PollCommand extends Command {
   name = "poll";
   description = "Manage polls.";
@@ -194,6 +196,12 @@ class PollCommand extends Command {
           description:
             "Set to True to allow people to change their vote after they've voted.",
         },
+        {
+          type: "BOOLEAN",
+          name: "show-results",
+          description:
+            "Set to True to *publicly* show the poll results in real time.",
+        },
       ],
 
       async handle(interaction) {
@@ -208,6 +216,8 @@ class PollCommand extends Command {
         const maxValues = interaction.options.getInteger("max-values") ?? 1;
         const allowChangingVote =
           interaction.options.getBoolean("allow-changing-vote") ?? false;
+        const showResults =
+          interaction.options.getBoolean("show-results") ?? false;
 
         if (!interaction.inGuild()) {
           interaction.reply({
@@ -255,7 +265,19 @@ class PollCommand extends Command {
         }
 
         const message = await channel.send(
-          buildPollMessage(id, name, options, minValues, maxValues)
+          buildPollMessage(
+            id,
+            name,
+            options,
+            minValues,
+            maxValues,
+            showResults
+              ? {
+                  options,
+                  votes: [],
+                }
+              : undefined
+          )
         );
 
         await prisma.poll.create({
@@ -269,6 +291,7 @@ class PollCommand extends Command {
             minValues,
             maxValues,
             allowChangingVote,
+            showResults,
           },
         });
 
@@ -494,22 +517,54 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
       content: "Your vote has been changed successfully!",
       ephemeral: true,
     });
+  } else {
+    await prisma.vote.create({
+      data: {
+        pollId: poll.id,
+        userId: interaction.user.id,
+        values: interaction.values,
+      },
+    });
 
-    return;
+    await interaction.reply({
+      content: "Your vote has been cast successfully!",
+      ephemeral: true,
+    });
   }
 
-  await prisma.vote.create({
-    data: {
-      pollId: poll.id,
-      userId: interaction.user.id,
-      values: interaction.values,
-    },
-  });
+  // Update the poll message if the poll is configured to show results
 
-  await interaction.reply({
-    content: "Your vote has been cast successfully!",
-    ephemeral: true,
-  });
+  if (poll.showResults) {
+    const poll = (await prisma.poll.findUnique({
+      where: {
+        guildId_localId: {
+          guildId: interaction.guildId,
+          localId: interaction.customId,
+        },
+      },
+      include: { votes: true },
+    }))!;
+
+    const options = poll.options as unknown as PollOptions;
+
+    const channel = (await interaction.guild?.channels.fetch(
+      poll.channelId
+    )) as TextChannel;
+    const message = await channel.messages.fetch(poll.messsageId);
+    await message.edit(
+      buildPollMessage(
+        poll.localId,
+        poll.name,
+        poll.options as unknown as MessageSelectOptionData[],
+        poll.minValues,
+        poll.maxValues,
+        {
+          options,
+          votes: poll.votes,
+        }
+      )
+    );
+  }
 };
 
 const buildPollMessage = (
@@ -517,7 +572,8 @@ const buildPollMessage = (
   name: string,
   options: MessageSelectOptionData[],
   minValues: number = 1,
-  maxValues: number = 1
+  maxValues: number = 1,
+  resultsInput?: PollResultsInput
 ): MessageOptions => {
   const actionRow = new MessageActionRow().addComponents(
     new MessageSelectMenu()
@@ -531,6 +587,10 @@ const buildPollMessage = (
   const embed = new MessageEmbed()
     .setTitle(`Poll: ${bold(name)}`)
     .setFooter(`Poll ID: ${localId}`);
+
+  if (resultsInput) {
+    embed.setDescription(buildPollResultsString(resultsInput));
+  }
 
   const message: MessageOptions = {
     embeds: [embed],
@@ -547,8 +607,6 @@ const buildPollResultsEmbed = (
   verbose: boolean = false
 ): MessageEmbed => {
   const options = poll.options as unknown as PollOptions;
-  const results: PollResults = {};
-
   if (verbose) {
     const embed = new MessageEmbed()
       .setTitle(`Poll Responses: ${poll.name}`)
@@ -572,6 +630,18 @@ const buildPollResultsEmbed = (
     return embed;
   }
 
+  const embed = new MessageEmbed()
+    .setTitle(`Poll Results: ${poll.name}`)
+    .setDescription(buildPollResultsString({ options, votes, sort }))
+    .setFooter(`Poll ID: ${poll.localId}`);
+
+  return embed;
+};
+
+const buildPollResultsString = (input: PollResultsInput): string => {
+  const { options, votes, sort = true } = input;
+  const results: PollResults = {};
+
   for (const option of options) {
     results[option.value] = 0;
   }
@@ -592,21 +662,14 @@ const buildPollResultsEmbed = (
     keys = keys.sort((a, b) => results[b] - results[a]);
   }
 
-  const embed = new MessageEmbed()
-    .setTitle(`Poll Results: ${poll.name}`)
-    .setDescription(
-      keys
-        .map((key) => {
-          const label = options.find((o) => o.value === key)!.label;
-          const result = results[key];
+  return keys
+    .map((key) => {
+      const label = options.find((o) => o.value === key)!.label;
+      const result = results[key];
 
-          return `${label}: ${bold(result.toString())} votes`;
-        })
-        .join("\n")
-    )
-    .setFooter(`Poll ID: ${poll.localId}`);
-
-  return embed;
+      return `${label}: ${bold(result.toString())} votes`;
+    })
+    .join("\n");
 };
 
 const PollModule: Module = {

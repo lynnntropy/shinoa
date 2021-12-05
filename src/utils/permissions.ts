@@ -23,8 +23,16 @@ export const validateInteractionIsAllowed = async (
     }
   }
 
-  if (command.requiredPermissions) {
-    if (interaction.channel?.type !== "GUILD_TEXT") {
+  if (
+    command.requiredPermissions &&
+    new Permissions(Permissions.resolve(command.requiredPermissions)).toArray()
+      .length > 0
+  ) {
+    if (
+      !["GUILD_TEXT", "GUILD_PUBLIC_THREAD", "GUILD_PRIVATE_THREAD"].includes(
+        interaction.channel!.type
+      )
+    ) {
       await interaction.reply("That command can only be used in a server.");
       throw new Error(`Command /${command.name} can only be used in a guild.`);
     }

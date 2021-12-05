@@ -33,7 +33,10 @@ export const validateInteractionIsAllowed = async (
         interaction.channel!.type
       )
     ) {
-      await interaction.reply("That command can only be used in a server.");
+      await interaction.reply({
+        content: "That command can only be used in a server.",
+        ephemeral: true,
+      });
       throw new Error(`Command /${command.name} can only be used in a guild.`);
     }
 

@@ -39,17 +39,19 @@ model Poll {
   messsageId String  @unique
   active     Boolean @default(true)
   options    Json
+  minValues  Int
+  maxValues  Int
   votes      Vote[]
 
   @@unique([guildId, localId])
 }
 
 model Vote {
-  id     Int    @id @default(autoincrement())
-  poll   Poll   @relation(fields: [pollId], references: [id])
+  id     Int      @id @default(autoincrement())
+  poll   Poll     @relation(fields: [pollId], references: [id])
   pollId Int
   userId String
-  value  String
+  values String[]
 
   @@unique([pollId, userId])
 }

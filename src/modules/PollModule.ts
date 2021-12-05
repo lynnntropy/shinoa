@@ -176,6 +176,18 @@ class PollCommand extends Command {
           description: `A JSON array with the shape Array<{ label: string, value: string, description?: string }>.`,
           required: true,
         },
+        {
+          type: "INTEGER",
+          name: "min-values",
+          description:
+            "The minimum number of items that must be chosen (default: 1, max: 25).",
+        },
+        {
+          type: "INTEGER",
+          name: "max-values",
+          description:
+            "The maximum number of items that can be chosen (default: 1, max: 25).",
+        },
       ],
 
       async handle(interaction) {
@@ -186,6 +198,8 @@ class PollCommand extends Command {
           true
         ) as GuildChannel;
         const rawOptions = interaction.options.getString("options", true);
+        const minValues = interaction.options.getInteger("min-values") ?? 1;
+        const maxValues = interaction.options.getInteger("max-values") ?? 1;
 
         if (!interaction.inGuild()) {
           interaction.reply({
@@ -232,7 +246,9 @@ class PollCommand extends Command {
           throw e;
         }
 
-        const message = await channel.send(buildPollMessage(id, name, options));
+        const message = await channel.send(
+          buildPollMessage(id, name, options, minValues, maxValues)
+        );
 
         await prisma.poll.create({
           data: {
@@ -241,6 +257,8 @@ class PollCommand extends Command {
             name,
             channelId: channel.id,
             messsageId: message.id,
+            minValues,
+            maxValues,
             options: options as any[],
           },
         });
@@ -381,7 +399,9 @@ class PollCommand extends Command {
           buildPollMessage(
             poll.localId,
             poll.name,
-            poll.options as unknown as MessageSelectOptionData[]
+            poll.options as unknown as MessageSelectOptionData[],
+            poll.minValues,
+            poll.maxValues
           )
         );
 
@@ -453,18 +473,11 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
     return;
   }
 
-  if (interaction.values.length !== 1) {
-    throw Error(
-      `Poll SelectMenuInteraction somehow has fewer or more than one value: ` +
-        `\`${JSON.stringify(interaction.values)}\``
-    );
-  }
-
   await prisma.vote.create({
     data: {
       pollId: poll.id,
       userId: interaction.user.id,
-      value: interaction.values[0],
+      values: interaction.values,
     },
   });
 
@@ -477,12 +490,16 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
 const buildPollMessage = (
   localId: string,
   name: string,
-  options: MessageSelectOptionData[]
+  options: MessageSelectOptionData[],
+  minValues: number = 1,
+  maxValues: number = 1
 ): MessageOptions => {
   const actionRow = new MessageActionRow().addComponents(
     new MessageSelectMenu()
       .setCustomId(localId)
       .setPlaceholder("Select an option to cast your vote.")
+      .setMinValues(minValues)
+      .setMaxValues(maxValues)
       .addOptions(options)
   );
 
@@ -515,8 +532,12 @@ const buildPollResultsEmbed = (
           .map((vote) => {
             return (
               `${userMention(vote.userId)}: ` +
-              (options.find((o) => o.value === vote.value)?.label ??
-                inlineCode(vote.value))
+              vote.values
+                .map(
+                  (v) =>
+                    options.find((o) => o.value === v)?.label ?? inlineCode(v)
+                )
+                .join(", ")
             );
           })
           .join("\n")
@@ -531,12 +552,14 @@ const buildPollResultsEmbed = (
   }
 
   for (const vote of votes) {
-    if (!(vote.value in results)) {
-      logger.error(`Vote ID ${vote.id} has invalid value '${vote.value}'.`);
-      continue;
-    }
+    for (const value of vote.values) {
+      if (!(value in results)) {
+        logger.error(`Vote ID ${vote.id} has invalid value '${value}'.`);
+        continue;
+      }
 
-    results[vote.value]++;
+      results[value]++;
+    }
   }
 
   let keys = Object.keys(results);

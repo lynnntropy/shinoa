@@ -1,0 +1,81 @@
+import { EventHandler, Module } from "../internal/types";
+import { PorterStemmer } from "natural";
+import { Message } from "discord.js";
+import badWords from "../badWords";
+import emitter from "../emitter";
+import { bold, hyperlink } from "@discordjs/builders";
+
+enum AutomodAction {
+  Log,
+  Warn,
+  Mute,
+  Delete,
+}
+
+interface AutomodRule {
+  name: string;
+  actions: AutomodAction[];
+  handle: (message: Message, tokens: string[]) => Promise<boolean>;
+}
+
+const rules: AutomodRule[] = [
+  {
+    name: "Word Filter",
+    actions: [AutomodAction.Log, AutomodAction.Warn],
+    handle: async (_, tokens) =>
+      tokens.some((token) => badWords.includes(token)),
+  },
+  // TODO scam filter rule
+  // TODO ping rule
+];
+
+const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
+  if (!message.guildId) {
+    return;
+  }
+
+  const tokens = PorterStemmer.tokenizeAndStem(message.cleanContent);
+  console.log(tokens);
+
+  let actions: AutomodAction[] = [];
+
+  for (const rule of rules) {
+    const hit = await rule.handle(message, tokens);
+    if (hit) {
+      actions.push(...rule.actions);
+    }
+  }
+
+  actions = [...new Set(actions)];
+
+  if (actions.includes(AutomodAction.Log)) {
+    emitter.emit("logEvent", {
+      guild: message.guild!,
+      note:
+        bold(message.author.tag) +
+        `'s message tripped one or more of Shinoa's automod rules.\n\n` +
+        hyperlink("🔗 Link to message", message.url),
+    });
+  }
+
+  if (actions.includes(AutomodAction.Warn)) {
+    await message.reply("Please watch your language.");
+  }
+
+  if (actions.includes(AutomodAction.Mute)) {
+    // TODO need to extract mute code from the moderation module
+  }
+
+  if (actions.includes(AutomodAction.Delete)) {
+    await message.delete();
+  }
+};
+
+const AutomodModule: Module = {
+  commands: [],
+  handlers: {
+    messageCreate: [handleMessageCreate],
+  },
+};
+
+export default AutomodModule;

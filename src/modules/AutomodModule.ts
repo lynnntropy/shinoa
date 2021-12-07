@@ -35,7 +35,6 @@ const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
   }
 
   const tokens = PorterStemmer.tokenizeAndStem(message.cleanContent);
-  console.log(tokens);
 
   let actions: AutomodAction[] = [];
 

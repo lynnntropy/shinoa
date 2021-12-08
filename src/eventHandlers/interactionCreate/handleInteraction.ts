@@ -33,7 +33,7 @@ const handleFoundCommand = async (
     await command.handleInteraction(interaction);
   } catch (e: any) {
     if (e instanceof UserReadableError) {
-      interaction.reply({
+      await interaction.reply({
         content: e.message,
         ephemeral: true,
       });

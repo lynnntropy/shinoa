@@ -20,13 +20,50 @@ interface AutomodRule {
 
 const rules: AutomodRule[] = [
   {
-    name: "Word Filter",
+    name: "word filter",
     actions: [AutomodAction.Log, AutomodAction.Warn],
     handle: async (_, tokens) =>
       tokens.some((token) => badWords.includes(token)),
   },
-  // TODO scam filter rule
-  // TODO ping rule
+  {
+    name: "@everyone / @here attempt",
+    actions: [AutomodAction.Log, AutomodAction.Mute],
+    handle: async (message) => {
+      if (
+        message.cleanContent.includes("@everyone") ||
+        message.cleanContent.includes("@here")
+      ) {
+        if (!message.mentions.everyone) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+  },
+  {
+    name: "ping spam",
+    actions: [AutomodAction.Log, AutomodAction.Mute],
+    handle: async (message) => {
+      const mentionCount =
+        message.mentions.users.size + message.mentions.roles.size;
+      return mentionCount >= 10;
+    },
+  },
+  {
+    name: "sus links",
+    actions: [AutomodAction.Log, AutomodAction.Mute],
+    handle: async (message) => {
+      const urls = message.cleanContent.match(/\bhttps?:\/\/\S+/gi);
+      return (
+        urls?.some(
+          (url) =>
+            url.toLowerCase().includes("discord") &&
+            url.toLowerCase().includes("gift")
+        ) ?? false
+      );
+    },
+  },
 ];
 
 const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {

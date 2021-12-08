@@ -7,6 +7,7 @@ import { EventHandler } from "../../internal/types";
 import { Command } from "../../internal/command";
 import * as Sentry from "@sentry/node";
 import { Context } from "@sentry/types";
+import UserReadableError from "../../internal/errors/UserReadableError";
 
 const handleFoundCommand = async (
   interaction: CommandInteraction,
@@ -31,6 +32,14 @@ const handleFoundCommand = async (
   try {
     await command.handleInteraction(interaction);
   } catch (e: any) {
+    if (e instanceof UserReadableError) {
+      interaction.reply({
+        content: e.message,
+        ephemeral: true,
+      });
+      return;
+    }
+
     Sentry.captureException(e, sentryScope);
     logger.warn(e);
 

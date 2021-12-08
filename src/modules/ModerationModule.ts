@@ -13,14 +13,12 @@ import emitter, { ModerationEventType } from "../emitter";
 import { Command } from "../internal/command";
 import { EventHandler, Module } from "../internal/types";
 import parseDuration from "parse-duration";
-import { add, formatDuration, intervalToDuration } from "date-fns";
+import { intervalToDuration } from "date-fns";
 import { bold, userMention } from "@discordjs/builders";
 import { CronJob } from "cron";
-import prisma from "../prisma";
-import client from "../client";
-import * as Sentry from "@sentry/node";
 import { getGeneralMessageChannelForGuild } from "../utils/guilds";
 import { getKeyValueItem, updateKeyValueItem } from "../keyValueStore";
+import { clearExpiredMutes, mute, unmute } from "../mutes";
 
 class KickCommand extends Command {
   name = "kick";
@@ -160,65 +158,24 @@ class MuteCommand extends Command {
   ];
 
   async handle(interaction: CommandInteraction) {
-    if (interaction.guild === null) {
-      await interaction.reply({
-        content: "This command can only be called inside a server.",
-        ephemeral: true,
-      });
-      return;
-    }
-
-    const role = (await getMutedRoleForGuild(interaction.guild)) as Role;
     const member = interaction.options.getMember("user", true) as GuildMember;
     const reason = interaction.options.getString("reason");
     const durationInput = interaction.options.getString("duration");
 
-    if (member.roles.cache.has(role.id)) {
-      await interaction.reply({
-        content: "User is already muted.",
-        ephemeral: true,
-      });
-      return;
-    }
-
-    await member.roles.add(role, reason ?? undefined);
-
-    const embed = new MessageEmbed()
-      .setColor("RED")
-      .setDescription(`${userMention(member.user.id)} has been muted.`)
-      .setImage("https://i.ibb.co/74J5ZWs/image0.png");
+    let duration: Duration | undefined = undefined;
 
     if (durationInput !== null) {
       const durationMs = parseDuration(durationInput, "ms") as number;
-      const duration = intervalToDuration({ start: 0, end: durationMs });
-
-      embed.addField("Duration", formatDuration(duration));
-
-      await prisma.mute.create({
-        data: {
-          guildId: interaction.guild.id,
-          memberId: member.id,
-          endsAt: add(new Date(), duration),
-        },
-      });
-    } else {
-      embed.addField("Duration", "indefinite");
+      duration = intervalToDuration({ start: 0, end: durationMs });
     }
 
-    if (reason) {
-      embed.addField("Reason", reason);
-    }
-
-    emitter.emit("moderationEvent", {
-      type: ModerationEventType.MUTE,
-      guild: interaction.guild,
-      target: member,
-      moderator: interaction.member as GuildMember,
+    await mute({
+      guild: interaction.guild!,
+      member,
       reason: reason ?? undefined,
-    });
-
-    await interaction.reply({
-      embeds: [embed],
+      duration,
+      interaction,
+      initiatedBy: (interaction.member as GuildMember | null) ?? undefined,
     });
   }
 }
@@ -242,50 +199,15 @@ class UnmuteCommand extends Command {
   ];
 
   async handle(interaction: CommandInteraction) {
-    if (interaction.guild === null) {
-      await interaction.reply({
-        content: "This command can only be called inside a server.",
-        ephemeral: true,
-      });
-      return;
-    }
-
-    const role = (await getMutedRoleForGuild(interaction.guild)) as Role;
     const member = interaction.options.getMember("user", true) as GuildMember;
     const reason = interaction.options.getString("reason");
 
-    if (!member.roles.cache.has(role.id)) {
-      await interaction.reply({
-        content: "User isn't muted.",
-        ephemeral: true,
-      });
-      return;
-    }
-
-    await member.roles.remove(role, reason ?? undefined);
-
-    await prisma.mute.deleteMany({
-      where: { guildId: interaction.guild.id, memberId: member.id },
-    });
-
-    const embed = new MessageEmbed()
-      .setColor("GREEN")
-      .setDescription(`${userMention(member.user.id)} has been unmuted.`);
-
-    if (reason) {
-      embed.addField("Reason", reason);
-    }
-
-    emitter.emit("moderationEvent", {
-      type: ModerationEventType.UNMUTE,
-      guild: interaction.guild,
-      target: member,
-      moderator: interaction.member as GuildMember,
+    await unmute({
+      guild: interaction.guild!,
+      member,
       reason: reason ?? undefined,
-    });
-
-    await interaction.reply({
-      embeds: [embed],
+      interaction,
+      initiatedBy: (interaction.member as GuildMember | null) ?? undefined,
     });
   }
 }
@@ -725,35 +647,6 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
   }
 };
 
-const getMutedRoleForGuild = async (
-  guild: Guild,
-  throwOnNotFound: boolean = true
-): Promise<Role | null> => {
-  const roleId = config.guilds[guild.id].moderation?.mutedRoleId;
-
-  if (roleId) {
-    const role = await guild.roles.fetch(roleId);
-
-    if (role === null && throwOnNotFound) {
-      throw Error(`Guild has no role ID ${roleId}.`);
-    }
-
-    return role;
-  }
-
-  const roles = await guild.roles.fetch();
-  const role =
-    roles.find((r) => r.name.toLowerCase().trim() === "muted") ?? null;
-
-  if (role === null && throwOnNotFound) {
-    throw Error(
-      `Guild has no configured muted role and no role could be found automatically.`
-    );
-  }
-
-  return role;
-};
-
 const getDungeonRoleForGuild = async (
   guild: Guild,
   throwOnNotFound: boolean = true
@@ -782,39 +675,6 @@ const getDungeonRoleForGuild = async (
   }
 
   return role;
-};
-
-const clearExpiredMutes = async () => {
-  const expiredMutes = await prisma.mute.findMany({
-    where: { endsAt: { lte: new Date() } },
-  });
-
-  for (const mute of expiredMutes) {
-    try {
-      const guild = await client.guilds.fetch(mute.guildId);
-      const member = await guild.members.fetch(mute.memberId);
-
-      const role = (await getMutedRoleForGuild(guild)) as Role;
-
-      if (member.roles.cache.has(role.id)) {
-        const reason = "Mute has expired";
-        await member.roles.remove(role, reason);
-
-        const messageChannel = await getGeneralMessageChannelForGuild(guild);
-
-        const embed = new MessageEmbed()
-          .setColor("GREEN")
-          .setDescription(`${userMention(member.user.id)} has been unmuted.`);
-        embed.addField("Reason", reason);
-
-        await messageChannel.send({ embeds: [embed] });
-      }
-
-      await prisma.mute.delete({ where: { id: mute.id } });
-    } catch (e) {
-      Sentry.captureException(e, { contexts: { mute } });
-    }
-  }
 };
 
 const ModerationModule: Module = {

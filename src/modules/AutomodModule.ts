@@ -4,6 +4,7 @@ import { Message } from "discord.js";
 import badWords from "../badWords";
 import emitter from "../emitter";
 import { bold, hyperlink } from "@discordjs/builders";
+import { mute } from "../mutes";
 
 enum AutomodAction {
   Log,
@@ -99,7 +100,11 @@ const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
   }
 
   if (actions.includes(AutomodAction.Mute)) {
-    // TODO need to extract mute code from the moderation module
+    await mute({
+      guild: message.guild!,
+      member: message.member!,
+      reason: "Automatic mute",
+    });
   }
 
   if (actions.includes(AutomodAction.Delete)) {

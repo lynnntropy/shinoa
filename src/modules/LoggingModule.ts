@@ -13,7 +13,7 @@ import { EventHandler, Module } from "../internal/types";
 import logger from "../logger";
 import { detailedDiff } from "deep-object-diff";
 import { isEmpty, pick } from "lodash";
-import { ModerationEvent, ModerationEventType } from "../emitter";
+import { LogEvent, ModerationEvent, ModerationEventType } from "../emitter";
 import { Command, CommandSubCommand } from "../internal/command";
 import { getKeyValueItem, setKeyValueItem } from "../keyValueStore";
 import { formatDate } from "../utils/date";
@@ -593,6 +593,20 @@ const handleModerationEvent = async (event: ModerationEvent) => {
   await loggingChannel.send({ embeds: [embed] });
 };
 
+const handleLogEvent = async (event: LogEvent) => {
+  const { guild } = event;
+
+  if (!getLoggingConfigForGuild(guild.id)) {
+    return;
+  }
+
+  const loggingChannel = getLoggingChannel(guild.id, "keywords");
+
+  const embed = new MessageEmbed().setTitle("Event").setDescription(event.note);
+
+  await loggingChannel.send({ embeds: [embed] });
+};
+
 const checkForKeywords = async (message: Message) => {
   const keywords = await getKeyValueItem<string[]>(
     `guilds.${message.guildId}.logging.keywords`
@@ -677,7 +691,10 @@ const LoggingModule: Module = {
     guildMemberUpdate: [handleGuildMemberUpdate],
     userUpdate: [handleUserUpdate],
   },
-  appEventHandlers: [["moderationEvent", handleModerationEvent]],
+  appEventHandlers: [
+    ["moderationEvent", handleModerationEvent],
+    ["logEvent", handleLogEvent],
+  ],
 };
 
 export default LoggingModule;

@@ -3,6 +3,7 @@ import { TypedEmitter } from "tiny-typed-emitter";
 
 interface AppEvents {
   moderationEvent: (event: ModerationEvent) => void;
+  logEvent: (event: LogEvent) => void;
 }
 
 export interface ModerationEvent {
@@ -23,6 +24,11 @@ export enum ModerationEventType {
   UNBLACKLIST,
   DUNGEON,
   UNDUNGEON,
+}
+
+export interface LogEvent {
+  guild: Guild;
+  note: string;
 }
 
 const emitter = new TypedEmitter<AppEvents>();

@@ -12,6 +12,7 @@ import JoinLeaveMessagesModule from "./JoinLeaveMessagesModule";
 import SauceNAOModule from "./SauceNAOModule";
 import PollModule from "./PollModule";
 import StarboardModule from "./StarboardModule";
+import AutomodModule from "./AutomodModule";
 
 const modules = [
   FunModule,
@@ -24,6 +25,7 @@ const modules = [
   SauceNAOModule,
   PollModule,
   StarboardModule,
+  AutomodModule,
 ];
 
 for (const module of modules) {

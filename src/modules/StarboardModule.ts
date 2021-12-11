@@ -45,6 +45,9 @@ const handleMessageUpdate = async (message: Message | PartialMessage) => {
 
   if (message.partial) {
     message = await message.fetch();
+  }
+
+  if (message.reactions.resolve(STARBOARD_EMOJI)?.partial) {
     await message.reactions.resolve(STARBOARD_EMOJI)?.fetch();
     await message.reactions.resolve(STARBOARD_EMOJI)?.users.fetch();
   }

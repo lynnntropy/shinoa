@@ -1,6 +1,6 @@
 import { CronJob } from "cron";
 import { ClientEvents, Snowflake } from "discord.js";
-import { IResolvers } from "graphql-tools";
+import { IResolvers } from "@graphql-tools/utils";
 import { AppEventHandler } from "../emitter";
 import { Command } from "./command";
 

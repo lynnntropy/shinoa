@@ -36,6 +36,7 @@ export abstract class Command {
       }
 
       if (interaction.options.data[0].options) {
+        // @ts-ignore
         interaction.options = new CommandInteractionOptionResolver(
           client,
           interaction.options.data[0].options

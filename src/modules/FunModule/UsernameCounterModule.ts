@@ -1,3 +1,4 @@
+import { Prisma } from ".prisma/client";
 import { CommandInteraction, TextChannel } from "discord.js";
 import { PermissionResolvable } from "discord.js";
 import { Command, CommandSubCommand } from "../../internal/command";
@@ -42,8 +43,8 @@ class UsernameCounterAdminCommand extends Command {
 
         await prisma.keyValueItem.upsert({
           where: { key },
-          update: kv,
-          create: kv,
+          update: kv as Prisma.KeyValueItemUpdateInput,
+          create: kv as Prisma.KeyValueItemCreateInput,
         });
 
         await interaction.reply(`Enabled counting for keyword \`${keyword}\`.`);
@@ -78,8 +79,8 @@ class UsernameCounterAdminCommand extends Command {
 
         await prisma.keyValueItem.upsert({
           where: { key },
-          update: kv,
-          create: kv,
+          update: kv as Prisma.KeyValueItemUpdateInput,
+          create: kv as Prisma.KeyValueItemCreateInput,
         });
 
         await interaction.reply(
@@ -145,8 +146,8 @@ const onGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
       }
       const { value: currentCount } = await prisma.keyValueItem.upsert({
         where: { key: countKey },
-        create: countKv,
-        update: countKv,
+        update: countKv as Prisma.KeyValueItemUpdateInput,
+        create: countKv as Prisma.KeyValueItemCreateInput,
       });
 
       const channel =

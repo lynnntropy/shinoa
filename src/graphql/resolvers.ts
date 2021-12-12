@@ -1,6 +1,6 @@
 import { Guild } from "discord.js";
 import { GraphQLFieldResolver } from "graphql";
-import { IResolvers } from "graphql-tools";
+import { IResolvers } from "@graphql-tools/utils";
 import client from "../client";
 
 interface AppResolvers extends IResolvers {

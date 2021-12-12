@@ -47,10 +47,8 @@ const handleMessageUpdate = async (message: Message | PartialMessage) => {
     message = await message.fetch();
   }
 
-  if (message.reactions.resolve(STARBOARD_EMOJI)?.partial) {
-    await message.reactions.resolve(STARBOARD_EMOJI)?.fetch();
-    await message.reactions.resolve(STARBOARD_EMOJI)?.users.fetch();
-  }
+  const users = await message.reactions.resolve(STARBOARD_EMOJI)?.users.fetch();
+  const starCount = users?.size ?? 0;
 
   logger.debug(
     `[StarboardModule] ` +
@@ -65,7 +63,7 @@ const handleMessageUpdate = async (message: Message | PartialMessage) => {
   if (starboardItem) {
     const channel = await resolveStarboardChannel(guildId);
 
-    if ((message.reactions.resolve(STARBOARD_EMOJI)?.count ?? 0) < threshold) {
+    if (starCount < threshold) {
       // This message _was_ on the starboard until now, but
       // doesn't qualify anymore
 
@@ -89,7 +87,7 @@ const handleMessageUpdate = async (message: Message | PartialMessage) => {
     return;
   }
 
-  if ((message.reactions.resolve(STARBOARD_EMOJI)?.count ?? 0) >= threshold) {
+  if (starCount >= threshold) {
     // This message just qualified for the starboard!
 
     const channel = await resolveStarboardChannel(guildId);

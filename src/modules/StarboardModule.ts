@@ -149,7 +149,10 @@ const buildStarboardMessage = async (
     throw Error("Message isn't in a guild.");
   }
 
-  const starCount = originalMessage.reactions.resolve(STARBOARD_EMOJI)!.count;
+  const users = await originalMessage.reactions
+    .resolve(STARBOARD_EMOJI)
+    ?.users.fetch();
+  const starCount = users?.size ?? 0;
 
   const embed: MessageEmbedOptions = {
     author: {

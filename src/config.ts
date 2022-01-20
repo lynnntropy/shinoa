@@ -101,7 +101,7 @@ const config: Config = {
           starboard: {
             enabled: true,
             threshold: 5,
-            channelWhitelist: ["191977603526033408", "851936718839218197"],
+            channelWhitelist: ["191977603526033408", "851936718839218197", "928093879230668820"],
           },
           moderation: {
             mutedRoleId: "201454485669675008",

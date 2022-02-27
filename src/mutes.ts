@@ -2,6 +2,8 @@ import { userMention } from "@discordjs/builders";
 import { add, formatDuration } from "date-fns";
 import {
   CommandInteraction,
+  Constants,
+  DiscordAPIError,
   Guild,
   GuildMember,
   MessageEmbed,
@@ -14,6 +16,7 @@ import prisma from "./prisma";
 import { getGeneralMessageChannelForGuild } from "./utils/guilds";
 import * as Sentry from "@sentry/node";
 import UserReadableError from "./internal/errors/UserReadableError";
+import logger from "./logger";
 
 interface MuteOptions {
   guild: Guild;
@@ -140,6 +143,17 @@ export const clearExpiredMutes = async () => {
         reason: "Mute has expired",
       });
     } catch (e) {
+      if (e instanceof DiscordAPIError) {
+        if (e.code === Constants.APIErrors.UNKNOWN_MEMBER) {
+          logger.warn(
+            `Mute ID ${mute.id} references unknown member ID ${mute.memberId}. This mute will be pruned.`
+          );
+
+          await prisma.mute.delete({ where: { id: mute.id } });
+          continue;
+        }
+      }
+
       Sentry.captureException(e, { contexts: { mute } });
     }
   }

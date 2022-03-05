@@ -154,6 +154,33 @@ const config: Config = {
                   },
                 ],
               },
+              {
+                id: "949720895730122783",
+                channelId: "161167668131397642",
+                type: "select",
+                options: [
+                  {
+                    roleId: "949715319772033074",
+                    description: "Description",
+                    emoji: {
+                      id: null,
+                      name: "😌",
+                    },
+                  },
+                  {
+                    roleId: "949715383861006336",
+                    description: "Description",
+                    emoji: {
+                      id: "730534917645008946",
+                      name: "AngryTurtle",
+                    },
+                  },
+                  {
+                    roleId: "949721438267514951",
+                    description: "Description",
+                  },
+                ],
+              },
             ],
           },
         },

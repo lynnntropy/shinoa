@@ -1,4 +1,4 @@
-import { Snowflake } from "discord.js";
+import { MessageActionRow, MessageSelectMenu, Snowflake } from "discord.js";
 import client from "../client";
 import config from "../config";
 import { EventHandler, Module } from "../internal/types";
@@ -13,9 +13,8 @@ export type GuildRolesMessageConfig =
           type: "select";
           options: {
             roleId: Snowflake;
-            label: string;
             description: string;
-            emoji: {
+            emoji?: {
               name: string;
               id: Snowflake | null;
             };
@@ -74,8 +73,6 @@ const initializeMessage = async (
   const message = await channel.messages.fetch(config.id);
 
   if (config.type === "reaction") {
-    // we just need to make sure all the reactions we want are there
-
     for (const option of config.options) {
       if (
         option.emoji.id &&
@@ -88,10 +85,28 @@ const initializeMessage = async (
         await message.react(option.emoji.name);
       }
     }
+
+    return;
   }
 
   if (config.type === "select") {
-    // todo
+    await guild.roles.fetch();
+    const row = new MessageActionRow().addComponents(
+      new MessageSelectMenu()
+        .setCustomId("shinoa_roles_module_menu")
+        .setPlaceholder("Choose a role to assign or unassign it from yourself.")
+        .addOptions(
+          config.options.map((o) => ({
+            value: o.roleId,
+            label: guild.roles.cache.get(o.roleId)!.name,
+            description: o.description,
+            emoji: o.emoji?.id ?? o.emoji?.name,
+          }))
+        )
+    );
+
+    await message.edit({ content: null, components: [row] });
+
     return;
   }
 };

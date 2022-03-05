@@ -8,6 +8,7 @@ import {
   PartialGuildMember,
 } from "discord.js";
 import { channelMention, userMention } from "@discordjs/builders";
+import { GuildRolesConfig } from "./modules/RolesModule";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -54,6 +55,7 @@ export interface Config {
         mutedRoleId?: string;
         dungeonRoleId?: string;
       };
+      roles?: GuildRolesConfig;
     };
   };
 }
@@ -101,7 +103,11 @@ const config: Config = {
           starboard: {
             enabled: true,
             threshold: 5,
-            channelWhitelist: ["191977603526033408", "851936718839218197", "928093879230668820"],
+            channelWhitelist: [
+              "191977603526033408",
+              "851936718839218197",
+              "928093879230668820",
+            ],
           },
           moderation: {
             mutedRoleId: "201454485669675008",
@@ -124,6 +130,15 @@ const config: Config = {
           starboard: {
             enabled: true,
             threshold: 1,
+          },
+          roles: {
+            messages: [
+              {
+                id: "aaaa",
+                type: "reaction",
+                options: [],
+              },
+            ],
           },
         },
       },

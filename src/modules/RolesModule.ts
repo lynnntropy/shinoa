@@ -1,5 +1,9 @@
 import {
+  ButtonInteraction,
+  GuildMember,
+  Message,
   MessageActionRow,
+  MessageButton,
   MessageReaction,
   MessageSelectMenu,
   Snowflake,
@@ -9,6 +13,7 @@ import config from "../config";
 import { EventHandler, Module } from "../internal/types";
 import logger from "../logger";
 import * as Sentry from "@sentry/node";
+import { bold } from "@discordjs/builders";
 
 export type GuildRolesMessageConfig =
   | {
@@ -100,7 +105,7 @@ const initializeMessage = async (
     const row = new MessageActionRow().addComponents(
       new MessageSelectMenu()
         .setCustomId("shinoa_roles_module_menu")
-        .setPlaceholder("Choose a role to assign or unassign it from yourself.")
+        .setPlaceholder("Open to show available roles")
         .addOptions(
           config.options.map((o) => ({
             value: o.roleId,
@@ -111,7 +116,10 @@ const initializeMessage = async (
         )
     );
 
-    await message.edit({ content: null, components: [row] });
+    await message.edit({
+      content: "Choose a role to assign or remove it from yourself.",
+      components: [row],
+    });
 
     return;
   }
@@ -210,7 +218,128 @@ const getMessageConfigForReaction = async (reaction: MessageReaction) => {
   return message;
 };
 
-// todo respond to select interactions
+// respond to select interactions
+
+const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
+  interaction
+) => {
+  if (!interaction.inGuild()) {
+    return;
+  }
+
+  if (!interaction.isSelectMenu()) {
+    return;
+  }
+
+  const guildRolesConfig = config.guilds[interaction.guildId].roles;
+
+  if (!guildRolesConfig) {
+    return;
+  }
+
+  const message = guildRolesConfig.messages.find(
+    (m) => m.id === interaction.message.id && m.type === "select"
+  );
+
+  if (!message || message.type !== "select") {
+    return;
+  }
+
+  const member = interaction.member as GuildMember;
+  const guild = await client.guilds.fetch(interaction.guildId);
+
+  const option = message.options.find(
+    (o) => o.roleId === interaction.values[0]
+  );
+
+  if (!option) {
+    Sentry.captureException(
+      Error("Failed to match this interaction with an option."),
+      { contexts: { interaction: interaction as any } }
+    );
+    return;
+  }
+
+  const role = await guild.roles.fetch(option.roleId);
+  const hasRole = member.roles.cache.has(option.roleId);
+
+  if (!role) {
+    throw Error(`Role ID ${option.roleId} not found.`);
+  }
+
+  const row = new MessageActionRow();
+
+  if (!hasRole) {
+    row.addComponents(
+      new MessageButton()
+        .setCustomId("continue")
+        .setLabel("Yes, continue")
+        .setStyle("PRIMARY")
+    );
+  } else {
+    row.addComponents(
+      new MessageButton()
+        .setCustomId("continue")
+        .setLabel("Yes, continue")
+        .setStyle("DANGER")
+    );
+  }
+
+  row.addComponents(
+    new MessageButton()
+      .setCustomId("cancel")
+      .setLabel("Cancel")
+      .setStyle("SECONDARY")
+  );
+
+  await interaction.reply({
+    ephemeral: true,
+    content: !hasRole
+      ? `Do you want to assign yourself the role ${bold(role.name)}?`
+      : `Do you want to remove the role ${bold(role.name)} from yourself?`,
+    components: [row],
+  });
+
+  const reply = (await interaction.fetchReply()) as Message;
+
+  const filter = (i: ButtonInteraction) => {
+    i.deferUpdate();
+    return i.user.id === interaction.user.id;
+  };
+
+  try {
+    const replyInteraction = await reply.awaitMessageComponent({
+      filter,
+      componentType: "BUTTON",
+      time: 300_000, // 5 minutes
+    });
+
+    if (replyInteraction.customId === "continue") {
+      if (!hasRole) {
+        await member.roles.add(option.roleId, "User self-assigned role");
+        await interaction.editReply({
+          content: `Role ${bold(role.name)} successfully assigned.`,
+          components: [],
+        });
+      } else {
+        await member.roles.remove(option.roleId, "User self-unassigned role");
+        await interaction.editReply({
+          content: `Role ${bold(role.name)} successfully removed.`,
+          components: [],
+        });
+      }
+
+      return;
+    }
+
+    await interaction.editReply({
+      content: "Role operation cancelled.",
+      components: [],
+    });
+  } catch (e) {
+    logger.warn(e);
+  }
+};
 
 const RolesModule: Module = {
   commands: [],
@@ -218,6 +347,7 @@ const RolesModule: Module = {
     ready: [handleReady],
     messageReactionAdd: [handleMessageReactionAdd],
     messageReactionRemove: [handleMessageReactionRemove],
+    interactionCreate: [handleInteractionCreate],
   },
 };
 

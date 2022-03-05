@@ -134,9 +134,25 @@ const config: Config = {
           roles: {
             messages: [
               {
-                id: "aaaa",
+                id: "949715094638579742",
+                channelId: "161167668131397642",
                 type: "reaction",
-                options: [],
+                options: [
+                  {
+                    roleId: "949715319772033074",
+                    emoji: {
+                      id: null,
+                      name: "😌",
+                    },
+                  },
+                  {
+                    roleId: "949715383861006336",
+                    emoji: {
+                      id: "730534917645008946",
+                      name: "AngryTurtle",
+                    },
+                  },
+                ],
               },
             ],
           },

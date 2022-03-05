@@ -1,8 +1,14 @@
-import { MessageActionRow, MessageSelectMenu, Snowflake } from "discord.js";
+import {
+  MessageActionRow,
+  MessageReaction,
+  MessageSelectMenu,
+  Snowflake,
+} from "discord.js";
 import client from "../client";
 import config from "../config";
 import { EventHandler, Module } from "../internal/types";
 import logger from "../logger";
+import * as Sentry from "@sentry/node";
 
 export type GuildRolesMessageConfig =
   | {
@@ -111,13 +117,107 @@ const initializeMessage = async (
   }
 };
 
+// respond to reactions
+
+const handleMessageReactionAdd: EventHandler<"messageReactionAdd"> = async (
+  reaction,
+  user
+) => {
+  if (reaction.partial) {
+    reaction = await reaction.fetch();
+  }
+
+  const message = await getMessageConfigForReaction(reaction);
+
+  if (!message) {
+    return;
+  }
+
+  const guild = await client.guilds.fetch(reaction.message.guildId!);
+  const member = await guild.members.fetch(user.id);
+
+  const option =
+    message.options.find(
+      (o) => o.emoji.id && o.emoji.id === reaction.emoji.id
+    ) ?? message.options.find((o) => o.emoji.name === reaction.emoji.name);
+
+  if (!option) {
+    Sentry.captureException(
+      Error("Failed to match this reaction with an option."),
+      { contexts: { reaction: reaction as any, user: user as any } }
+    );
+    return;
+  }
+
+  await member.roles.add(option.roleId, "User self-assigned role");
+
+  return;
+};
+
+const handleMessageReactionRemove: EventHandler<
+  "messageReactionRemove"
+> = async (reaction, user) => {
+  if (reaction.partial) {
+    reaction = await reaction.fetch();
+  }
+
+  const message = await getMessageConfigForReaction(reaction);
+
+  if (!message) {
+    return;
+  }
+
+  const guild = await client.guilds.fetch(reaction.message.guildId!);
+  const member = await guild.members.fetch(user.id);
+
+  const option =
+    message.options.find(
+      (o) => o.emoji.id && o.emoji.id === reaction.emoji.id
+    ) ?? message.options.find((o) => o.emoji.name === reaction.emoji.name);
+
+  if (!option) {
+    Sentry.captureException(
+      Error("Failed to match this reaction with an option."),
+      { contexts: { reaction: reaction as any, user: user as any } }
+    );
+    return;
+  }
+
+  await member.roles.remove(option.roleId, "User self-unassigned role");
+
+  return;
+};
+
+const getMessageConfigForReaction = async (reaction: MessageReaction) => {
+  if (!reaction.message.inGuild()) {
+    return null;
+  }
+
+  const guildRolesConfig = config.guilds[reaction.message.guildId!].roles;
+
+  if (!guildRolesConfig) {
+    return null;
+  }
+
+  const message = guildRolesConfig.messages.find(
+    (m) => m.id === reaction.message.id && m.type === "reaction"
+  );
+
+  if (!message || message.type !== "reaction") {
+    return null;
+  }
+
+  return message;
+};
+
 // todo respond to select interactions
-// todo respond to reactions
 
 const RolesModule: Module = {
   commands: [],
   handlers: {
     ready: [handleReady],
+    messageReactionAdd: [handleMessageReactionAdd],
+    messageReactionRemove: [handleMessageReactionRemove],
   },
 };
 

@@ -13,6 +13,7 @@ import SauceNAOModule from "./SauceNAOModule";
 import PollModule from "./PollModule";
 import StarboardModule from "./StarboardModule";
 import AutomodModule from "./AutomodModule";
+import RolesModule from "./RolesModule";
 
 const modules = [
   FunModule,
@@ -26,6 +27,7 @@ const modules = [
   PollModule,
   StarboardModule,
   AutomodModule,
+  RolesModule,
 ];
 
 for (const module of modules) {

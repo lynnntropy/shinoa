@@ -8,6 +8,7 @@ import {
   PartialGuildMember,
 } from "discord.js";
 import { channelMention, userMention } from "@discordjs/builders";
+import { GuildRolesConfig } from "./modules/RolesModule";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -54,6 +55,7 @@ export interface Config {
         mutedRoleId?: string;
         dungeonRoleId?: string;
       };
+      roles?: GuildRolesConfig;
     };
   };
 }
@@ -101,7 +103,11 @@ const config: Config = {
           starboard: {
             enabled: true,
             threshold: 5,
-            channelWhitelist: ["191977603526033408", "851936718839218197", "928093879230668820"],
+            channelWhitelist: [
+              "191977603526033408",
+              "851936718839218197",
+              "928093879230668820",
+            ],
           },
           moderation: {
             mutedRoleId: "201454485669675008",
@@ -124,6 +130,58 @@ const config: Config = {
           starboard: {
             enabled: true,
             threshold: 1,
+          },
+          roles: {
+            messages: [
+              {
+                id: "949715094638579742",
+                channelId: "161167668131397642",
+                type: "reaction",
+                options: [
+                  {
+                    roleId: "949715319772033074",
+                    emoji: {
+                      id: null,
+                      name: "😌",
+                    },
+                  },
+                  {
+                    roleId: "949715383861006336",
+                    emoji: {
+                      id: "730534917645008946",
+                      name: "AngryTurtle",
+                    },
+                  },
+                ],
+              },
+              {
+                id: "949720895730122783",
+                channelId: "161167668131397642",
+                type: "select",
+                options: [
+                  {
+                    roleId: "949715319772033074",
+                    description: "Description",
+                    emoji: {
+                      id: null,
+                      name: "😌",
+                    },
+                  },
+                  {
+                    roleId: "949715383861006336",
+                    description: "Description",
+                    emoji: {
+                      id: "730534917645008946",
+                      name: "AngryTurtle",
+                    },
+                  },
+                  {
+                    roleId: "949721438267514951",
+                    description: "Description",
+                  },
+                ],
+              },
+            ],
           },
         },
       },

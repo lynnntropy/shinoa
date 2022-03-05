@@ -112,6 +112,189 @@ const config: Config = {
           moderation: {
             mutedRoleId: "201454485669675008",
           },
+          roles: {
+            messages: [
+              {
+                id: "759465178700972033",
+                channelId: "708772331526422597",
+                type: "reaction",
+                options: [
+                  {
+                    roleId: "708824304099262478",
+                    emoji: {
+                      id: null,
+                      name: "✅",
+                    },
+                  },
+                ],
+              },
+
+              // vanity roles
+              {
+                id: "759465203879510056",
+                channelId: "708772331526422597",
+                type: "reaction",
+                options: [
+                  {
+                    roleId: "758123449804914698",
+                    emoji: {
+                      id: "290536476951707650",
+                      name: "asunaBun",
+                    },
+                  },
+                  {
+                    roleId: "334017799976648704",
+                    emoji: {
+                      id: "586984541076586526",
+                      name: "KiriTeaFancy",
+                    },
+                  },
+                  {
+                    roleId: "334017950711283712",
+                    emoji: {
+                      id: "949770829607108648",
+                      name: "leafa",
+                    },
+                  },
+                  {
+                    roleId: "334017962451140608",
+                    emoji: {
+                      id: "726180144309600276",
+                      name: "SinonWow",
+                    },
+                  },
+                  {
+                    roleId: "334017964229656579",
+                    emoji: {
+                      id: "586984522462003235",
+                      name: "YuukiV",
+                    },
+                  },
+                  {
+                    roleId: "399995831144415242",
+                    emoji: {
+                      id: "432586508881362945",
+                      name: "LLENNpeh",
+                    },
+                  },
+                  {
+                    roleId: "472441118835867668",
+                    emoji: {
+                      id: "586984610173288460",
+                      name: "YunaSmile",
+                    },
+                  },
+                  {
+                    roleId: "334017965940801556",
+                    emoji: {
+                      id: "613099893749317662",
+                      name: "aREEEEEEsu",
+                    },
+                  },
+                  {
+                    roleId: "417534074320584704",
+                    emoji: {
+                      id: "592518729884106857",
+                      name: "Argolaff",
+                    },
+                  },
+                ],
+              },
+
+              // event roles
+              {
+                id: "759465220086956072",
+                channelId: "708772331526422597",
+                type: "reaction",
+                options: [
+                  {
+                    roleId: "592125727785222160",
+                    emoji: {
+                      id: null,
+                      name: "🎤",
+                    },
+                  },
+                  {
+                    roleId: "472403071675138061",
+                    emoji: {
+                      id: "230098348734939136",
+                      name: "kiritonut",
+                    },
+                  },
+                  {
+                    roleId: "615698972320989194",
+                    emoji: {
+                      id: null,
+                      name: "🎥",
+                    },
+                  },
+                  {
+                    roleId: "612121841242472448",
+                    emoji: {
+                      id: "619689814362685470",
+                      name: "SplitRoom",
+                    },
+                  },
+                  {
+                    roleId: "845353249154138182",
+                    emoji: {
+                      id: null,
+                      name: "📚",
+                    },
+                  },
+                  {
+                    roleId: "631138850898575362",
+                    emoji: {
+                      id: null,
+                      name: "📰",
+                    },
+                  },
+                  {
+                    roleId: "634950270287216655",
+                    emoji: {
+                      id: null,
+                      name: "🖌️",
+                    },
+                  },
+                  {
+                    roleId: "670089220425121803",
+                    emoji: {
+                      id: "672099680271859723",
+                      name: "Blockgame",
+                    },
+                  },
+                  {
+                    roleId: "682612730120634403",
+                    emoji: {
+                      id: null,
+                      name: "🖊️",
+                    },
+                  },
+                  {
+                    roleId: "708769098179281007",
+                    emoji: {
+                      id: "810651067687108659",
+                      name: "Smash",
+                    },
+                  },
+                  {
+                    roleId: "825391966530437200",
+                    emoji: {
+                      id: null,
+                      name: "🎨",
+                    },
+                  },
+                  {
+                    roleId: "788072977546608671",
+                    emoji: {
+                      id: "667749382115950637",
+                      name: "AsunaYayHyper",
+                    },
+                  },
+                ],
+              },
+            ],
+          },
         },
       }
     : {

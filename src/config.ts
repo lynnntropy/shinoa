@@ -1,14 +1,9 @@
 import { commands } from "./modules";
 import environment from "./environment";
 import { Command } from "./internal/command";
-import {
-  Guild,
-  GuildMember,
-  MessageOptions,
-  PartialGuildMember,
-} from "discord.js";
 import { channelMention, userMention } from "@discordjs/builders";
 import { GuildRolesConfig } from "./modules/RolesModule";
+import { GuildJoinLeaveMessagesConfig } from "./modules/JoinLeaveMessagesModule";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -18,18 +13,7 @@ export interface Config {
   guilds: {
     [key: string]: {
       generalMessageChannelId?: string;
-      joinLeaveMessages?: {
-        enabled: true;
-        channelId?: string;
-        joinMessageBuilder?: (
-          guild: Guild,
-          member: GuildMember
-        ) => MessageOptions;
-        leaveMessageBuilder?: (
-          guild: Guild,
-          member: GuildMember | PartialGuildMember
-        ) => MessageOptions;
-      };
+      joinLeaveMessages?: GuildJoinLeaveMessagesConfig;
       commands?: Command[];
       quotes?: {
         quoteManagerRoleId?: string;
@@ -80,6 +64,7 @@ const config: Config = {
         ["191709045646688256"]: {
           joinLeaveMessages: {
             enabled: true,
+            mode: "default",
             joinMessageBuilder: (guild, member) => ({
               content:
                 `**Link Start!** Welcome to ${guild.name}, ${userMention(
@@ -303,6 +288,9 @@ const config: Config = {
           commands,
           joinLeaveMessages: {
             enabled: true,
+            mode: "default",
+            // mode: "role",
+            // roleId: "949715319772033074",
           },
           quotes: {
             quoteManagerRoleId: "843467841696170036",

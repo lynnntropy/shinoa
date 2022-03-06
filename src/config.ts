@@ -64,7 +64,8 @@ const config: Config = {
         ["191709045646688256"]: {
           joinLeaveMessages: {
             enabled: true,
-            mode: "default",
+            mode: "role",
+            roleId: "708824304099262478",
             joinMessageBuilder: (guild, member) => ({
               content:
                 `**Link Start!** Welcome to ${guild.name}, ${userMention(

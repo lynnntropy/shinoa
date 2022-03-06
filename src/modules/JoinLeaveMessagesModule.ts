@@ -8,6 +8,7 @@ import {
   Snowflake,
 } from "discord.js";
 import config from "../config";
+import emitter from "../emitter";
 import { EventHandler, Module } from "../internal/types";
 import { getGeneralMessageChannelForGuild } from "../utils/guilds";
 
@@ -135,6 +136,8 @@ const sendJoinMessage = async (member: GuildMember) => {
   const message = builder(member.guild, member);
 
   await channel.send(message);
+
+  emitter.emit("announceMemberJoinedEvent", member);
 };
 
 const sendLeaveMessage = async (member: GuildMember | PartialGuildMember) => {

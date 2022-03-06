@@ -4,6 +4,7 @@ import { TypedEmitter } from "tiny-typed-emitter";
 interface AppEvents {
   moderationEvent: (event: ModerationEvent) => void;
   logEvent: (event: LogEvent) => void;
+  announceMemberJoinedEvent: (member: GuildMember) => void;
 }
 
 export interface ModerationEvent {

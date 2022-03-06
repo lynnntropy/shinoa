@@ -1,8 +1,8 @@
 import { Prisma } from ".prisma/client";
-import { CommandInteraction, TextChannel } from "discord.js";
+import { CommandInteraction, GuildMember, TextChannel } from "discord.js";
 import { PermissionResolvable } from "discord.js";
 import { Command, CommandSubCommand } from "../../internal/command";
-import { EventHandler, Module } from "../../internal/types";
+import { Module } from "../../internal/types";
 import prisma from "../../prisma";
 
 class UsernameCounterAdminCommand extends Command {
@@ -120,7 +120,7 @@ class UsernameCounterAdminCommand extends Command {
   }
 }
 
-const onGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
+const handleAnnounceMemberJoinedEvent = async (member: GuildMember) => {
   const guildConfigKey = `guilds.${member.guild.id}.counted_usernames`;
 
   let guildConfigKv = await prisma.keyValueItem.findUnique({
@@ -168,9 +168,10 @@ const onGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
 
 const UsernameCounterModule: Module = {
   commands: [new UsernameCounterAdminCommand()],
-  handlers: {
-    guildMemberAdd: [onGuildMemberAdd],
-  },
+  handlers: {},
+  appEventHandlers: [
+    ["announceMemberJoinedEvent", handleAnnounceMemberJoinedEvent],
+  ],
 };
 
 export default UsernameCounterModule;

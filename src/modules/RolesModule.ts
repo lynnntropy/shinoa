@@ -131,6 +131,10 @@ const handleMessageReactionAdd: EventHandler<"messageReactionAdd"> = async (
   reaction,
   user
 ) => {
+  if (user.bot) {
+    return;
+  }
+
   if (reaction.partial) {
     reaction = await reaction.fetch();
   }
@@ -165,6 +169,10 @@ const handleMessageReactionAdd: EventHandler<"messageReactionAdd"> = async (
 const handleMessageReactionRemove: EventHandler<
   "messageReactionRemove"
 > = async (reaction, user) => {
+  if (user.bot) {
+    return;
+  }
+
   if (reaction.partial) {
     reaction = await reaction.fetch();
   }

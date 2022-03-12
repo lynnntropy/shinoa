@@ -7,6 +7,10 @@ import {
   PermissionResolvable,
   Role,
   Permissions,
+  MessageActionRow,
+  MessageButton,
+  ButtonInteraction,
+  Message,
 } from "discord.js";
 import config from "../config";
 import emitter, { ModerationEventType } from "../emitter";
@@ -19,6 +23,7 @@ import { CronJob } from "cron";
 import { getGeneralMessageChannelForGuild } from "../utils/guilds";
 import { getKeyValueItem, updateKeyValueItem } from "../keyValueStore";
 import { clearExpiredMutes, mute, unmute } from "../mutes";
+import logger from "../logger";
 
 class KickCommand extends Command {
   name = "kick";
@@ -616,6 +621,113 @@ class UndungeonCommand extends Command {
   }
 }
 
+class ClearRolesCommand extends Command {
+  name = "clear-roles";
+  description = "Removes roles that match a given pattern from all members.";
+  requiredPermissions: PermissionResolvable = ["MANAGE_ROLES"];
+  options: ApplicationCommandOptionData[] = [
+    {
+      name: "pattern",
+      description:
+        "A regular expression describing the roles that should be cleared.",
+      type: "STRING",
+      required: true,
+    },
+  ];
+
+  async handle(interaction: CommandInteraction) {
+    let pattern: RegExp;
+
+    try {
+      pattern = new RegExp(interaction.options.getString("pattern", true), "i");
+    } catch (e) {
+      await interaction.reply({
+        content: `Pattern is invalid: \`${e}\``,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const roles = (await interaction.guild!.roles.fetch()).filter((r) =>
+      pattern.test(r.name)
+    );
+
+    if (roles.size === 0) {
+      await interaction.reply({
+        content: `No roles found matching pattern \`${pattern.source}\`.`,
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const row = new MessageActionRow().addComponents(
+      new MessageButton()
+        .setCustomId("continue")
+        .setLabel("Yes, continue")
+        .setStyle("DANGER"),
+      new MessageButton()
+        .setCustomId("cancel")
+        .setLabel("Cancel")
+        .setStyle("SECONDARY")
+    );
+
+    await interaction.reply({
+      ephemeral: true,
+      content:
+        `The following roles will be removed from all members. Are you sure you want to continue?\n\n` +
+        roles.map((r) => `- ${r.name}`).join(`\n`),
+      components: [row],
+    });
+
+    const reply = (await interaction.fetchReply()) as Message;
+
+    const filter = (i: ButtonInteraction) => i.user.id === interaction.user.id;
+
+    try {
+      const replyInteraction = await reply.awaitMessageComponent({
+        filter,
+        componentType: "BUTTON",
+        time: 300_000, // 5 minutes
+      });
+
+      if (replyInteraction.customId === "continue") {
+        await replyInteraction.deferUpdate();
+
+        let count = 0;
+
+        for (const [, role] of roles) {
+          console.log(role.members);
+          for (const [, member] of role.members) {
+            try {
+              await member.roles.remove(role);
+              count++;
+            } catch (e) {
+              logger.warn(
+                e,
+                `Failed to remove role from user ${member.user.tag}.`
+              );
+            }
+          }
+        }
+
+        await replyInteraction.editReply({
+          content: `Roles successfully cleared (${count} individual roles removed).`,
+          components: [],
+        });
+
+        return;
+      }
+
+      await interaction.editReply({
+        content: "Operation cancelled.",
+        components: [],
+      });
+    } catch (e) {
+      logger.warn(e);
+    }
+  }
+}
+
 const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
   const blacklist = await getKeyValueItem<string[]>(
     `guilds.${member.guild.id}.blacklist`
@@ -689,6 +801,7 @@ const ModerationModule: Module = {
     new UnlockChannelCommand(),
     new DungeonCommand(),
     new UndungeonCommand(),
+    new ClearRolesCommand(),
   ],
   handlers: {
     guildMemberAdd: [handleGuildMemberAdd],

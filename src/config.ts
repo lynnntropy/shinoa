@@ -62,6 +62,7 @@ const config: Config = {
 
         // /r/SwordArtOnline
         ["191709045646688256"]: {
+          generalMessageChannelId: "191709045646688256",
           joinLeaveMessages: {
             enabled: true,
             mode: "role",

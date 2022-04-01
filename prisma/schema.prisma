@@ -23,6 +23,15 @@ model Quote {
   message   Json
 }
 
+model Sticker {
+  id      Int    @id @default(autoincrement())
+  guildId String
+  tag     String
+  url     String
+
+  @@unique([guildId, tag])
+}
+
 model Mute {
   id       Int      @id @default(autoincrement())
   guildId  String

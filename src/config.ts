@@ -18,6 +18,9 @@ export interface Config {
       quotes?: {
         quoteManagerRoleId?: string;
       };
+      stickers?: {
+        stickerManagerRoleId?: string;
+      };
       logging?: {
         categoryId?: string;
         channelIds?: {
@@ -83,6 +86,9 @@ const config: Config = {
           },
           quotes: {
             quoteManagerRoleId: "614118005416263762",
+          },
+          stickers: {
+            stickerManagerRoleId: "614118005416263762",
           },
           logging: {
             categoryId: "619980910527512577",

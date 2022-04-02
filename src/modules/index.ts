@@ -15,6 +15,7 @@ import StarboardModule from "./StarboardModule";
 import AutomodModule from "./AutomodModule";
 import RolesModule from "./RolesModule";
 import StickersModule from "./StickersModule";
+import MemberCounterModule from "./MemberCounterModule";
 
 const modules = [
   FunModule,
@@ -30,6 +31,7 @@ const modules = [
   AutomodModule,
   RolesModule,
   StickersModule,
+  MemberCounterModule,
 ];
 
 for (const module of modules) {

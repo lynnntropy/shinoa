@@ -27,11 +27,11 @@ const updateMemberCountsForAllGuilds = async () => {
 };
 
 const updateMemberCount = async (guild: Guild) => {
-  if (!config.guilds[guild.id].memberCounter?.enabled) {
+  if (!config.guilds[guild.id]?.memberCounter?.enabled) {
     return;
   }
 
-  const guildConfig = config.guilds[guild.id].memberCounter!;
+  const guildConfig = config.guilds[guild.id]?.memberCounter!;
   const channel = await client.channels.fetch(guildConfig.channelId);
 
   if (!channel?.isVoice()) {

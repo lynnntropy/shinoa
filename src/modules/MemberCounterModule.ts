@@ -47,7 +47,7 @@ const updateMemberCount = async (guild: Guild) => {
   const builder = guildConfig.buildChannelName ?? defaultChannelNameBuilder;
   const channelName = builder(guild.memberCount);
 
-  logger.info(
+  logger.debug(
     {
       channel,
       channelName,

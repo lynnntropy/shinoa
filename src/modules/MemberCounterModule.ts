@@ -65,9 +65,7 @@ const MemberCounterModule: Module = {
   handlers: {
     ready: [handleReady],
   },
-  cronJobs: [
-    new CronJob("0 */15 * * * *", () => updateMemberCountsForAllGuilds()),
-  ],
+  cronJobs: [new CronJob("0 */15 * * * *", updateMemberCountsForAllGuilds)],
 };
 
 export default MemberCounterModule;

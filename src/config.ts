@@ -4,6 +4,7 @@ import { Command } from "./internal/command";
 import { channelMention, userMention } from "@discordjs/builders";
 import { GuildRolesConfig } from "./modules/RolesModule";
 import { GuildJoinLeaveMessagesConfig } from "./modules/JoinLeaveMessagesModule";
+import { MemberCounterConfig } from "./modules/MemberCounterModule";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -43,6 +44,7 @@ export interface Config {
         dungeonRoleId?: string;
       };
       roles?: GuildRolesConfig;
+      memberCounter?: MemberCounterConfig;
     };
   };
 }
@@ -288,6 +290,11 @@ const config: Config = {
               },
             ],
           },
+          memberCounter: {
+            enabled: true,
+            channelId: "756816167209009213",
+            buildChannelName: (count) => `Memebers: ${count}`,
+          },
         },
       }
     : {
@@ -361,6 +368,11 @@ const config: Config = {
                 ],
               },
             ],
+          },
+          memberCounter: {
+            enabled: true,
+            channelId: "840326539791171634",
+            buildChannelName: (count) => `Memebers: ${count}`,
           },
         },
       },

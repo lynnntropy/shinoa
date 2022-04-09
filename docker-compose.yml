@@ -16,6 +16,7 @@ services:
       LOG_LEVEL: ~
       SAUCENAO_API_KEY: ~
       WEEB_SH_API_KEY: ~
+      AMARI_BOT_API_TOKEN: ~
     depends_on:
       - db
 

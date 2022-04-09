@@ -11,9 +11,14 @@ import {
 import client from "../client";
 import config from "../config";
 import { EventHandler, Module } from "../internal/types";
-import logger from "../logger";
+import appLogger from "../logger";
 import * as Sentry from "@sentry/node";
 import { bold } from "@discordjs/builders";
+import { CronJob } from "cron";
+import amariBot from "../amaribot";
+import { User as AmariUser } from "amaribot.js";
+
+const logger = appLogger.child({ module: "RolesModule" });
 
 export type GuildRolesMessageConfig =
   | {
@@ -43,26 +48,18 @@ export type GuildRolesMessageConfig =
         }
     );
 
-export interface GuildRolesConfig {
-  messages: GuildRolesMessageConfig[];
-}
-
-const handleReady: EventHandler<"ready"> = async () => {
-  logger.debug("Booting up RolesModule...");
-
-  for (const guildId in config.guilds) {
-    const guildRolesConfig = config.guilds[guildId].roles;
-
-    if (!guildRolesConfig) {
-      continue;
-    }
-
-    for (const message of guildRolesConfig.messages) {
-      logger.debug(`[RolesModule] Initializing message ID ${message.id}...`);
-      await initializeMessage(guildId, message);
-    }
-  }
+export type GuildStickyLevelRolesConfig = {
+  enabled: true;
+  roles: {
+    level: number;
+    roleId: Snowflake;
+  }[];
 };
+
+export interface GuildRolesConfig {
+  messages?: GuildRolesMessageConfig[];
+  stickyLevelRoles?: GuildStickyLevelRolesConfig;
+}
 
 const initializeMessage = async (
   guildId: string,
@@ -125,7 +122,125 @@ const initializeMessage = async (
   }
 };
 
-// respond to reactions
+const refreshStickyLevelRoles = async () => {
+  logger.debug(`Refreshing sticky level roles...`);
+
+  for (const guildId in config.guilds) {
+    const guildRolesConfig = config.guilds[guildId].roles;
+
+    if (!guildRolesConfig) {
+      continue;
+    }
+
+    if (guildRolesConfig.stickyLevelRoles?.enabled) {
+      await refreshStickyLevelRolesForGuild(guildId);
+    }
+  }
+};
+
+const refreshStickyLevelRolesForGuild = async (guildId: string) => {
+  logger.debug(`Refreshing sticky level roles for guild ID ${guildId}...`);
+
+  const configuredRoles =
+    config.guilds[guildId]?.roles?.stickyLevelRoles?.roles;
+
+  if (!configuredRoles) {
+    throw Error("No sticky role config found for guild.");
+  }
+
+  const guild = await client.guilds.fetch(guildId);
+
+  const amariUsers: AmariUser[] = [];
+
+  let page = 1;
+
+  while (true) {
+    const leaderboard = await amariBot.getGuildLeaderboard(guildId, { page });
+    amariUsers.push(...leaderboard.data);
+
+    logger.debug(
+      { guildId },
+      `Fetched ${amariUsers.length} of ${leaderboard.totalCount} AmariBot users.`
+    );
+
+    if (amariUsers.length >= leaderboard.totalCount) {
+      break;
+    }
+
+    page++;
+  }
+
+  logger.debug({ guildId }, `Finished fetching AmariBot leaderboard.`);
+
+  for (const amariUser of amariUsers) {
+    const member = await guild.members.fetch({
+      user: amariUser.id,
+      force: true,
+    });
+
+    for (const role of configuredRoles) {
+      if (
+        amariUser.level !== undefined &&
+        amariUser.level >= role.level &&
+        !member.roles.cache.has(role.roleId)
+      ) {
+        logger.debug(
+          { roleConfig: role, amariUser, member },
+          `User has reached Amari level ${role.level}, assigning sticky role.`
+        );
+
+        await member.roles.add(role.roleId);
+      }
+    }
+  }
+};
+
+// utilities
+
+const getMessageConfigForReaction = async (reaction: MessageReaction) => {
+  if (!reaction.message.inGuild()) {
+    return null;
+  }
+
+  const guildRolesConfig = config.guilds[reaction.message.guildId!].roles;
+
+  if (!guildRolesConfig || !guildRolesConfig.messages) {
+    return null;
+  }
+
+  const message = guildRolesConfig.messages.find(
+    (m) => m.id === reaction.message.id && m.type === "reaction"
+  );
+
+  if (!message || message.type !== "reaction") {
+    return null;
+  }
+
+  return message;
+};
+
+// event handlers
+
+const handleReady: EventHandler<"ready"> = async () => {
+  logger.debug("Booting up RolesModule...");
+
+  for (const guildId in config.guilds) {
+    const guildRolesConfig = config.guilds[guildId].roles;
+
+    if (!guildRolesConfig) {
+      continue;
+    }
+
+    if (guildRolesConfig.messages) {
+      for (const message of guildRolesConfig.messages) {
+        logger.debug(`Initializing message ID ${message.id}...`);
+        await initializeMessage(guildId, message);
+      }
+    }
+  }
+
+  refreshStickyLevelRoles();
+};
 
 const handleMessageReactionAdd: EventHandler<"messageReactionAdd"> = async (
   reaction,
@@ -204,30 +319,6 @@ const handleMessageReactionRemove: EventHandler<
   return;
 };
 
-const getMessageConfigForReaction = async (reaction: MessageReaction) => {
-  if (!reaction.message.inGuild()) {
-    return null;
-  }
-
-  const guildRolesConfig = config.guilds[reaction.message.guildId!].roles;
-
-  if (!guildRolesConfig) {
-    return null;
-  }
-
-  const message = guildRolesConfig.messages.find(
-    (m) => m.id === reaction.message.id && m.type === "reaction"
-  );
-
-  if (!message || message.type !== "reaction") {
-    return null;
-  }
-
-  return message;
-};
-
-// respond to select interactions
-
 const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
   interaction
 ) => {
@@ -241,7 +332,7 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
 
   const guildRolesConfig = config.guilds[interaction.guildId].roles;
 
-  if (!guildRolesConfig) {
+  if (!guildRolesConfig || !guildRolesConfig.messages) {
     return;
   }
 
@@ -357,6 +448,7 @@ const RolesModule: Module = {
     messageReactionRemove: [handleMessageReactionRemove],
     interactionCreate: [handleInteractionCreate],
   },
+  cronJobs: [new CronJob("0 */5 * * * *", refreshStickyLevelRoles)],
 };
 
 export default RolesModule;

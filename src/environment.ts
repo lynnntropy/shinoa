@@ -7,4 +7,5 @@ export default {
   DATABASE_URL:
     process.env.DATABASE_URL ?? "postgresql://postgres:postgres@db/shinoa",
   WEEB_SH_API_KEY: getEnvironmentVariableOrThrow("WEEB_SH_API_KEY"),
+  AMARI_BOT_API_TOKEN: getEnvironmentVariableOrThrow("AMARI_BOT_API_TOKEN"),
 };

@@ -289,6 +289,19 @@ const config: Config = {
                 ],
               },
             ],
+            stickyLevelRoles: {
+              enabled: true,
+              roles: [
+                {
+                  level: 5,
+                  roleId: "849163414450339871",
+                },
+                {
+                  level: 10,
+                  roleId: "793720044060016650",
+                },
+              ],
+            },
           },
           memberCounter: {
             enabled: true,
@@ -368,6 +381,19 @@ const config: Config = {
                 ],
               },
             ],
+            stickyLevelRoles: {
+              enabled: true,
+              roles: [
+                {
+                  level: 0,
+                  roleId: "962394011316936804",
+                },
+                {
+                  level: 10,
+                  roleId: "962394060855853096",
+                },
+              ],
+            },
           },
           memberCounter: {
             enabled: true,

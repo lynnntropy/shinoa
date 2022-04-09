@@ -25,6 +25,7 @@
     "@types/mime-types": "^2.1.0",
     "@types/natural": "^5.1.0",
     "@types/node": "^14.14.41",
+    "amaribot.js": "^1.4.3",
     "apollo-server": "^3.5.0",
     "axios": "^0.24.0",
     "cron": "^1.8.2",

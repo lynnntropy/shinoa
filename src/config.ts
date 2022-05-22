@@ -5,6 +5,7 @@ import { channelMention, userMention } from "@discordjs/builders";
 import { GuildRolesConfig } from "./modules/RolesModule";
 import { GuildJoinLeaveMessagesConfig } from "./modules/JoinLeaveMessagesModule";
 import { MemberCounterConfig } from "./modules/MemberCounterModule";
+import { GuildWelcomeDMsConfig } from "./modules/WelcomeDMsModule";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -15,6 +16,7 @@ export interface Config {
     [key: string]: {
       generalMessageChannelId?: string;
       joinLeaveMessages?: GuildJoinLeaveMessagesConfig;
+      welcomeDMs?: GuildWelcomeDMsConfig;
       commands?: Command[];
       quotes?: {
         quoteManagerRoleId?: string;
@@ -84,6 +86,17 @@ const config: Config = {
               content: `${
                 member.user?.tag ?? member.displayName
               } found the logout button and has returned to real life... A fate worse than death.`,
+            }),
+          },
+          welcomeDMs: {
+            enabled: true,
+            messageBuilder: (_, member) => ({
+              content:
+                `**Link Start!** Welcome to r/SwordArtOnline, ` +
+                `${userMention(member.user.id)}! ` +
+                `Please notice #welcome-chan for information on rules, roles, access to the server, and a mandatory gameplay tutorial. And enjoy your stay.` +
+                `\n\n` +
+                `https://discord.com/channels/191709045646688256/708772331526422597/759465132149047348`,
             }),
           },
           quotes: {
@@ -319,6 +332,17 @@ const config: Config = {
             mode: "default",
             // mode: "role",
             // roleId: "949715319772033074",
+          },
+          welcomeDMs: {
+            enabled: true,
+            messageBuilder: (_, member) => ({
+              content:
+                `**Link Start!** Welcome to r/SwordArtOnline, ` +
+                `${userMention(member.user.id)}! ` +
+                `Please notice #welcome-chan for information on rules, roles, access to the server, and a mandatory gameplay tutorial. And enjoy your stay.` +
+                `\n\n` +
+                `https://discord.com/channels/191709045646688256/708772331526422597/759465132149047348`,
+            }),
           },
           quotes: {
             quoteManagerRoleId: "843467841696170036",

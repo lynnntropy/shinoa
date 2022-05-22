@@ -16,6 +16,7 @@ import AutomodModule from "./AutomodModule";
 import RolesModule from "./RolesModule";
 import StickersModule from "./StickersModule";
 import MemberCounterModule from "./MemberCounterModule";
+import WelcomeDMsModule from "./WelcomeDMsModule";
 
 const modules = [
   FunModule,
@@ -32,6 +33,7 @@ const modules = [
   RolesModule,
   StickersModule,
   MemberCounterModule,
+  WelcomeDMsModule,
 ];
 
 for (const module of modules) {

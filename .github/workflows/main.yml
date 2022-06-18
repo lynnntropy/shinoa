@@ -51,4 +51,5 @@ jobs:
                   "repository": "shinoa",
                   "tag": "${{ github.sha }}"
                 }
+              }
             ]

@@ -34,3 +34,21 @@ jobs:
         with:
           push: true
           tags: omegavesko/shinoa:${{ github.sha }},omegavesko/shinoa:latest
+
+      - name: Deploy to production
+        uses: digitalocean/app_action@v1.1.3
+        if: ${{ github.ref == 'refs/heads/main' }}
+        with:
+          app_name: shinoa
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          images: |
+            [
+              {
+                "name": "shinoa",
+                "image": {
+                  "registry_type": "DOCKER_HUB",
+                  "registry": "omegavesko",
+                  "repository": "shinoa",
+                  "tag": "${{ github.sha }}"
+                }
+            ]

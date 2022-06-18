@@ -574,7 +574,7 @@ const buildPollMessage = (
   minValues: number = 1,
   maxValues: number = 1,
   resultsInput?: PollResultsInput
-): MessageOptions => {
+): Pick<MessageOptions, "embeds" | "components"> => {
   const actionRow = new MessageActionRow().addComponents(
     new MessageSelectMenu()
       .setCustomId(localId)

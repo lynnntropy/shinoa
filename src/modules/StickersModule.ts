@@ -34,6 +34,14 @@ class StickersCommand extends Command {
       ],
 
       async handle(interaction) {
+        if (!interaction.inGuild()) {
+          interaction.reply({
+            content: `Stickers can only be managed in a server.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
         const tag = interaction.options.getString("tag", true);
         const imageUrl = interaction.options.getString("image-url", true);
 
@@ -112,6 +120,14 @@ class StickersCommand extends Command {
       async handle(interaction) {
         const tag = interaction.options.getString("tag", true);
 
+        if (!interaction.inGuild()) {
+          interaction.reply({
+            content: `Stickers can only be managed in a server.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
         if (!memberCanManageStickers(interaction.member as GuildMember)) {
           await interaction.reply({
             content: "You don't have permission to remove stickers.",
@@ -158,6 +174,14 @@ class StickersCommand extends Command {
       description: "Lists the stickers for the server.",
 
       async handle(interaction) {
+        if (!interaction.inGuild()) {
+          interaction.reply({
+            content: `Stickers can only be managed in a server.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
         const stickers = await prisma.sticker.findMany({
           where: {
             guildId: interaction.guildId,
@@ -196,6 +220,14 @@ class StickersCommand extends Command {
       ],
 
       async handle(interaction) {
+        if (!interaction.inGuild()) {
+          interaction.reply({
+            content: `Stickers can only be managed in a server.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
         const tag = interaction.options.getString("tag", true);
 
         const sticker = await prisma.sticker.findUnique({

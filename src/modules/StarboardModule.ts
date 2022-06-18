@@ -19,12 +19,15 @@ const STARBOARD_EMOJI = "⭐";
 const handleMessageReactionAdd: EventHandler<"messageReactionAdd"> = async (
   reaction
 ) => handleMessageUpdate(reaction.message);
-const handleMessageReactionRemove: EventHandler<"messageReactionRemove"> =
-  async (reaction) => handleMessageUpdate(reaction.message);
-const handleMessageReactionRemoveEmoji: EventHandler<"messageReactionRemoveEmoji"> =
-  async (reaction) => handleMessageUpdate(reaction.message);
-const handleMessageReactionRemoveAll: EventHandler<"messageReactionRemoveAll"> =
-  async (message) => handleMessageUpdate(message);
+const handleMessageReactionRemove: EventHandler<
+  "messageReactionRemove"
+> = async (reaction) => handleMessageUpdate(reaction.message);
+const handleMessageReactionRemoveEmoji: EventHandler<
+  "messageReactionRemoveEmoji"
+> = async (reaction) => handleMessageUpdate(reaction.message);
+const handleMessageReactionRemoveAll: EventHandler<
+  "messageReactionRemoveAll"
+> = async (message) => handleMessageUpdate(message);
 
 const handleMessageUpdate = async (message: Message | PartialMessage) => {
   if (!message.guildId) return;
@@ -144,7 +147,7 @@ const resolveStarboardChannel = async (
 
 const buildStarboardMessage = async (
   originalMessage: Message
-): Promise<MessageOptions> => {
+): Promise<Pick<MessageOptions, "embeds">> => {
   if (!originalMessage.guildId) {
     throw Error("Message isn't in a guild.");
   }

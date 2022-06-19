@@ -1,5 +1,7 @@
 import { Client, ClientEvents, Intents } from "discord.js";
 import handlers from "./eventHandlers";
+import * as Sentry from "@sentry/node";
+import logger from "./logger";
 
 const client = new Client({
   intents: [
@@ -17,7 +19,21 @@ const client = new Client({
 
 for (const event in handlers) {
   for (const handler of handlers[event]) {
-    client.on(event as keyof ClientEvents, handler);
+    client.on(event as keyof ClientEvents, async (...args) => {
+      Sentry.withScope(async (scope) => {
+        scope.setContext(`event`, {
+          name: event,
+          handler: handler.name,
+        });
+
+        try {
+          await handler(...args);
+        } catch (e) {
+          Sentry.captureException(e);
+          logger.error(e);
+        }
+      });
+    });
   }
 }
 

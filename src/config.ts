@@ -6,6 +6,7 @@ import { GuildRolesConfig } from "./modules/RolesModule";
 import { GuildJoinLeaveMessagesConfig } from "./modules/JoinLeaveMessagesModule";
 import { MemberCounterConfig } from "./modules/MemberCounterModule";
 import { GuildWelcomeDMsConfig } from "./modules/WelcomeDMsModule";
+import { GuildClubsConfig } from "./modules/ClubsModule";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -47,6 +48,7 @@ export interface Config {
       };
       roles?: GuildRolesConfig;
       memberCounter?: MemberCounterConfig;
+      clubs?: GuildClubsConfig;
     };
   };
 }
@@ -423,6 +425,10 @@ const config: Config = {
             enabled: true,
             channelId: "840326539791171634",
             buildChannelName: (count) => `Memebers: ${count}`,
+          },
+          clubs: {
+            enabled: true,
+            channelId: `988070067692503130`,
           },
         },
       },

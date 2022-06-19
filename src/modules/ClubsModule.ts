@@ -157,7 +157,7 @@ class ClubsCommand extends Command {
         {
           name: "channel",
           type: "CHANNEL",
-          description: "The club to archive.",
+          description: "The club to unarchive.",
           required: true,
         },
       ],

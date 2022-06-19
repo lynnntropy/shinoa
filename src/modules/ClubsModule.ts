@@ -433,8 +433,7 @@ const syncAllClubsForGuild = async (guildId: Snowflake) => {
   });
 
   await Promise.all(clubs.map(syncClubToGuild));
-
-  // todo sync the club index message here
+  await syncClubIndexChannelForGuild(guildId);
 
   logger.debug(`Finished synchronizing clubs for guild ID ${guildId}.`);
 };

@@ -1,11 +1,15 @@
 import { channelMention } from "@discordjs/builders";
 import { Club } from "@prisma/client";
+import { CronJob } from "cron";
 import { PermissionResolvable, Snowflake, MessageOptions } from "discord.js";
 import client from "../client";
 import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
-import { Module } from "../internal/types";
+import { EventHandler, Module } from "../internal/types";
+import appLogger from "../logger";
 import prisma from "../prisma";
+
+const logger = appLogger.child({ module: "ClubsModule" });
 
 // todo voting
 // todo sync on startup + cron
@@ -222,10 +226,40 @@ class ClubsCommand extends Command {
   ];
 }
 
-// todo event handlers to sync everything on bot startup
+const handleReady: EventHandler<"ready"> = async () => {
+  await syncClubsForAllGuilds();
+};
 
-const assertClubsEnabledForGuild = (guildid: Snowflake) => {
-  if (config.guilds[guildid].clubs?.enabled) {
+const syncClubsForAllGuilds = async () => {
+  logger.debug(`Synchronizing clubs for all guilds.`);
+
+  const guildIdsToSync: Snowflake[] = [];
+
+  for (const guildId in config.guilds) {
+    if (config.guilds[guildId].clubs?.enabled) {
+      guildIdsToSync.push(guildId);
+    }
+  }
+
+  await Promise.all(guildIdsToSync.map(syncAllClubsForGuild));
+
+  logger.debug(`Finished synchronizing clubs for all guilds.`);
+};
+
+const syncAllClubsForGuild = async (guildId: Snowflake) => {
+  logger.debug(`Synchronizing clubs for guild ID ${guildId}.`);
+
+  const clubs = await prisma.club.findMany({
+    where: { guildId },
+  });
+
+  await Promise.all(clubs.map(syncClubToGuild));
+
+  logger.debug(`Finished synchronizing clubs for guild ID ${guildId}.`);
+};
+
+const assertClubsEnabledForGuild = (guildId: Snowflake) => {
+  if (config.guilds[guildId].clubs?.enabled) {
     return;
   }
 
@@ -270,10 +304,6 @@ const syncClubToGuild = async (club: Club) => {
       `Automatically synced thread with club.`
     );
   }
-};
-
-const syncAllClubsForGuild = async (guildId: Snowflake) => {
-  // todo
 };
 
 const findClubChannel = async (club: Club) => {
@@ -369,7 +399,10 @@ const syncClubIndexChannelForGuild = async (guildId: Snowflake) => {
 
 const ClubsModule: Module = {
   commands: [new ClubsCommand()],
-  handlers: {},
+  handlers: {
+    ready: [handleReady],
+  },
+  cronJobs: [new CronJob("0 */5 * * * *", syncClubsForAllGuilds)],
 };
 
 export default ClubsModule;

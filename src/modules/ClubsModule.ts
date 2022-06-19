@@ -1,23 +1,19 @@
 import { channelMention } from "@discordjs/builders";
 import { Club } from "@prisma/client";
-import {
-  PermissionResolvable,
-  Snowflake,
-  ThreadChannel,
-  MessageOptions,
-} from "discord.js";
+import { PermissionResolvable, Snowflake, MessageOptions } from "discord.js";
 import client from "../client";
 import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
 import { Module } from "../internal/types";
 import prisma from "../prisma";
 
+// todo voting
+// todo sync on startup + cron
+
 export type GuildClubsConfig = {
   enabled: true;
   channelId: string;
 };
-
-const CLUB_NAME_REGEX = /^[\da-z-]+$/;
 
 class ClubsCommand extends Command {
   name = "clubs";
@@ -32,8 +28,7 @@ class ClubsCommand extends Command {
         {
           name: "name",
           type: "STRING",
-          description:
-            "The club name. Limited to numbers, lowercase letters and dashes.",
+          description: "The club name.",
           required: true,
         },
       ],
@@ -61,28 +56,17 @@ class ClubsCommand extends Command {
 
         const name = interaction.options.getString(`name`, true);
 
-        if (!name.match(CLUB_NAME_REGEX)) {
-          await interaction.editReply({
-            content: `Club names are limited to numbers, lowercase letters and dashes (regex: \`${CLUB_NAME_REGEX.source}\`).`,
-          });
-          return;
-        }
+        const channel = await createClubChannel(interaction.guildId, name);
 
         const club = await prisma.club.create({
           data: {
             guildId: interaction.guildId,
-            name,
+            channelId: channel.id,
           },
         });
 
         await syncClubToGuild(club);
         await syncClubIndexChannelForGuild(interaction.guildId);
-
-        const channel = await findClubChannel(club);
-
-        if (!channel) {
-          throw Error("Failed to find channel for created club.");
-        }
 
         await interaction.editReply({
           content: `Created club ${channelMention(channel.id)}.`,
@@ -94,9 +78,9 @@ class ClubsCommand extends Command {
       description: "Archive a club.",
       options: [
         {
-          name: "name",
-          type: "STRING",
-          description: "The name of the club to archive.",
+          name: "channel",
+          type: "CHANNEL",
+          description: "The club to archive.",
           required: true,
         },
       ],
@@ -122,12 +106,12 @@ class ClubsCommand extends Command {
 
         await interaction.deferReply();
 
-        const name = interaction.options.getString(`name`, true);
+        const channel = interaction.options.getChannel(`channel`, true);
 
         const club = await prisma.club.findFirst({
           where: {
             guildId: interaction.guildId,
-            name,
+            channelId: channel.id,
           },
         });
 
@@ -167,9 +151,9 @@ class ClubsCommand extends Command {
       description: "Unarchive an archived club.",
       options: [
         {
-          name: "name",
-          type: "STRING",
-          description: "The name of the club to unarchive.",
+          name: "channel",
+          type: "CHANNEL",
+          description: "The club to archive.",
           required: true,
         },
       ],
@@ -195,12 +179,12 @@ class ClubsCommand extends Command {
 
         await interaction.deferReply();
 
-        const name = interaction.options.getString(`name`, true);
+        const channel = interaction.options.getChannel(`channel`, true);
 
         const club = await prisma.club.findFirst({
           where: {
             guildId: interaction.guildId,
-            name,
+            channelId: channel.id,
           },
         });
 
@@ -214,7 +198,7 @@ class ClubsCommand extends Command {
 
         if (!club.archived) {
           await interaction.reply({
-            content: `This club isn't archived..`,
+            content: `This club isn't archived.`,
             ephemeral: true,
           });
           return;
@@ -248,9 +232,11 @@ const assertClubsEnabledForGuild = (guildid: Snowflake) => {
   throw Error("Clubs aren't enabled for this guild.");
 };
 
-const syncClubToGuild = async (club: Club) => {
-  const guildConfig = config.guilds[club.guildId].clubs!;
-  const guild = await client.guilds.fetch(club.guildId);
+const createClubChannel = async (guildId: string, channelName: string) => {
+  assertClubsEnabledForGuild(guildId);
+
+  const guildConfig = config.guilds[guildId].clubs!;
+  const guild = await client.guilds.fetch(guildId);
 
   const parentChannel = await guild.channels.fetch(guildConfig.channelId);
 
@@ -262,23 +248,20 @@ const syncClubToGuild = async (club: Club) => {
     throw Error("Club parent channel must be a text channel.");
   }
 
+  const channel = await parentChannel.threads.create({
+    name: channelName,
+    autoArchiveDuration: "MAX",
+    reason: `Automatically created thread for club.`,
+  });
+
+  return channel;
+};
+
+const syncClubToGuild = async (club: Club) => {
   const clubChannel = await findClubChannel(club);
 
   if (!clubChannel) {
-    await parentChannel.threads.create({
-      name: club.name,
-      autoArchiveDuration: "MAX",
-      reason: `Automatically created thread for club.`,
-    });
-
-    return;
-  }
-
-  if (clubChannel.name !== club.name) {
-    await clubChannel.setName(
-      club.name,
-      `Automatically synced thread with club.`
-    );
+    throw Error("Club channel not found.");
   }
 
   if (clubChannel.archived !== club.archived) {
@@ -299,20 +282,23 @@ const findClubChannel = async (club: Club) => {
   const guildConfig = config.guilds[club.guildId].clubs!;
 
   const guild = await client.guilds.fetch(club.guildId);
-  await guild.channels.fetch();
+  const parentChannel = await guild.channels.fetch(guildConfig.channelId);
 
-  const channel = guild.channels.cache.find(
-    (c) =>
-      c.isThread() &&
-      c.parentId === guildConfig?.channelId &&
-      c.name === club.name
-  );
+  if (!parentChannel) {
+    throw Error("Club parent channel for guild not found.");
+  }
+
+  if (!parentChannel.isText()) {
+    throw Error("Club parent channel must be a text channel.");
+  }
+
+  const channel = await parentChannel.threads.fetch(club.channelId);
 
   if (!channel) {
     return null;
   }
 
-  return channel as ThreadChannel;
+  return channel;
 };
 
 const buildClubIndexMessage = async (guildId: Snowflake) => {
@@ -359,10 +345,12 @@ const syncClubIndexChannelForGuild = async (guildId: Snowflake) => {
 
   const messages = await channel.messages.fetch({ limit: 10 });
 
-  // clean up stuff like "thread created" messages
+  // clean up stuff like "thread created" messages and other people's messages
 
   await Promise.all(
-    messages.filter((m) => m.type !== "DEFAULT").map((m) => m.delete())
+    messages
+      .filter((m) => m.type !== "DEFAULT" || m.author.id !== client.user?.id)
+      .map((m) => m.delete())
   );
 
   // create or update the index message

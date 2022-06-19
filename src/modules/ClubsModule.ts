@@ -12,7 +12,6 @@ import prisma from "../prisma";
 const logger = appLogger.child({ module: "ClubsModule" });
 
 // todo voting
-// todo sync on startup + cron
 
 export type GuildClubsConfig = {
   enabled: true;

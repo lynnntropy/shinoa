@@ -1,7 +1,13 @@
-import { channelMention } from "@discordjs/builders";
+import { bold, channelMention, userMention } from "@discordjs/builders";
 import { Club } from "@prisma/client";
 import { CronJob } from "cron";
-import { PermissionResolvable, Snowflake, MessageOptions } from "discord.js";
+import {
+  PermissionResolvable,
+  Snowflake,
+  MessageOptions,
+  Message,
+  PartialMessage,
+} from "discord.js";
 import client from "../client";
 import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
@@ -9,13 +15,17 @@ import { EventHandler, Module } from "../internal/types";
 import appLogger from "../logger";
 import prisma from "../prisma";
 
+// todo handle unexpected states like club channels getting deleted
+
 const logger = appLogger.child({ module: "ClubsModule" });
 
-// todo voting
+const UPVOTE_EMOJI = "⬆️";
+const DEFAULT_VOTES_REQUIRED = 5;
 
 export type GuildClubsConfig = {
   enabled: true;
   channelId: string;
+  defaultVotesRequired?: number;
 };
 
 class ClubsCommand extends Command {
@@ -222,11 +232,181 @@ class ClubsCommand extends Command {
         });
       },
     },
+    {
+      name: "create-vote",
+      description: "Create a vote for a new club.",
+      options: [
+        {
+          name: "club-name",
+          type: "STRING",
+          description: "The name of the club.",
+          required: true,
+        },
+        {
+          name: "votes-required",
+          type: "INTEGER",
+          description:
+            "The votes required for the vote to pass (if different from the server default).",
+        },
+      ],
+
+      async handle(interaction) {
+        if (!interaction.inGuild()) {
+          await interaction.reply({
+            content: `Clubs can only be managed in a server.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        try {
+          assertClubsEnabledForGuild(interaction.guildId);
+        } catch {
+          await interaction.reply({
+            content: `Clubs aren't enabled for this server.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const guildConfig = config.guilds[interaction.guildId].clubs!;
+
+        const clubName = interaction.options.getString(`club-name`, true);
+        const votesRequired = interaction.options.getInteger(`votes-required`);
+
+        const displayVotesRequired =
+          interaction.options.getInteger(`votes-required`) ??
+          guildConfig.defaultVotesRequired ??
+          DEFAULT_VOTES_REQUIRED;
+
+        const message = await interaction.channel!.send({
+          content:
+            `Vote to get a new club!\n\n` +
+            `Club name: ${bold(clubName)}\n` +
+            `Votes required: ${bold(displayVotesRequired.toString(10))}`,
+        });
+
+        await message.react(UPVOTE_EMOJI);
+
+        await prisma.clubVote.create({
+          data: {
+            guildId: interaction.guildId,
+            channelId: message.channelId,
+            messageId: message.id,
+            clubName,
+            votesRequired,
+          },
+        });
+
+        await interaction.reply({
+          content: `Vote created!`,
+          ephemeral: true,
+        });
+      },
+    },
   ];
 }
 
 const handleReady: EventHandler<"ready"> = async () => {
   await syncClubsForAllGuilds();
+};
+
+const handleMessageReactionAdd: EventHandler<"messageReactionAdd"> = async (
+  reaction
+) => handleVoteMessageUpdate(reaction.message);
+const handleMessageReactionRemove: EventHandler<
+  "messageReactionRemove"
+> = async (reaction) => handleVoteMessageUpdate(reaction.message);
+const handleMessageReactionRemoveEmoji: EventHandler<
+  "messageReactionRemoveEmoji"
+> = async (reaction) => handleVoteMessageUpdate(reaction.message);
+const handleMessageReactionRemoveAll: EventHandler<
+  "messageReactionRemoveAll"
+> = async (message) => handleVoteMessageUpdate(message);
+
+const handleVoteMessageUpdate = async (message: Message | PartialMessage) => {
+  if (!message.guildId) return;
+
+  const guildId = message.guildId;
+
+  if (!config.guilds[guildId].clubs?.enabled) return;
+
+  const vote = await prisma.clubVote.findFirst({
+    where: {
+      guildId: message.guildId,
+      channelId: message.channelId,
+      messageId: message.id,
+    },
+  });
+
+  if (!vote) {
+    return;
+  }
+
+  if (message.partial) {
+    message = await message.fetch();
+  }
+
+  const guildConfig = config.guilds[message.guildId!].clubs!;
+
+  logger.debug({ message }, `Reactions changed for vote message.`);
+
+  const users = await message.reactions.resolve(UPVOTE_EMOJI)?.users.fetch();
+  const voteCount = users?.filter((u) => u.id !== client.user?.id)?.size ?? 0;
+
+  const requiredVoteCount =
+    vote.votesRequired ??
+    guildConfig.defaultVotesRequired ??
+    DEFAULT_VOTES_REQUIRED;
+
+  if (voteCount >= requiredVoteCount) {
+    logger.info(
+      { vote },
+      `Creating club "${vote.clubName}" based on a successful vote!`
+    );
+
+    // club has successfully been voted in!
+
+    // create the club
+
+    const clubChannel = await createClubChannel(
+      message.guildId!,
+      vote.clubName
+    );
+
+    const club = await prisma.club.create({
+      data: {
+        guildId: message.guildId!,
+        channelId: clubChannel.id,
+      },
+    });
+
+    await syncClubToGuild(club);
+    await syncClubIndexChannelForGuild(message.guildId!);
+
+    // delete the vote message
+    await message.delete();
+
+    // delete the vote
+    await prisma.clubVote.delete({ where: { id: vote.id } });
+
+    // ping people who voted in the new club
+    await clubChannel.send({
+      content:
+        `Welcome to your new club!\n\n` +
+        users
+          ?.filter((u) => u.id !== client.user?.id)
+          .map((u) => userMention(u.id))
+          .join(` `),
+    });
+
+    // send an update message in the vote message's channel
+    await message.channel.send(
+      `The club ${channelMention(
+        clubChannel.id
+      )} has been successully voted in!`
+    );
+  }
 };
 
 const syncClubsForAllGuilds = async () => {
@@ -253,6 +433,8 @@ const syncAllClubsForGuild = async (guildId: Snowflake) => {
   });
 
   await Promise.all(clubs.map(syncClubToGuild));
+
+  // todo sync the club index message here
 
   logger.debug(`Finished synchronizing clubs for guild ID ${guildId}.`);
 };
@@ -400,6 +582,10 @@ const ClubsModule: Module = {
   commands: [new ClubsCommand()],
   handlers: {
     ready: [handleReady],
+    messageReactionAdd: [handleMessageReactionAdd],
+    messageReactionRemove: [handleMessageReactionRemove],
+    messageReactionRemoveEmoji: [handleMessageReactionRemoveEmoji],
+    messageReactionRemoveAll: [handleMessageReactionRemoveAll],
   },
   cronJobs: [new CronJob("0 */5 * * * *", syncClubsForAllGuilds)],
 };

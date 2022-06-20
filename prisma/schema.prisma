@@ -73,3 +73,19 @@ model StarboardItem {
   messageId          String @unique
   starboardMessageId String
 }
+
+model Club {
+  id        Int     @id @default(autoincrement())
+  guildId   String
+  channelId String
+  archived  Boolean @default(false)
+}
+
+model ClubVote {
+  id            Int    @id @default(autoincrement())
+  guildId       String
+  channelId     String
+  messageId     String
+  clubName      String
+  votesRequired Int?
+}

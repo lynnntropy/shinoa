@@ -323,6 +323,11 @@ const config: Config = {
             channelId: "756816167209009213",
             buildChannelName: (count) => `Memebers: ${count}`,
           },
+          clubs: {
+            enabled: true,
+            channelId: `988501138015911986`,
+            defaultVotesRequired: 5,
+          },
         },
       }
     : {

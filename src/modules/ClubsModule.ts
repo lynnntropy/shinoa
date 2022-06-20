@@ -7,6 +7,8 @@ import {
   MessageOptions,
   Message,
   PartialMessage,
+  DiscordAPIError,
+  Constants,
 } from "discord.js";
 import client from "../client";
 import config from "../config";
@@ -14,8 +16,7 @@ import { Command, CommandSubCommand } from "../internal/command";
 import { EventHandler, Module } from "../internal/types";
 import appLogger from "../logger";
 import prisma from "../prisma";
-
-// todo handle unexpected states like club channels getting deleted
+import * as Sentry from "@sentry/node";
 
 const logger = appLogger.child({ module: "ClubsModule" });
 
@@ -472,17 +473,29 @@ const createClubChannel = async (guildId: string, channelName: string) => {
 };
 
 const syncClubToGuild = async (club: Club) => {
-  const clubChannel = await findClubChannel(club);
+  try {
+    const clubChannel = await findClubChannel(club);
 
-  if (!clubChannel) {
-    throw Error("Club channel not found.");
-  }
+    if (!clubChannel) {
+      logger.warn(
+        { club },
+        `Failed to find the channel for this club, it was probably deleted manually. Deleting the club.`
+      );
 
-  if (clubChannel.archived !== club.archived) {
-    clubChannel.setArchived(
-      club.archived,
-      `Automatically synced thread with club.`
-    );
+      await prisma.club.delete({ where: { id: club.id } });
+
+      return;
+    }
+
+    if (clubChannel.archived !== club.archived) {
+      clubChannel.setArchived(
+        club.archived,
+        `Automatically synced thread with club.`
+      );
+    }
+  } catch (e) {
+    Sentry.captureException(e);
+    logger.error({ err: e, club }, `Failed to synchronize club to guild.`);
   }
 };
 
@@ -502,13 +515,24 @@ const findClubChannel = async (club: Club) => {
     throw Error("Club parent channel must be a text channel.");
   }
 
-  const channel = await parentChannel.threads.fetch(club.channelId);
+  try {
+    const channel = await parentChannel.threads.fetch(club.channelId);
 
-  if (!channel) {
-    return null;
+    if (!channel) {
+      return null;
+    }
+
+    return channel;
+  } catch (e) {
+    if (
+      e instanceof DiscordAPIError &&
+      e.code === Constants.APIErrors.UNKNOWN_CHANNEL
+    ) {
+      return null;
+    }
+
+    throw e;
   }
-
-  return channel;
 };
 
 const buildClubIndexMessage = async (guildId: Snowflake) => {
@@ -539,42 +563,50 @@ const buildClubIndexMessage = async (guildId: Snowflake) => {
 };
 
 const syncClubIndexChannelForGuild = async (guildId: Snowflake) => {
-  assertClubsEnabledForGuild(guildId);
-  const guildConfig = config.guilds[guildId].clubs!;
+  try {
+    assertClubsEnabledForGuild(guildId);
+    const guildConfig = config.guilds[guildId].clubs!;
 
-  const guild = await client.guilds.fetch(guildId);
-  const channel = await guild.channels.fetch(guildConfig.channelId);
+    const guild = await client.guilds.fetch(guildId);
+    const channel = await guild.channels.fetch(guildConfig.channelId);
 
-  if (!channel) {
-    throw Error("Failed to find club index channel for guild.");
+    if (!channel) {
+      throw Error("Failed to find club index channel for guild.");
+    }
+
+    if (!channel.isText()) {
+      throw Error("Club index channel must be a text channel.");
+    }
+
+    const messages = await channel.messages.fetch({ limit: 10 });
+
+    // clean up stuff like "thread created" messages and other people's messages
+
+    await Promise.all(
+      messages
+        .filter((m) => m.type !== "DEFAULT" || m.author.id !== client.user?.id)
+        .map((m) => m.delete())
+    );
+
+    // create or update the index message
+
+    const indexMessage = messages.find(
+      (m) => m.type === "DEFAULT" && m.author.id === client.user?.id
+    );
+
+    if (!indexMessage) {
+      await channel.send(await buildClubIndexMessage(guildId));
+      return;
+    }
+
+    await indexMessage.edit(await buildClubIndexMessage(guildId));
+  } catch (e) {
+    Sentry.captureException(e);
+    logger.error(
+      { err: e, guildId },
+      `Failed to synchronize the club index channel for this guild.`
+    );
   }
-
-  if (!channel.isText()) {
-    throw Error("Club index channel must be a text channel.");
-  }
-
-  const messages = await channel.messages.fetch({ limit: 10 });
-
-  // clean up stuff like "thread created" messages and other people's messages
-
-  await Promise.all(
-    messages
-      .filter((m) => m.type !== "DEFAULT" || m.author.id !== client.user?.id)
-      .map((m) => m.delete())
-  );
-
-  // create or update the index message
-
-  const indexMessage = messages.find(
-    (m) => m.type === "DEFAULT" && m.author.id === client.user?.id
-  );
-
-  if (!indexMessage) {
-    await channel.send(await buildClubIndexMessage(guildId));
-    return;
-  }
-
-  await indexMessage.edit(await buildClubIndexMessage(guildId));
 };
 
 const ClubsModule: Module = {

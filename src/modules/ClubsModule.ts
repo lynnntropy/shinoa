@@ -538,7 +538,7 @@ const findClubChannel = async (club: Club) => {
 const buildClubIndexMessage = async (guildId: Snowflake) => {
   assertClubsEnabledForGuild(guildId);
 
-  let content = `Clubs are discoverable threads that don't get auto-archived.\n\nActive clubs you can join:\n\n`;
+  let content = `Clubs are long-lived threads that get listed in this channel and don't get auto-archived. Think of them as little clubhouses you can use to talk as much as you want about niche topics that wouldn't work in more general channels, like hobbies, content creation, or games you like.\n\nActive clubs you can join:\n\n`;
 
   const activeClubs = await prisma.club.findMany({
     where: { guildId, archived: false },

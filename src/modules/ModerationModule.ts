@@ -11,6 +11,7 @@ import {
   MessageButton,
   ButtonInteraction,
   Message,
+  Snowflake,
 } from "discord.js";
 import config from "../config";
 import emitter, { ModerationEventType } from "../emitter";
@@ -24,6 +25,7 @@ import { getGeneralMessageChannelForGuild } from "../utils/guilds";
 import { getKeyValueItem, updateKeyValueItem } from "../keyValueStore";
 import { clearExpiredMutes, mute, unmute } from "../mutes";
 import logger from "../logger";
+import { uniq } from "lodash";
 
 class KickCommand extends Command {
   name = "kick";
@@ -271,12 +273,13 @@ class UnmuteCommand extends Command {
 
 class BlacklistCommand extends Command {
   name = "blacklist";
-  description = "Blacklists a user ID.";
+  description = "Blacklists a user ID (or a list of IDs).";
   requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
   options: ApplicationCommandOptionData[] = [
     {
-      name: "user-id",
-      description: "The ID of the user you want to blacklist.",
+      name: "user-ids",
+      description:
+        "The ID (or list of IDs) of the user(s) you want to blacklist.",
       type: "STRING",
       required: true,
     },
@@ -296,65 +299,90 @@ class BlacklistCommand extends Command {
       return;
     }
 
-    const userId = interaction.options.getString("user-id", true).trim();
+    const userIdsInput = interaction.options.getString("user-ids", true).trim();
     const reason = interaction.options.getString("reason");
 
-    if (/^\d{10,}$/.test(userId) !== true) {
+    const ids = uniq(userIdsInput.match(/\d{10,}/g));
+    let exceptions: string[] = [];
+    let validatedIds: string[] = [];
+
+    if (!ids || ids.length === 0) {
       await interaction.reply({
-        content: "That doesn't seem to be a valid ID.",
+        content:
+          "No IDs found in the `user-ids` option, please check your input.\n\nThe input to this command can be a single ID, or a list of IDs separated by anything that isn't a number.",
         ephemeral: true,
       });
       return;
     }
 
-    const member = await interaction.guild.members
-      .fetch(userId)
-      .catch(() => null);
+    await interaction.deferReply();
 
-    if (member !== null) {
-      await interaction.reply({
-        content: `It looks like ${member.user.tag} is already in this server. Did you mean to ban them instead?`,
-        ephemeral: true,
-      });
-      return;
-    }
-
-    const blacklist = await getKeyValueItem<string[]>(
+    const currentBlacklist = await getKeyValueItem<string[]>(
       `guilds.${interaction.guild.id}.blacklist`
     );
-    if (blacklist !== null && blacklist.includes(userId)) {
-      await interaction.reply({
-        content: `User ID ${userId} is already on the blacklist.`,
-        ephemeral: true,
-      });
-      return;
-    }
+
+    const validateId = async (userId: Snowflake) => {
+      const member = await interaction
+        .guild!.members.fetch(userId)
+        .catch(() => null);
+
+      if (member) {
+        exceptions.push(
+          `${userMention(userId)} (ID ${userId}) is already in the server.`
+        );
+
+        return;
+      }
+
+      if (currentBlacklist !== null && currentBlacklist.includes(userId)) {
+        exceptions.push(`ID ${userId} is already on the blacklist.`);
+
+        return;
+      }
+
+      validatedIds.push(userId);
+    };
+
+    await Promise.all(ids.map(validateId));
 
     await updateKeyValueItem<string[]>(
       `guilds.${interaction.guild.id}.blacklist`,
       (current) => {
         const blacklist = current ?? [];
-        return [...blacklist, userId];
+        return [...blacklist, ...validatedIds];
       }
     );
 
     const embed = new MessageEmbed()
       .setColor("RED")
-      .setDescription(`User ID ${userId} has been blacklisted.`);
+      .setDescription(
+        `${bold(
+          validatedIds.length.toString(10)
+        )} user IDs have been blacklisted.`
+      );
+
+    if (exceptions.length > 0) {
+      embed.addField(
+        "Skipped IDs",
+        exceptions.map((e) => `- ${e}`).join(`  \n`)
+      );
+    }
 
     if (reason) {
       embed.addField("Reason", reason);
     }
 
-    emitter.emit("moderationEvent", {
-      type: ModerationEventType.BLACKLIST,
-      note: `Blacklisted user ID ${bold(userId)}.`,
-      guild: interaction.guild,
-      moderator: interaction.member as GuildMember,
-      reason: reason ?? undefined,
-    });
+    for (const userId of validatedIds) {
+      emitter.emit("moderationEvent", {
+        type: ModerationEventType.BLACKLIST,
+        note: `Blacklisted user ID ${bold(userId)}.`,
+        guild: interaction.guild,
+        moderator: interaction.member as GuildMember,
+        reason: reason ?? undefined,
+      });
+    }
 
-    await interaction.reply({
+    await interaction.editReply({
       embeds: [embed],
     });
   }

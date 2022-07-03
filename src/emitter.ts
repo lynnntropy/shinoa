@@ -18,6 +18,7 @@ export interface ModerationEvent {
 
 export enum ModerationEventType {
   BAN,
+  UNBAN,
   KICK,
   MUTE,
   UNMUTE,

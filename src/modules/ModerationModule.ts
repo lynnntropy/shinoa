@@ -139,6 +139,58 @@ class BanCommand extends Command {
   }
 }
 
+class UnbanCommand extends Command {
+  name = "unban";
+  description = "Unban a user by ID.";
+  requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
+  options: ApplicationCommandOptionData[] = [
+    {
+      name: "user-id",
+      description: "The ID of the user you want to unban.",
+      type: "STRING",
+      required: true,
+    },
+    {
+      name: "reason",
+      description: "The reason for the unban.",
+      type: "STRING",
+    },
+  ];
+
+  async handle(interaction: CommandInteraction) {
+    if (interaction.guild === null) {
+      await interaction.reply({
+        content: "This command can only be called inside a server.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const userId = interaction.options.getString("user-id", true);
+    const reason = interaction.options.getString("reason");
+
+    await interaction.guild.members.unban(userId, reason ?? undefined);
+
+    emitter.emit("moderationEvent", {
+      type: ModerationEventType.UNBAN,
+      guild: interaction.guild,
+      note: `User ID ${userId}`,
+      moderator: interaction.member as GuildMember,
+      reason: reason ?? undefined,
+    });
+
+    const embed = new MessageEmbed()
+      .setColor("GREEN")
+      .setDescription(`User ID ${userId} has been unbanned.`);
+
+    if (reason) {
+      embed.addField("Reason", reason);
+    }
+
+    await interaction.reply({ embeds: [embed] });
+  }
+}
+
 class MuteCommand extends Command {
   name = "mute";
   description = "Mutes a user.";
@@ -793,6 +845,7 @@ const ModerationModule: Module = {
   commands: [
     new KickCommand(),
     new BanCommand(),
+    new UnbanCommand(),
     new MuteCommand(),
     new UnmuteCommand(),
     new BlacklistCommand(),

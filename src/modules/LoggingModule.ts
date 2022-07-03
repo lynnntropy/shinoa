@@ -554,6 +554,8 @@ const handleModerationEvent = async (event: ModerationEvent) => {
     embed.setTitle("Kicked");
   } else if (event.type === ModerationEventType.BAN) {
     embed.setTitle("Banned");
+  } else if (event.type === ModerationEventType.UNBAN) {
+    embed.setTitle("Unbanned");
   } else if (event.type === ModerationEventType.MUTE) {
     embed.setTitle("Muted");
   } else if (event.type === ModerationEventType.UNMUTE) {

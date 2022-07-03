@@ -1,4 +1,5 @@
 import {
+  GuildChannel,
   Message,
   MessageEmbedOptions,
   MessageOptions,
@@ -39,11 +40,25 @@ const handleMessageUpdate = async (message: Message | PartialMessage) => {
   const starboardConfig = config.guilds[guildId].starboard!;
   const threshold = starboardConfig.threshold ?? DEFAULT_THRESHOLD;
 
-  if (
-    starboardConfig.channelWhitelist &&
-    !starboardConfig.channelWhitelist.includes(message.channelId)
-  ) {
-    return;
+  if (starboardConfig.channelWhitelist) {
+    const channel = message.channel as GuildChannel;
+
+    // since the guild has a channel whitelist configured, the message
+    // needs to either be in a channel that's directly on the whitelist,
+    // _or_ a channel that's a child of a channel that's whitelisted
+    // and has `includeChildren` set to true
+
+    const channelWhitelistEntry = starboardConfig.channelWhitelist.find(
+      (e) => e.id === channel.id
+    );
+
+    const parentWhitelistEntry = starboardConfig.channelWhitelist.find(
+      (e) => e.includeChildren && e.id === channel.parentId
+    );
+
+    if (!channelWhitelistEntry && !parentWhitelistEntry) {
+      return;
+    }
   }
 
   if (message.partial) {

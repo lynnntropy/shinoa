@@ -7,6 +7,7 @@ import { GuildJoinLeaveMessagesConfig } from "./modules/JoinLeaveMessagesModule"
 import { MemberCounterConfig } from "./modules/MemberCounterModule";
 import { GuildWelcomeDMsConfig } from "./modules/WelcomeDMsModule";
 import { GuildClubsConfig } from "./modules/ClubsModule";
+import { Snowflake } from "discord.js";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -40,7 +41,10 @@ export interface Config {
         enabled: true;
         threshold?: number;
         channelId?: string;
-        channelWhitelist?: string[];
+        channelWhitelist?: {
+          id: Snowflake;
+          includeChildren?: boolean;
+        }[];
       };
       moderation?: {
         mutedRoleId?: string;
@@ -114,9 +118,10 @@ const config: Config = {
             enabled: true,
             threshold: 5,
             channelWhitelist: [
-              "191977603526033408",
-              "851936718839218197",
-              "928093879230668820",
+              { id: "191977603526033408" },
+              { id: "851936718839218197" },
+              { id: "928093879230668820" },
+              { id: "988501138015911986", includeChildren: true },
             ],
           },
           moderation: {
@@ -360,6 +365,9 @@ const config: Config = {
           starboard: {
             enabled: true,
             threshold: 1,
+            channelWhitelist: [
+              { id: "161167668131397642", includeChildren: true },
+            ],
           },
           roles: {
             messages: [

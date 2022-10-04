@@ -1,9 +1,11 @@
 import { Prisma } from ".prisma/client";
 import { CommandInteraction, GuildMember, TextChannel } from "discord.js";
 import { PermissionResolvable } from "discord.js";
+import config from "../../config";
 import { Command, CommandSubCommand } from "../../internal/command";
 import { Module } from "../../internal/types";
 import prisma from "../../prisma";
+import { getGeneralMessageChannelForGuild } from "../../utils/guilds";
 
 class UsernameCounterAdminCommand extends Command {
   name = "username-counter";
@@ -136,27 +138,37 @@ const handleAnnounceMemberJoinedEvent = async (member: GuildMember) => {
   for (const keyword of keywords) {
     if (member.user.username.toLowerCase().includes(keyword.toLowerCase())) {
       const countKey = `guilds.${member.guild.id}.counted_usernames.counts.${keyword}`;
+
       let countKv = await prisma.keyValueItem.findUnique({
         where: { key: countKey },
       });
+
       if (countKv === null) {
         countKv = { key: countKey, value: 1 };
       } else {
         (countKv.value as number)++;
       }
+
       const { value: currentCount } = await prisma.keyValueItem.upsert({
         where: { key: countKey },
         update: countKv as Prisma.KeyValueItemUpdateInput,
         create: countKv as Prisma.KeyValueItemCreateInput,
       });
 
-      const channel =
-        (member.guild.channels.cache.find(
-          (c) => c.name === "general"
-        ) as TextChannel) ?? member.guild.systemChannel;
+      const channel = config.guilds[member.guild.id].joinLeaveMessages
+        ?.channelId
+        ? await member.guild.channels.fetch(
+            config.guilds[member.guild.id].joinLeaveMessages
+              ?.channelId as string
+          )
+        : await getGeneralMessageChannelForGuild(member.guild);
 
       if (channel === null) {
         throw new Error(`Guild ID ${member.guild.id} has no usable channel!`);
+      }
+
+      if (!channel.isText()) {
+        throw Error(`Resolved channel is not a text channel.`);
       }
 
       await channel.send(`Welcome to ${keyword} no. **${currentCount}**!`);

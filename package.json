@@ -30,7 +30,7 @@
     "axios": "^0.27.2",
     "cron": "^2.0.0",
     "date-fns": "^2.21.1",
-    "deep-object-diff": "^1.1.0",
+    "deep-object-diff": "^1.1.9",
     "discord.js": "^13.0.0",
     "form-data": "^4.0.0",
     "graphql": "^16.1.0",

@@ -308,6 +308,22 @@ const config: Config = {
                   },
                 ],
               },
+
+              // 12 Days of Christmas 2022
+              {
+                id: "1052565094715891764",
+                channelId: "313045757647257600",
+                type: "reaction",
+                options: [
+                  {
+                    roleId: "788072977546608671",
+                    emoji: {
+                      id: null,
+                      name: "🎄",
+                    },
+                  },
+                ],
+              },
             ],
             stickyLevelRoles: {
               enabled: true,

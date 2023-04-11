@@ -252,6 +252,21 @@ const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
     )
     .setDescription(message.cleanContent ?? "(empty message)");
 
+  const attachments = [...message.attachments.values()];
+
+  if (
+    attachments.length > 0 &&
+    attachments.some((a) => a.contentType?.startsWith("image") ?? false)
+  ) {
+    const firstImageAttachment = attachments.find(
+      (a) => a.contentType?.startsWith("image") ?? false
+    );
+
+    if (firstImageAttachment) {
+      embed.setImage(firstImageAttachment.url);
+    }
+  }
+
   await loggingChannel.send({ embeds: [embed] });
 };
 

@@ -5,6 +5,7 @@ import badWords from "../badWords";
 import emitter from "../emitter";
 import { bold, hyperlink } from "@discordjs/builders";
 import { mute } from "../mutes";
+import logger from "../logger";
 
 enum AutomodAction {
   Log,
@@ -109,29 +110,48 @@ const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
   actions = [...new Set(actions)];
 
   if (actions.includes(AutomodAction.Log)) {
-    emitter.emit("logEvent", {
-      guild: message.guild!,
-      note:
-        bold(message.author.tag) +
-        `'s message tripped one or more of Shinoa's automod rules.\n\n` +
-        hyperlink("🔗 Link to message", message.url),
-    });
+    try {
+      emitter.emit("logEvent", {
+        guild: message.guild!,
+        note:
+          bold(message.author.tag) +
+          `'s message tripped one or more of Shinoa's automod rules.\n\n` +
+          `Message contents:\`\`\`${message.cleanContent}\`\`\`` +
+          (!actions.includes(AutomodAction.Delete)
+            ? "\n" + hyperlink("🔗 Link to message", message.url)
+            : "\n" + "The message was deleted automatically."),
+      });
+    } catch (err) {
+      logger.error(err);
+    }
   }
 
   if (actions.includes(AutomodAction.Warn)) {
-    await message.reply("Please watch your language.");
+    try {
+      await message.reply("Please watch your language.");
+    } catch (err) {
+      logger.error(err);
+    }
   }
 
   if (actions.includes(AutomodAction.Mute)) {
-    await mute({
-      guild: message.guild!,
-      member: message.member!,
-      reason: "Automatic mute",
-    });
+    try {
+      await mute({
+        guild: message.guild!,
+        member: message.member!,
+        reason: "Automatic mute",
+      });
+    } catch (err) {
+      logger.error(err);
+    }
   }
 
   if (actions.includes(AutomodAction.Delete)) {
-    await message.delete();
+    try {
+      await message.delete();
+    } catch (err) {
+      logger.error(err);
+    }
   }
 };
 

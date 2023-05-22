@@ -15,20 +15,40 @@ enum AutomodAction {
 
 interface AutomodRule {
   name: string;
-  actions: AutomodAction[];
-  handle: (message: Message, tokens: string[]) => Promise<boolean>;
+  defaultActions: AutomodAction[];
+  handle: (
+    message: Message,
+    tokens: string[]
+  ) => Promise<AutomodAction[] | boolean>;
 }
 
 const rules: AutomodRule[] = [
   {
     name: "word filter",
-    actions: [AutomodAction.Log, AutomodAction.Warn],
-    handle: async (_, tokens) =>
-      tokens.some((token) => badWords.includes(token)),
+    defaultActions: [AutomodAction.Log, AutomodAction.Warn],
+    handle: async (_, tokens) => {
+      const badWordsFound = badWords
+        .filter(({ word }) => tokens.includes(word))
+        .sort((a, b) => b.level - a.level);
+
+      if (!badWordsFound.length) {
+        return false;
+      }
+
+      if (badWordsFound[0].level === 1) {
+        return [AutomodAction.Log, AutomodAction.Warn];
+      }
+
+      if (badWordsFound[0].level > 1) {
+        return [AutomodAction.Log, AutomodAction.Delete, AutomodAction.Mute];
+      }
+
+      return false;
+    },
   },
   {
     name: "@everyone / @here attempt",
-    actions: [AutomodAction.Log, AutomodAction.Mute],
+    defaultActions: [AutomodAction.Log, AutomodAction.Mute],
     handle: async (message) => {
       if (
         message.cleanContent.includes("@everyone") ||
@@ -44,7 +64,7 @@ const rules: AutomodRule[] = [
   },
   {
     name: "ping spam",
-    actions: [AutomodAction.Log, AutomodAction.Mute],
+    defaultActions: [AutomodAction.Log, AutomodAction.Mute],
     handle: async (message) => {
       const mentionCount =
         message.mentions.users.size + message.mentions.roles.size;
@@ -53,7 +73,7 @@ const rules: AutomodRule[] = [
   },
   {
     name: "sus links",
-    actions: [AutomodAction.Log, AutomodAction.Mute],
+    defaultActions: [AutomodAction.Log, AutomodAction.Mute],
     handle: async (message) => {
       const urls = message.cleanContent.match(/\bhttps?:\/\/\S+/gi);
       return (
@@ -77,9 +97,12 @@ const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
   let actions: AutomodAction[] = [];
 
   for (const rule of rules) {
-    const hit = await rule.handle(message, tokens);
-    if (hit) {
-      actions.push(...rule.actions);
+    const ruleResult = await rule.handle(message, tokens);
+
+    if (Array.isArray(ruleResult)) {
+      actions.push(...ruleResult);
+    } else if (ruleResult === true) {
+      actions.push(...rule.defaultActions);
     }
   }
 

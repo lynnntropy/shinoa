@@ -234,7 +234,15 @@ const handleReady: EventHandler<"ready"> = async () => {
     if (guildRolesConfig.messages) {
       for (const message of guildRolesConfig.messages) {
         logger.debug(`Initializing message ID ${message.id}...`);
-        await initializeMessage(guildId, message);
+
+        try {
+          await initializeMessage(guildId, message);
+        } catch (e) {
+          logger.error(
+            { messageConfig: message, err: e },
+            "Failed to initialize message."
+          );
+        }
       }
     }
   }

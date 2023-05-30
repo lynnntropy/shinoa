@@ -73,6 +73,8 @@ const config: Config = {
           },
         },
 
+        // Link Start! Welcome to r/SwordArtOnline, <@userid>! Please notice ⁠welcome-chan  for information on rules and a mandatory gameplay tutorial, as well as grab some roles in ⁠roles, and enjoy your stay.
+
         // /r/SwordArtOnline
         ["191709045646688256"]: {
           generalMessageChannelId: "191709045646688256",
@@ -82,11 +84,13 @@ const config: Config = {
             roleId: "708824304099262478",
             joinMessageBuilder: (guild, member) => ({
               content:
-                `**Link Start!** Welcome to ${guild.name}, ${userMention(
-                  member.user.id
-                )}! ` +
-                `Please notice ${channelMention("708772331526422597")} ` +
-                `for information on rules, roles, and a mandatory gameplay tutorial, and enjoy your stay.`,
+                `**Link Start!** Welcome to ${guild.name}, ` +
+                `${userMention(member.user.id)}! ` +
+                `Please notice ` +
+                `${channelMention("708772331526422597")} ` +
+                `for information on rules and a mandatory gameplay tutorial, as well as grab some roles in ` +
+                `${channelMention("1109164711691423835")}, ` +
+                `and enjoy your stay.`,
             }),
             leaveMessageBuilder: (guild, member) => ({
               content: `${
@@ -100,7 +104,7 @@ const config: Config = {
               content:
                 `**Link Start!** Welcome to r/SwordArtOnline, ` +
                 `${userMention(member.user.id)}! ` +
-                `Please notice #welcome-chan for information on rules, roles, access to the server, and a mandatory gameplay tutorial. And enjoy your stay.` +
+                `Please notice #welcome-chan for information on rules and a mandatory gameplay tutorial, as well as grab some roles in #roles, and enjoy your stay.` +
                 `\n\n` +
                 `https://discord.com/channels/191709045646688256/708772331526422597/759465132149047348`,
             }),

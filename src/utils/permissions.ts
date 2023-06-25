@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import config from "../config";
 import { Command } from "../internal/command";
+import { buildUsernameString } from "./strings";
 
 export const validateInteractionIsAllowed = async (
   interaction: CommandInteraction,
@@ -18,7 +19,9 @@ export const validateInteractionIsAllowed = async (
       });
 
       throw new Error(
-        `Owner-only command /${command.name} can't be used by user ${interaction.user.username}#${interaction.user.discriminator}.`
+        `Owner-only command /${
+          command.name
+        } can't be used by user ${buildUsernameString(interaction.user)}.`
       );
     }
   }
@@ -56,9 +59,7 @@ export const validateInteractionIsAllowed = async (
       });
 
       throw new Error(
-        `${interaction.member!.user.username}#${
-          interaction.member!.user.discriminator
-        } ` +
+        `${buildUsernameString(interaction.member!.user)} ` +
           `tried to use a command they don't have the permissions for (/${command.name}).`
       );
     }

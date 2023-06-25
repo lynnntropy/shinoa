@@ -318,7 +318,7 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
       Member joined.
 
       **ID:** ${member.user.id}
-      **Username:** ${member.user.tag}
+      **Username:** ${buildUsernameString(member.user)}
       **Account created:** ${formatDate(member.user.createdAt)}
       `.trim()
     );
@@ -346,7 +346,7 @@ const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
       Member left.
 
       **ID:** ${member.id}
-      **Username:** ${member.user?.tag ?? "(?)"}
+      **Username:** ${member.user ? buildUsernameString(member.user) : "(?)"}
       **Account created:** ${
         member.user ? formatDate(member.user.createdAt) : "(?)"
       }

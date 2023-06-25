@@ -8,6 +8,7 @@ import { MemberCounterConfig } from "./modules/MemberCounterModule";
 import { GuildWelcomeDMsConfig } from "./modules/WelcomeDMsModule";
 import { GuildClubsConfig } from "./modules/ClubsModule";
 import { Snowflake } from "discord.js";
+import { buildUsernameString } from "./utils/strings";
 export { handlers } from "./modules";
 
 export interface Config {
@@ -94,7 +95,9 @@ const config: Config = {
             }),
             leaveMessageBuilder: (guild, member) => ({
               content: `${
-                member.user?.tag ?? member.displayName
+                member.user
+                  ? buildUsernameString(member.user)
+                  : member.displayName
               } found the logout button and has returned to real life... A fate worse than death.`,
             }),
           },

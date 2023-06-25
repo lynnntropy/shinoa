@@ -26,6 +26,7 @@ import { getKeyValueItem, updateKeyValueItem } from "../keyValueStore";
 import { clearExpiredMutes, mute, unmute } from "../mutes";
 import logger from "../logger";
 import { uniq } from "lodash";
+import { buildUsernameString } from "../utils/strings";
 
 class KickCommand extends Command {
   name = "kick";
@@ -69,7 +70,9 @@ class KickCommand extends Command {
 
     const embed = new MessageEmbed()
       .setColor("RED")
-      .setDescription(`${bold(member.user.tag)} has been kicked.`);
+      .setDescription(
+        `${bold(buildUsernameString(member.user))} has been kicked.`
+      );
 
     if (reason) {
       embed.addField("Reason", reason);
@@ -131,7 +134,9 @@ class BanCommand extends Command {
 
     const embed = new MessageEmbed()
       .setColor("RED")
-      .setDescription(`${bold(member.user.tag)} has been banned.`);
+      .setDescription(
+        `${bold(buildUsernameString(member.user))} has been banned.`
+      );
 
     if (reason) {
       embed.addField("Reason", reason);
@@ -784,7 +789,9 @@ class ClearRolesCommand extends Command {
             } catch (e) {
               logger.warn(
                 e,
-                `Failed to remove role from user ${member.user.tag}.`
+                `Failed to remove role from user ${buildUsernameString(
+                  member.user
+                )}.`
               );
             }
           }
@@ -831,7 +838,9 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
 
     const embed = new MessageEmbed()
       .setColor("RED")
-      .setDescription(`${bold(member.user.tag)} has been banned.`)
+      .setDescription(
+        `${bold(buildUsernameString(member.user))} has been banned.`
+      )
       .addField("Reason", reason);
 
     const channel = await getGeneralMessageChannelForGuild(member.guild);

@@ -175,7 +175,7 @@ const buildStarboardMessage = async (
 
   const embed: MessageEmbedOptions = {
     author: {
-      name: originalMessage.author.tag,
+      name: buildUsernameString(originalMessage.author),
       iconURL: `https://cdn.discordapp.com/avatars/${originalMessage.author.id}/${originalMessage.author.avatar}`,
     },
     description: originalMessage.content,

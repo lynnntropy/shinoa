@@ -6,6 +6,7 @@ import emitter from "../emitter";
 import { bold, hyperlink } from "@discordjs/builders";
 import { mute } from "../mutes";
 import logger from "../logger";
+import { buildUsernameString } from "../utils/strings";
 
 enum AutomodAction {
   Log,
@@ -114,7 +115,7 @@ const handleMessageCreate: EventHandler<"messageCreate"> = async (message) => {
       emitter.emit("logEvent", {
         guild: message.guild!,
         note:
-          bold(message.author.tag) +
+          bold(buildUsernameString(message.author)) +
           `'s message tripped one or more of Shinoa's automod rules.\n\n` +
           `Message contents:\`\`\`${message.cleanContent}\`\`\`` +
           (!actions.includes(AutomodAction.Delete)

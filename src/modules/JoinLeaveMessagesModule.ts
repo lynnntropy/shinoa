@@ -11,6 +11,7 @@ import config from "../config";
 import emitter from "../emitter";
 import { EventHandler, Module } from "../internal/types";
 import { getGeneralMessageChannelForGuild } from "../utils/guilds";
+import { buildUsernameString } from "../utils/strings";
 
 export type GuildJoinLeaveMessagesConfig = {
   enabled: true;
@@ -45,7 +46,9 @@ const defaultLeaveMessageBuilder = (
   member: GuildMember | PartialGuildMember
 ): MessageOptions => {
   return {
-    content: `Bye, ${member.user?.tag ?? member.displayName}!`,
+    content: `Bye, ${
+      member.user ? buildUsernameString(member.user) : member.displayName
+    }!`,
   };
 };
 

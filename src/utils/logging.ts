@@ -7,6 +7,7 @@ import {
   TextChannel,
 } from "discord.js";
 import logger from "../logger";
+import { buildUsernameString } from "./strings";
 
 export const logInteraction = async (interaction: CommandInteraction) => {
   if (!interaction.isCommand()) return;
@@ -18,8 +19,8 @@ export const logInteraction = async (interaction: CommandInteraction) => {
     logger.info(
       `Command /${interaction.commandName} used by ` +
         (member.nickname
-          ? `${member.nickname} (${member.user.username}#${member.user.discriminator}) `
-          : `${member.user.username}#${member.user.discriminator} `) +
+          ? `${member.nickname} (${buildUsernameString(member.user)}) `
+          : `${buildUsernameString(member.user)} `) +
         `in ${interaction.guild.name} -> #${(channel as TextChannel).name}`
     );
 
@@ -29,7 +30,7 @@ export const logInteraction = async (interaction: CommandInteraction) => {
   if (interaction.channel && interaction.channel.type === "DM") {
     logger.info(
       `Command /${interaction.commandName} used by ` +
-        `${interaction.user.username}#${interaction.user.discriminator} ` +
+        `${buildUsernameString(interaction.user)} ` +
         `in DM`
     );
 
@@ -51,10 +52,10 @@ export const logMessage = async (message: Message | PartialMessage) => {
     logger.debug(
       `[${guild.name} -> #${channel.name}] [type ${message.type}] ` +
         (message.member!.nickname
-          ? `${message.member!.nickname} (${message.author.username}#${
-              message.author.discriminator
-            }) `
-          : `${message.author.username}#${message.author.discriminator} `) +
+          ? `${message.member!.nickname} (${buildUsernameString(
+              message.author
+            )}) `
+          : `${buildUsernameString(message.author)} `) +
         message.content
     );
 
@@ -65,8 +66,9 @@ export const logMessage = async (message: Message | PartialMessage) => {
     const channel = message.channel as DMChannel;
 
     logger.debug(
-      `[${channel.recipient.username}#${channel.recipient.discriminator} (DM)] [type ${message.type}] ` +
-        message.content
+      `[${buildUsernameString(channel.recipient)} (DM)] [type ${
+        message.type
+      }] ` + message.content
     );
 
     return;

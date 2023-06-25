@@ -17,6 +17,7 @@ import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
 import { Module, SerializableMessage } from "../internal/types";
 import { GraphQLFieldResolver } from "graphql";
+import { buildUsernameString } from "../utils/strings";
 
 const PREVIOUS_REACTION_EMOJI = "⏮";
 const NEXT_REACTION_EMOJI = "⏭";
@@ -362,7 +363,7 @@ const buildEmbedForQuotedMessage = async (
 ): Promise<MessageEmbedOptions> => {
   const embed: MessageEmbedOptions = {
     author: {
-      name: `${message.author.username}#${message.author.discriminator}`,
+      name: buildUsernameString(message.author),
       iconURL: `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}`,
     },
     description: message.content,
@@ -377,9 +378,7 @@ const buildEmbedForQuotedMessage = async (
     ).members.fetch(message.author.id);
 
     embed.author = {
-      name:
-        member.nickname ??
-        `${member.user.username}#${member.user.discriminator}`,
+      name: member.nickname ?? buildUsernameString(member.user),
       iconURL: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
     };
   } catch (e) {

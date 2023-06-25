@@ -13,6 +13,7 @@ import client from "../client";
 import logger from "../logger";
 import * as mime from "mime-types";
 import { bold, hyperlink } from "@discordjs/builders";
+import { buildUsernameString } from "../utils/strings";
 
 const DEFAULT_THRESHOLD = 5;
 const STARBOARD_EMOJI = "⭐";
@@ -174,7 +175,7 @@ const buildStarboardMessage = async (
 
   const embed: MessageEmbedOptions = {
     author: {
-      name: originalMessage.author.tag,
+      name: buildUsernameString(originalMessage.author),
       iconURL: `https://cdn.discordapp.com/avatars/${originalMessage.author.id}/${originalMessage.author.avatar}`,
     },
     description: originalMessage.content,
@@ -191,9 +192,7 @@ const buildStarboardMessage = async (
     ).members.fetch(originalMessage.author.id);
 
     embed.author = {
-      name:
-        member.nickname ??
-        `${member.user.username}#${member.user.discriminator}`,
+      name: member.nickname ?? buildUsernameString(member.user),
       iconURL: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
     };
   } catch (e) {

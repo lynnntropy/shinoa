@@ -17,6 +17,7 @@ import { LogEvent, ModerationEvent, ModerationEventType } from "../emitter";
 import { Command, CommandSubCommand } from "../internal/command";
 import { getKeyValueItem, setKeyValueItem } from "../keyValueStore";
 import { formatDate } from "../utils/date";
+import { buildUsernameString } from "../utils/strings";
 
 const defaultChannels = {
   moderation: "mod-logs",
@@ -224,9 +225,7 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
 
   const embed = new MessageEmbed()
     .setColor("YELLOW")
-    .setTitle(
-      `${newMessage.author.username}#${newMessage.author.discriminator} edited their message`
-    )
+    .setTitle(`${buildUsernameString(newMessage.author)} edited their message`)
     .addField("Before", oldMessage.cleanContent)
     .addField("After", newMessage.cleanContent)
     .setURL(newMessage.url);
@@ -247,9 +246,7 @@ const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
 
   const embed = new MessageEmbed()
     .setColor("RED")
-    .setTitle(
-      `${message.author?.username}#${message.author?.discriminator}'s message was deleted`
-    )
+    .setTitle(`${buildUsernameString(message.author)}'s message was deleted`)
     .setDescription(message.cleanContent ?? "(empty message)");
 
   const attachments = [...message.attachments.values()];
@@ -288,7 +285,7 @@ const handleVoiceStateUpdate: EventHandler<"voiceStateUpdate"> = async (
   const joined = !!newState.channel;
 
   const embed = new MessageEmbed().setAuthor(
-    `${newState.member?.user.username}#${newState.member?.user.discriminator}`,
+    buildUsernameString(newState.member?.user ?? null),
     newState.member?.user?.avatarURL() ?? undefined
   );
 
@@ -313,7 +310,7 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
   const embed = new MessageEmbed()
     .setColor("GREEN")
     .setAuthor(
-      `${member.user.username}#${member.user.discriminator}`,
+      buildUsernameString(member.user),
       member.user?.avatarURL() ?? undefined
     )
     .setDescription(
@@ -321,7 +318,7 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
       Member joined.
 
       **ID:** ${member.user.id}
-      **Username:** ${member.user.tag}
+      **Username:** ${buildUsernameString(member.user)}
       **Account created:** ${formatDate(member.user.createdAt)}
       `.trim()
     );
@@ -341,7 +338,7 @@ const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
   const embed = new MessageEmbed()
     .setColor("RED")
     .setAuthor(
-      `${member.user?.username}#${member.user?.discriminator}`,
+      buildUsernameString(member.user),
       member.user?.avatarURL() ?? undefined
     )
     .setDescription(
@@ -349,7 +346,7 @@ const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
       Member left.
 
       **ID:** ${member.id}
-      **Username:** ${member.user?.tag ?? "(?)"}
+      **Username:** ${member.user ? buildUsernameString(member.user) : "(?)"}
       **Account created:** ${
         member.user ? formatDate(member.user.createdAt) : "(?)"
       }
@@ -460,7 +457,7 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
   const embed = new MessageEmbed()
     .setColor("BLURPLE")
     .setAuthor(
-      `${newMember.user.username}#${newMember.user.discriminator}`,
+      buildUsernameString(newMember.user),
       newMember.user?.avatarURL() ?? undefined
     )
     .setTitle("Member updated")
@@ -523,10 +520,7 @@ const handleUserUpdate: EventHandler<"userUpdate"> = async (
 
   const embed = new MessageEmbed()
     .setColor("BLURPLE")
-    .setAuthor(
-      `${newUser.username}#${newUser.discriminator}`,
-      newUser?.avatarURL() ?? undefined
-    )
+    .setAuthor(buildUsernameString(newUser), newUser?.avatarURL() ?? undefined)
     .setTitle("User updated")
     .setDescription(embedBody);
 
@@ -591,16 +585,13 @@ const handleModerationEvent = async (event: ModerationEvent) => {
 
   if (event.target) {
     embed.setAuthor(
-      `${event.target.user.username}#${event.target.user.discriminator}`,
+      buildUsernameString(event.target.user),
       event.target.user?.avatarURL() ?? undefined
     );
   }
 
   if (event.moderator) {
-    embed.addField(
-      "Moderator",
-      `${event.moderator.user.username}#${event.moderator.user.discriminator}`
-    );
+    embed.addField("Moderator", buildUsernameString(event.moderator.user));
   }
 
   if (event.reason) {
@@ -642,7 +633,7 @@ const checkForKeywords = async (message: Message) => {
     if (matches !== null && matches.length > 0) {
       const embed = new MessageEmbed()
         .setAuthor(
-          `${message.author.username}#${message.author.discriminator}`,
+          buildUsernameString(message.author),
           message.author.avatarURL() ?? undefined
         )
         .setTitle("Found keyword in message")

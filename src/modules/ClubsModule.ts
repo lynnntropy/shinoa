@@ -459,7 +459,7 @@ const createClubChannel = async (guildId: string, channelName: string) => {
     throw Error("Club parent channel for guild not found.");
   }
 
-  if (!parentChannel.isText()) {
+  if (parentChannel.type !== "GUILD_TEXT") {
     throw Error("Club parent channel must be a text channel.");
   }
 
@@ -511,7 +511,7 @@ const findClubChannel = async (club: Club) => {
     throw Error("Club parent channel for guild not found.");
   }
 
-  if (!parentChannel.isText()) {
+  if (parentChannel.type !== "GUILD_TEXT") {
     throw Error("Club parent channel must be a text channel.");
   }
 

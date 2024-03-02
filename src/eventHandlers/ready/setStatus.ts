@@ -1,3 +1,4 @@
+import { ActivityType } from "discord.js";
 import client from "../../client";
 import { EventHandler } from "../../internal/types";
 import logger from "../../logger";
@@ -8,7 +9,7 @@ const setStatus: EventHandler<"ready"> = async () => {
     return;
   }
 
-  client.user.setActivity("uwu", { type: "PLAYING" });
+  client.user.setActivity("uwu", { type: ActivityType.Playing });
 };
 
 export default setStatus;

@@ -4,11 +4,16 @@ import { CronJob } from "cron";
 import {
   PermissionResolvable,
   Snowflake,
-  MessageOptions,
   Message,
   PartialMessage,
   DiscordAPIError,
   Constants,
+  ApplicationCommandOptionType,
+  ChatInputCommandInteraction,
+  ChannelType,
+  ThreadAutoArchiveDuration,
+  MessageCreateOptions,
+  MessageType,
 } from "discord.js";
 import client from "../client";
 import config from "../config";
@@ -32,7 +37,7 @@ export type GuildClubsConfig = {
 class ClubsCommand extends Command {
   name = "clubs";
   description = "Manage clubs.";
-  requiredPermissions: PermissionResolvable = ["MANAGE_CHANNELS"];
+  requiredPermissions: PermissionResolvable = ["ManageChannels"];
 
   subCommands: CommandSubCommand[] = [
     {
@@ -41,7 +46,7 @@ class ClubsCommand extends Command {
       options: [
         {
           name: "name",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           description: "The club name.",
           required: true,
         },
@@ -93,7 +98,7 @@ class ClubsCommand extends Command {
       options: [
         {
           name: "channel",
-          type: "CHANNEL",
+          type: ApplicationCommandOptionType.Channel,
           description: "The club to archive.",
           required: true,
         },
@@ -166,7 +171,7 @@ class ClubsCommand extends Command {
       options: [
         {
           name: "channel",
-          type: "CHANNEL",
+          type: ApplicationCommandOptionType.Channel,
           description: "The club to unarchive.",
           required: true,
         },
@@ -239,13 +244,13 @@ class ClubsCommand extends Command {
       options: [
         {
           name: "club-name",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           description: "The name of the club.",
           required: true,
         },
         {
           name: "votes-required",
-          type: "INTEGER",
+          type: ApplicationCommandOptionType.Integer,
           description:
             "The votes required for the vote to pass (if different from the server default).",
         },
@@ -459,13 +464,13 @@ const createClubChannel = async (guildId: string, channelName: string) => {
     throw Error("Club parent channel for guild not found.");
   }
 
-  if (parentChannel.type !== "GUILD_TEXT") {
+  if (parentChannel.type !== ChannelType.GuildText) {
     throw Error("Club parent channel must be a text channel.");
   }
 
   const channel = await parentChannel.threads.create({
     name: channelName,
-    autoArchiveDuration: "MAX",
+    autoArchiveDuration: ThreadAutoArchiveDuration.OneWeek,
     reason: `Automatically created thread for club.`,
   });
 
@@ -511,7 +516,7 @@ const findClubChannel = async (club: Club) => {
     throw Error("Club parent channel for guild not found.");
   }
 
-  if (parentChannel.type !== "GUILD_TEXT") {
+  if (parentChannel.type !== ChannelType.GuildText) {
     throw Error("Club parent channel must be a text channel.");
   }
 
@@ -524,10 +529,8 @@ const findClubChannel = async (club: Club) => {
 
     return channel;
   } catch (e) {
-    if (
-      e instanceof DiscordAPIError &&
-      e.code === Constants.APIErrors.UNKNOWN_CHANNEL
-    ) {
+    // 10003 === "Unknown channel"
+    if (e instanceof DiscordAPIError && e.code === 10003) {
       return null;
     }
 
@@ -555,7 +558,7 @@ const buildClubIndexMessage = async (guildId: Snowflake) => {
       `${channelMention(channel.id)} (${channel.memberCount} members)` + "\n";
   }
 
-  const message: Pick<MessageOptions, "content"> = {
+  const message: Pick<MessageCreateOptions, "content"> = {
     content,
   };
 
@@ -574,7 +577,7 @@ const syncClubIndexChannelForGuild = async (guildId: Snowflake) => {
       throw Error("Failed to find club index channel for guild.");
     }
 
-    if (!channel.isText()) {
+    if (channel.type !== ChannelType.GuildText) {
       throw Error("Club index channel must be a text channel.");
     }
 
@@ -584,14 +587,17 @@ const syncClubIndexChannelForGuild = async (guildId: Snowflake) => {
 
     await Promise.all(
       messages
-        .filter((m) => m.type !== "DEFAULT" || m.author.id !== client.user?.id)
+        .filter(
+          (m) =>
+            m.type !== MessageType.Default || m.author.id !== client.user?.id
+        )
         .map((m) => m.delete())
     );
 
     // create or update the index message
 
     const indexMessage = messages.find(
-      (m) => m.type === "DEFAULT" && m.author.id === client.user?.id
+      (m) => m.type === MessageType.Default && m.author.id === client.user?.id
     );
 
     if (!indexMessage) {

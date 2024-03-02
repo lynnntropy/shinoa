@@ -1,12 +1,15 @@
 import {
   ButtonInteraction,
+  ChannelType,
+  ComponentType,
   GuildMember,
   Message,
-  MessageActionRow,
-  MessageButton,
   MessageReaction,
-  MessageSelectMenu,
   Snowflake,
+  StringSelectMenuBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } from "discord.js";
 import client from "../client";
 import config from "../config";
@@ -72,7 +75,7 @@ const initializeMessage = async (
     throw Error(`Channel ID ${config.channelId} not found.`);
   }
 
-  if (!channel.isText()) {
+  if (channel.type !== ChannelType.GuildText) {
     throw Error(
       `Channel ID ${config.channelId} is not a text channel (channel type is ${channel.type}).`
     );
@@ -99,8 +102,8 @@ const initializeMessage = async (
 
   if (config.type === "select") {
     await guild.roles.fetch();
-    const row = new MessageActionRow().addComponents(
-      new MessageSelectMenu()
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      new StringSelectMenuBuilder()
         .setCustomId("shinoa_roles_module_menu")
         .setPlaceholder("Open to show available roles")
         .addOptions(
@@ -334,7 +337,7 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
     return;
   }
 
-  if (!interaction.isSelectMenu()) {
+  if (!interaction.isStringSelectMenu()) {
     return;
   }
 
@@ -374,29 +377,29 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
     throw Error(`Role ID ${option.roleId} not found.`);
   }
 
-  const row = new MessageActionRow();
+  const row = new ActionRowBuilder<ButtonBuilder>();
 
   if (!hasRole) {
     row.addComponents(
-      new MessageButton()
+      new ButtonBuilder()
         .setCustomId("continue")
         .setLabel("Yes, continue")
-        .setStyle("PRIMARY")
+        .setStyle(ButtonStyle.Primary)
     );
   } else {
     row.addComponents(
-      new MessageButton()
+      new ButtonBuilder()
         .setCustomId("continue")
         .setLabel("Yes, continue")
-        .setStyle("DANGER")
+        .setStyle(ButtonStyle.Danger)
     );
   }
 
   row.addComponents(
-    new MessageButton()
+    new ButtonBuilder()
       .setCustomId("cancel")
       .setLabel("Cancel")
-      .setStyle("SECONDARY")
+      .setStyle(ButtonStyle.Secondary)
   );
 
   await interaction.reply({
@@ -417,7 +420,7 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
   try {
     const replyInteraction = await reply.awaitMessageComponent({
       filter,
-      componentType: "BUTTON",
+      componentType: ComponentType.Button,
       time: 300_000, // 5 minutes
     });
 

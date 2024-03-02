@@ -1,11 +1,13 @@
 import {
   GuildChannelResolvable,
   Message,
-  MessageEmbed,
   PermissionResolvable,
   TextChannel,
   Guild,
   Role,
+  ApplicationCommandOptionType,
+  EmbedBuilder,
+  Colors,
 } from "discord.js";
 import client from "../client";
 import config from "../config";
@@ -31,7 +33,7 @@ const defaultChannels = {
 class KeywordsCommand extends Command {
   name = "keywords";
   description = "Configures keywords for this server.";
-  requiredPermissions: PermissionResolvable = ["MANAGE_GUILD"];
+  requiredPermissions: PermissionResolvable = ["ManageGuild"];
 
   subCommands: CommandSubCommand[] = [
     {
@@ -73,7 +75,7 @@ class KeywordsCommand extends Command {
       description: "Adds a keyword.",
       options: [
         {
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           description: "The keyword you want to add.",
           name: "keyword",
           required: true,
@@ -106,7 +108,7 @@ class KeywordsCommand extends Command {
       description: "Removes a keyword.",
       options: [
         {
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           description: "The keyword you want to remove.",
           name: "keyword",
           required: true,
@@ -172,7 +174,8 @@ const handleReady: EventHandler<"ready"> = async () => {
             c.parentId === guildConfig.logging?.categoryId &&
             c.name === channelName
         ) ??
-          (await guild!.channels.create(channelName, {
+          (await guild!.channels.create({
+            name: channelName,
             parent: guildConfig.logging.categoryId,
           }));
       }
@@ -223,11 +226,13 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (
 
   const loggingChannel = getLoggingChannel(newMessage.guildId!, "messages");
 
-  const embed = new MessageEmbed()
-    .setColor("YELLOW")
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Yellow)
     .setTitle(`${buildUsernameString(newMessage.author)} edited their message`)
-    .addField("Before", oldMessage.cleanContent)
-    .addField("After", newMessage.cleanContent)
+    .addFields(
+      { name: "Before", value: oldMessage.cleanContent },
+      { name: "After", value: newMessage.cleanContent }
+    )
     .setURL(newMessage.url);
 
   loggingChannel.send({ embeds: [embed] });
@@ -244,8 +249,8 @@ const handleMessageDelete: EventHandler<"messageDelete"> = async (message) => {
 
   const loggingChannel = getLoggingChannel(message.guildId!, "messages");
 
-  const embed = new MessageEmbed()
-    .setColor("RED")
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Red)
     .setTitle(`${buildUsernameString(message.author)}'s message was deleted`)
     .setDescription(message.cleanContent ?? "(empty message)");
 
@@ -284,16 +289,16 @@ const handleVoiceStateUpdate: EventHandler<"voiceStateUpdate"> = async (
 
   const joined = !!newState.channel;
 
-  const embed = new MessageEmbed().setAuthor(
-    buildUsernameString(newState.member?.user ?? null),
-    newState.member?.user?.avatarURL() ?? undefined
-  );
+  const embed = new EmbedBuilder().setAuthor({
+    name: buildUsernameString(newState.member?.user ?? null),
+    iconURL: newState.member?.user?.avatarURL() ?? undefined,
+  });
 
   if (joined) {
-    embed.setColor("GREEN");
+    embed.setColor(Colors.Green);
     embed.setDescription(`Joined voice channel: **${newState.channel.name}**`);
   } else {
-    embed.setColor("RED");
+    embed.setColor(Colors.Red);
     embed.setDescription(`Left voice channel: **${oldState.channel?.name}**`);
   }
 
@@ -307,12 +312,12 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
 
   const loggingChannel = getLoggingChannel(member.guild.id, "joins");
 
-  const embed = new MessageEmbed()
-    .setColor("GREEN")
-    .setAuthor(
-      buildUsernameString(member.user),
-      member.user?.avatarURL() ?? undefined
-    )
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Green)
+    .setAuthor({
+      name: buildUsernameString(member.user),
+      iconURL: member.user?.avatarURL() ?? undefined,
+    })
     .setDescription(
       `
       Member joined.
@@ -335,12 +340,12 @@ const handleGuildMemberRemove: EventHandler<"guildMemberRemove"> = async (
 
   const loggingChannel = getLoggingChannel(member.guild.id, "joins");
 
-  const embed = new MessageEmbed()
-    .setColor("RED")
-    .setAuthor(
-      buildUsernameString(member.user),
-      member.user?.avatarURL() ?? undefined
-    )
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Red)
+    .setAuthor({
+      name: buildUsernameString(member.user),
+      iconURL: member.user?.avatarURL() ?? undefined,
+    })
     .setDescription(
       `
       Member left.
@@ -454,12 +459,12 @@ const handleGuildMemberUpdate: EventHandler<"guildMemberUpdate"> = async (
 
   embedBody = embedBody.trim();
 
-  const embed = new MessageEmbed()
-    .setColor("BLURPLE")
-    .setAuthor(
-      buildUsernameString(newMember.user),
-      newMember.user?.avatarURL() ?? undefined
-    )
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Blurple)
+    .setAuthor({
+      name: buildUsernameString(newMember.user),
+      iconURL: newMember.user?.avatarURL() ?? undefined,
+    })
     .setTitle("Member updated")
     .setDescription(embedBody);
 
@@ -518,9 +523,12 @@ const handleUserUpdate: EventHandler<"userUpdate"> = async (
 
   embedBody = embedBody.trim();
 
-  const embed = new MessageEmbed()
-    .setColor("BLURPLE")
-    .setAuthor(buildUsernameString(newUser), newUser?.avatarURL() ?? undefined)
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Blurple)
+    .setAuthor({
+      name: buildUsernameString(newUser),
+      iconURL: newUser?.avatarURL() ?? undefined,
+    })
     .setTitle("User updated")
     .setDescription(embedBody);
 
@@ -557,7 +565,7 @@ const handleModerationEvent = async (event: ModerationEvent) => {
 
   const loggingChannel = getLoggingChannel(guild.id, "moderation");
 
-  const embed = new MessageEmbed();
+  const embed = new EmbedBuilder();
 
   if (event.type === ModerationEventType.KICK) {
     embed.setTitle("Kicked");
@@ -584,18 +592,21 @@ const handleModerationEvent = async (event: ModerationEvent) => {
   }
 
   if (event.target) {
-    embed.setAuthor(
-      buildUsernameString(event.target.user),
-      event.target.user?.avatarURL() ?? undefined
-    );
+    embed.setAuthor({
+      name: buildUsernameString(event.target.user),
+      iconURL: event.target.user?.avatarURL() ?? undefined,
+    });
   }
 
   if (event.moderator) {
-    embed.addField("Moderator", buildUsernameString(event.moderator.user));
+    embed.addFields({
+      name: "Moderator",
+      value: buildUsernameString(event.moderator.user),
+    });
   }
 
   if (event.reason) {
-    embed.addField("Reason", event.reason);
+    embed.addFields({ name: "Reason", value: event.reason });
   }
 
   await loggingChannel.send({ embeds: [embed] });
@@ -610,7 +621,7 @@ const handleLogEvent = async (event: LogEvent) => {
 
   const loggingChannel = getLoggingChannel(guild.id, "keywords");
 
-  const embed = new MessageEmbed().setTitle("Event").setDescription(event.note);
+  const embed = new EmbedBuilder().setTitle("Event").setDescription(event.note);
 
   await loggingChannel.send({ embeds: [embed] });
 };
@@ -631,15 +642,15 @@ const checkForKeywords = async (message: Message) => {
     const matches = message.content.match(regex);
 
     if (matches !== null && matches.length > 0) {
-      const embed = new MessageEmbed()
-        .setAuthor(
-          buildUsernameString(message.author),
-          message.author.avatarURL() ?? undefined
-        )
+      const embed = new EmbedBuilder()
+        .setAuthor({
+          name: buildUsernameString(message.author),
+          iconURL: message.author.avatarURL() ?? undefined,
+        })
         .setTitle("Found keyword in message")
         .setURL(message.url)
         .setDescription(message.cleanContent)
-        .addField("Keyword found", keyword);
+        .addFields({ name: "Keyword found", value: keyword });
 
       await loggingChannel.send({ embeds: [embed] });
     }

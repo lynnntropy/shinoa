@@ -6,11 +6,13 @@ import { buildSerializableMessage } from "../utils/structures";
 import * as mime from "mime-types";
 import {
   Snowflake,
-  MessageEmbedOptions,
   GuildMember,
   Message,
   MessageReaction,
   CommandInteraction,
+  ApplicationCommandOptionType,
+  ChannelType,
+  APIEmbed,
 } from "discord.js";
 import logger from "../logger";
 import config from "../config";
@@ -18,6 +20,7 @@ import { Command, CommandSubCommand } from "../internal/command";
 import { Module, SerializableMessage } from "../internal/types";
 import { GraphQLFieldResolver } from "graphql";
 import { buildUsernameString } from "../utils/strings";
+import { Channel } from "diagnostics_channel";
 
 const PREVIOUS_REACTION_EMOJI = "⏮";
 const NEXT_REACTION_EMOJI = "⏭";
@@ -36,7 +39,7 @@ class QuotesCommand extends Command {
         {
           name: "message_id",
           description: "The ID of the message you want to quote.",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           required: true,
         },
       ],
@@ -57,12 +60,12 @@ class QuotesCommand extends Command {
 
         const messageId = interaction.options.data[0].value as string;
 
-        if (!interaction.channel!.isText()) {
+        if (interaction.channel!.type !== ChannelType.GuildText) {
           throw new Error("Command must be called in a text channel.");
         }
 
         const message = buildSerializableMessage(
-          await interaction.channel.messages.fetch(messageId)
+          await interaction.channel!.messages.fetch(messageId)
         );
 
         try {
@@ -104,7 +107,7 @@ class QuotesCommand extends Command {
         {
           name: "quote_number",
           description: "The number of the quote you want to delete.",
-          type: "INTEGER",
+          type: ApplicationCommandOptionType.Integer,
           required: true,
         },
       ],
@@ -136,7 +139,7 @@ class QuotesCommand extends Command {
         {
           name: "quote_number",
           description: "The number of the quote you want to show.",
-          type: "INTEGER",
+          type: ApplicationCommandOptionType.Integer,
           required: true,
         },
       ],
@@ -169,13 +172,13 @@ class QuotesCommand extends Command {
         {
           name: "query",
           description: "The query to search for.",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           required: true,
         },
         {
           name: "user",
           description: "Restrict the search to quotes from a specific user.",
-          type: "USER",
+          type: ApplicationCommandOptionType.User,
         },
       ],
 
@@ -240,13 +243,6 @@ class QuotesCommand extends Command {
 
           const reply = await interaction.fetchReply();
 
-          if (!(reply instanceof Message)) {
-            logger.warn(
-              `Interaction reply ID ${reply.id} wasn't instance of Message.`
-            );
-            return;
-          }
-
           await reply.react(PREVIOUS_REACTION_EMOJI);
           await reply.react(NEXT_REACTION_EMOJI);
 
@@ -286,14 +282,14 @@ class QuotesCommand extends Command {
         {
           name: "user",
           description: "Restricts the command to quotes from a specific user.",
-          type: "USER",
+          type: ApplicationCommandOptionType.User,
         },
       ],
 
       async handle(interaction) {
         let userId: Snowflake | undefined = undefined;
 
-        if (interaction.options) {
+        if (interaction.options.data[0]) {
           userId = interaction.options.data[0].value as string;
         }
 
@@ -360,14 +356,14 @@ const quotesResolver: GraphQLFieldResolver<
 const buildEmbedForQuotedMessage = async (
   message: SerializableMessage,
   quoteId: number
-): Promise<MessageEmbedOptions> => {
-  const embed: MessageEmbedOptions = {
+): Promise<APIEmbed> => {
+  const embed: APIEmbed = {
     author: {
       name: buildUsernameString(message.author),
-      iconURL: `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}`,
+      icon_url: `https://cdn.discordapp.com/avatars/${message.author.id}/${message.author.avatar}`,
     },
     description: message.content,
-    timestamp: new Date(message.createdAt as unknown as string),
+    timestamp: new Date(message.createdAt as unknown as string).toISOString(),
     fields: [],
     footer: { text: `Quote #${quoteId}` },
   };
@@ -379,7 +375,7 @@ const buildEmbedForQuotedMessage = async (
 
     embed.author = {
       name: member.nickname ?? buildUsernameString(member.user),
-      iconURL: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
+      icon_url: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
     };
   } catch (e) {
     logger.debug(`Couldn't fetch a member for user ID ${message.author.id}.`);
@@ -409,7 +405,7 @@ const memberCanManageQuotes = (member: GuildMember) => {
   }
 
   if (
-    member.permissions.has("MANAGE_MESSAGES") ||
+    member.permissions.has("ManageMessages") ||
     member.roles.cache.has(
       config.guilds[member.guild.id]!.quotes!.quoteManagerRoleId!
     )

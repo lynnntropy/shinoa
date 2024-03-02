@@ -1,8 +1,9 @@
 import { userMention } from "@discordjs/builders";
 import {
+  ChannelType,
   Guild,
   GuildMember,
-  MessageOptions,
+  MessageCreateOptions,
   PartialGuildMember,
   Role,
   Snowflake,
@@ -17,11 +18,14 @@ export type GuildJoinLeaveMessagesConfig = {
   enabled: true;
   channelId?: string;
 
-  joinMessageBuilder?: (guild: Guild, member: GuildMember) => MessageOptions;
+  joinMessageBuilder?: (
+    guild: Guild,
+    member: GuildMember
+  ) => MessageCreateOptions;
   leaveMessageBuilder?: (
     guild: Guild,
     member: GuildMember | PartialGuildMember
-  ) => MessageOptions;
+  ) => MessageCreateOptions;
 } & (
   | {
       mode: "default";
@@ -35,7 +39,7 @@ export type GuildJoinLeaveMessagesConfig = {
 const defaultJoinMessageBuilder = (
   guild: Guild,
   member: GuildMember
-): MessageOptions => {
+): MessageCreateOptions => {
   return {
     content: `Welcome to ${guild.name}, ${userMention(member.user.id)}!`,
   };
@@ -44,7 +48,7 @@ const defaultJoinMessageBuilder = (
 const defaultLeaveMessageBuilder = (
   _: Guild,
   member: GuildMember | PartialGuildMember
-): MessageOptions => {
+): MessageCreateOptions => {
   return {
     content: `Bye, ${
       member.user ? buildUsernameString(member.user) : member.displayName
@@ -128,7 +132,7 @@ const sendJoinMessage = async (member: GuildMember) => {
     throw Error(`Configured join/leave message channel not found.`);
   }
 
-  if (!channel.isText()) {
+  if (channel.type !== ChannelType.GuildText) {
     throw Error(`Configured join/leave message channel is not a text channel.`);
   }
 
@@ -154,7 +158,7 @@ const sendLeaveMessage = async (member: GuildMember | PartialGuildMember) => {
     throw Error(`Configured join/leave message channel not found.`);
   }
 
-  if (!channel.isText()) {
+  if (channel.type !== ChannelType.GuildText) {
     throw Error(`Configured join/leave message channel is not a text channel.`);
   }
 

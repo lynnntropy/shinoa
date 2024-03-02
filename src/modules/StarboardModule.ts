@@ -1,8 +1,9 @@
 import {
+  APIEmbed,
+  ChannelType,
   GuildChannel,
   Message,
-  MessageEmbedOptions,
-  MessageOptions,
+  MessageCreateOptions,
   PartialMessage,
   TextChannel,
 } from "discord.js";
@@ -139,7 +140,7 @@ const resolveStarboardChannel = async (
       );
     }
 
-    if (!channel.isText()) {
+    if (channel.type !== ChannelType.GuildText) {
       throw Error(
         `Configured starboard channel ID ${channelId} isn't a text channel.`
       );
@@ -149,7 +150,9 @@ const resolveStarboardChannel = async (
   }
 
   const channel = guild.channels.cache.find(
-    (c) => c.name.toLowerCase().trim() === "starboard" && c.isText()
+    (c) =>
+      c.name.toLowerCase().trim() === "starboard" &&
+      c.type === ChannelType.GuildText
   ) as TextChannel | undefined;
 
   if (!channel) {
@@ -163,7 +166,7 @@ const resolveStarboardChannel = async (
 
 const buildStarboardMessage = async (
   originalMessage: Message
-): Promise<Pick<MessageOptions, "embeds">> => {
+): Promise<Pick<MessageCreateOptions, "embeds">> => {
   if (!originalMessage.guildId) {
     throw Error("Message isn't in a guild.");
   }
@@ -173,13 +176,15 @@ const buildStarboardMessage = async (
     ?.users.fetch();
   const starCount = users?.size ?? 0;
 
-  const embed: MessageEmbedOptions = {
+  const embed: APIEmbed = {
     author: {
       name: buildUsernameString(originalMessage.author),
-      iconURL: `https://cdn.discordapp.com/avatars/${originalMessage.author.id}/${originalMessage.author.avatar}`,
+      icon_url: `https://cdn.discordapp.com/avatars/${originalMessage.author.id}/${originalMessage.author.avatar}`,
     },
     description: originalMessage.content,
-    timestamp: new Date(originalMessage.createdAt as unknown as string),
+    timestamp: new Date(
+      originalMessage.createdAt as unknown as string
+    ).toISOString(),
     fields: [],
     footer: {
       text: `Message sent in #${(originalMessage.channel as TextChannel).name}`,
@@ -193,7 +198,7 @@ const buildStarboardMessage = async (
 
     embed.author = {
       name: member.nickname ?? buildUsernameString(member.user),
-      iconURL: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
+      icon_url: `https://cdn.discordapp.com/avatars/${member.user.id}/${member.user.avatar}`,
     };
   } catch (e) {
     logger.debug(

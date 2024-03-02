@@ -1,5 +1,11 @@
 import { Prisma } from ".prisma/client";
-import { CommandInteraction, GuildMember, TextChannel } from "discord.js";
+import {
+  ApplicationCommandOptionType,
+  ChannelType,
+  CommandInteraction,
+  GuildMember,
+  TextChannel,
+} from "discord.js";
 import { PermissionResolvable } from "discord.js";
 import config from "../../config";
 import { Command, CommandSubCommand } from "../../internal/command";
@@ -10,7 +16,7 @@ import { getGeneralMessageChannelForGuild } from "../../utils/guilds";
 class UsernameCounterAdminCommand extends Command {
   name = "username-counter";
   description = "Configures username counters for this server.";
-  requiredPermissions: PermissionResolvable = ["MANAGE_GUILD"];
+  requiredPermissions: PermissionResolvable = ["ManageGuild"];
 
   subCommands: CommandSubCommand[] = [
     {
@@ -20,7 +26,7 @@ class UsernameCounterAdminCommand extends Command {
         {
           name: "keyword",
           description: "A keyword to look for in usernames.",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           required: true,
         },
       ],
@@ -59,7 +65,7 @@ class UsernameCounterAdminCommand extends Command {
         {
           name: "keyword",
           description: "A keyword to look for in usernames.",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           required: true,
         },
       ],
@@ -167,7 +173,7 @@ const handleAnnounceMemberJoinedEvent = async (member: GuildMember) => {
         throw new Error(`Guild ID ${member.guild.id} has no usable channel!`);
       }
 
-      if (!channel.isText()) {
+      if (channel.type !== ChannelType.GuildText) {
         throw Error(`Resolved channel is not a text channel.`);
       }
 

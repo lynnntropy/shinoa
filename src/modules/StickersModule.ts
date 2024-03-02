@@ -1,7 +1,11 @@
 import { hyperlink } from "@discordjs/builders";
 import { Sticker } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { GuildMember, MessageEmbed, MessageEmbedOptions } from "discord.js";
+import {
+  APIEmbed,
+  ApplicationCommandOptionType,
+  GuildMember,
+} from "discord.js";
 import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
 import { Module } from "../internal/types";
@@ -22,13 +26,13 @@ class StickersCommand extends Command {
         {
           name: "tag",
           description: "The tag you want to use for this sticker.",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           required: true,
         },
         {
           name: "image-url",
           description: "The URL of the image you want to use for this sticker.",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           required: true,
         },
       ],
@@ -112,7 +116,7 @@ class StickersCommand extends Command {
         {
           name: "tag",
           description: "The tag of the sticker you want to remove.",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           required: true,
         },
       ],
@@ -214,7 +218,7 @@ class StickersCommand extends Command {
         {
           name: "tag",
           description: "The tag of the sticker you want to show.",
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           required: true,
         },
       ],
@@ -262,7 +266,7 @@ const memberCanManageStickers = (member: GuildMember) => {
   }
 
   if (
-    member.permissions.has("MANAGE_MESSAGES") ||
+    member.permissions.has("ManageMessages") ||
     (config.guilds[member.guild.id]?.stickers?.stickerManagerRoleId !==
       undefined &&
       member.roles.cache.has(
@@ -280,7 +284,7 @@ const StickersModule: Module = {
   handlers: {},
 };
 
-const buildEmbedForSticker = (sticker: Sticker): MessageEmbedOptions => ({
+const buildEmbedForSticker = (sticker: Sticker): APIEmbed => ({
   title: sticker.tag,
   image: {
     url: sticker.url,

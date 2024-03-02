@@ -19,7 +19,7 @@ import * as Sentry from "@sentry/node";
 import { bold } from "@discordjs/builders";
 import { CronJob } from "cron";
 import amariBot from "../amaribot";
-import { User as AmariUser } from "amaribot.js";
+import { APILeaderboardUser as AmariAPILeaderboardUser } from "amaribot.js";
 
 const logger = appLogger.child({ module: "RolesModule" });
 
@@ -153,20 +153,20 @@ const refreshStickyLevelRolesForGuild = async (guildId: string) => {
 
   const guild = await client.guilds.fetch(guildId);
 
-  const amariUsers: AmariUser[] = [];
+  const amariUsers: AmariAPILeaderboardUser[] = [];
 
   let page = 1;
 
   while (true) {
-    const leaderboard = await amariBot.getGuildLeaderboard(guildId, { page });
+    const leaderboard = await amariBot.getLeaderboard(guildId, { page });
     amariUsers.push(...leaderboard.data);
 
     logger.debug(
       { guildId },
-      `Fetched ${amariUsers.length} of ${leaderboard.totalCount} AmariBot users.`
+      `Fetched ${amariUsers.length} of ${leaderboard.total_count} AmariBot users.`
     );
 
-    if (amariUsers.length >= leaderboard.totalCount) {
+    if (amariUsers.length >= leaderboard.total_count) {
       break;
     }
 

@@ -38,7 +38,7 @@
     "@types/mime-types": "^2.1.0",
     "@types/natural": "^5.1.0",
     "@types/node": "^18",
-    "nodemon": "^2.0.7",
+    "nodemon": "^3.1.0",
     "prisma": "3",
     "ts-node": "^10.4.0",
     "typescript": "^5.3.3"

@@ -18,7 +18,6 @@ import logger from "../logger";
 import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
 import { Module, SerializableMessage } from "../internal/types";
-import { GraphQLFieldResolver } from "graphql";
 import { buildUsernameString } from "../utils/strings";
 import { Channel } from "diagnostics_channel";
 
@@ -335,24 +334,6 @@ class QuotesCommand extends Command {
   }
 }
 
-const quotesResolver: GraphQLFieldResolver<
-  any,
-  any,
-  { searchInput: { guildId: string; query?: string; userId?: string } }
-> = async (_, args) => {
-  const { searchInput } = args;
-
-  const results = await searchQuotes({
-    returnAll: true,
-    guildId: searchInput.guildId,
-    query: searchInput.query,
-    userId: searchInput.userId,
-    fetchMembers: true,
-  });
-
-  return results;
-};
-
 const buildEmbedForQuotedMessage = async (
   message: SerializableMessage,
   quoteId: number
@@ -531,11 +512,6 @@ const searchQuotes = async (input: SearchInput) => {
 const QuotesModule: Module = {
   commands: [new QuotesCommand()],
   handlers: {},
-  resolvers: {
-    Query: {
-      quotes: quotesResolver,
-    },
-  },
 };
 
 export default QuotesModule;

@@ -1,6 +1,5 @@
 import { CronJob } from "cron";
 import { ClientEvents, Snowflake } from "discord.js";
-import { IResolvers } from "@graphql-tools/utils";
 import { AppEventHandler } from "../emitter";
 import { Command } from "./command";
 
@@ -15,7 +14,6 @@ export interface HandlerCollection {
 export interface Module {
   commands: Command[];
   handlers: HandlerCollection;
-  resolvers?: IResolvers;
   appEventHandlers?: AppEventHandler[];
   cronJobs?: CronJob[];
 }

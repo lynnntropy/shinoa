@@ -1,5 +1,5 @@
 import { userMention } from "@discordjs/builders";
-import { add, formatDuration } from "date-fns";
+import { Duration, add, formatDuration } from "date-fns";
 import {
   CommandInteraction,
   DiscordAPIError,

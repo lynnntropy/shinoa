@@ -17,7 +17,7 @@
     "apollo-server": "^3.5.0",
     "axios": "^1.6.7",
     "cron": "^3.1.6",
-    "date-fns": "^2.21.1",
+    "date-fns": "^3.3.1",
     "deep-object-diff": "^1.1.0",
     "discord.js": "^14.14.1",
     "form-data": "^4.0.0",

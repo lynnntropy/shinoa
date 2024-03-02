@@ -23,7 +23,7 @@ import emitter, { ModerationEventType } from "../emitter";
 import { Command } from "../internal/command";
 import { EventHandler, Module } from "../internal/types";
 import parseDuration from "parse-duration";
-import { intervalToDuration } from "date-fns";
+import { intervalToDuration, Duration } from "date-fns";
 import { bold, userMention } from "@discordjs/builders";
 import { CronJob } from "cron";
 import { getGeneralMessageChannelForGuild } from "../utils/guilds";

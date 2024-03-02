@@ -29,7 +29,7 @@
     "natural": "^6.10.5",
     "parse-duration": "^1.0.1",
     "pino": "^8.0.0",
-    "pino-pretty": "^8.0.0",
+    "pino-pretty": "^10.3.1",
     "tiny-typed-emitter": "^2.1.0"
   },
   "devDependencies": {

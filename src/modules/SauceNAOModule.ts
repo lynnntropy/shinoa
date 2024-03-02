@@ -1,11 +1,13 @@
 import axios from "axios";
 import {
   ApplicationCommandOptionData,
-  CommandInteraction,
-  MessageEmbed,
+  ApplicationCommandOptionType,
+  ChatInputCommandInteraction,
+  Colors,
 } from "discord.js";
 import { Command } from "../internal/command";
 import { Module } from "../internal/types";
+import { EmbedBuilder } from "@discordjs/builders";
 
 class SauceNAOCommand extends Command {
   name = "saucenao";
@@ -15,11 +17,11 @@ class SauceNAOCommand extends Command {
       name: "image-url",
       description:
         "The image URL to search. If omitted, will use the last image posted in the channel.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     let imageUrl = interaction.options.getString("image-url");
 
     if (imageUrl === null) {
@@ -53,33 +55,33 @@ class SauceNAOCommand extends Command {
         continue;
       }
 
-      const embed = new MessageEmbed()
-        .setColor("GREEN")
+      const embed = new EmbedBuilder()
+        .setColor(Colors.Green)
         .setThumbnail(result.header.thumbnail)
         .setTitle(result.data.title ?? "[no title]")
         .setURL(result.data.ext_urls[0])
-        .setFooter(result.header.index_name);
+        .setFooter({ text: result.header.index_name });
 
       if (result.data.author_url) {
-        embed.addField(
-          "Author",
-          `[${result.data.author_name}](${result.data.author_url})`
-        );
+        embed.addFields({
+          name: "Author",
+          value: `[${result.data.author_name}](${result.data.author_url})`,
+        });
       }
 
       if (result.data.member_id) {
-        embed.addField(
-          "Author",
-          `[${result.data.member_name}](https://www.pixiv.net/en/users/${result.data.member_id})`
-        );
+        embed.addFields({
+          name: "Author",
+          value: `[${result.data.member_name}](https://www.pixiv.net/en/users/${result.data.member_id})`,
+        });
       }
 
       await interaction.reply({ embeds: [embed] });
       return;
     }
 
-    const embed = new MessageEmbed()
-      .setColor("GREY")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Grey)
       .setDescription("No match found.");
 
     await interaction.reply({ embeds: [embed] });

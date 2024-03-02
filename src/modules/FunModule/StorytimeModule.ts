@@ -4,6 +4,7 @@ import {
   Snowflake,
   TextChannel,
   Collection,
+  ChannelType,
 } from "discord.js";
 import client from "../../client";
 import { Command, CommandSubCommand } from "../../internal/command";
@@ -17,7 +18,7 @@ const EXPORT_BATCH_SIZE = 100;
 class StorytimeCommand extends Command {
   name = "storytime";
   description = "Storytime mode management commands.";
-  requiredPermissions: PermissionResolvable = ["MANAGE_CHANNELS"];
+  requiredPermissions: PermissionResolvable = ["ManageChannels"];
   subCommands: CommandSubCommand[] = [
     {
       name: "enable",
@@ -81,7 +82,7 @@ const handleMessage: EventHandler<"messageCreate"> = async (
 
   const channel = client.channels.cache.get(message.channel.id);
 
-  if (!channel!.isText()) {
+  if (channel!.type !== ChannelType.GuildText) {
     logger.warn(
       `Storytime mode is enabled for non-text channel ID ${message.channel.id}.`
     );
@@ -103,7 +104,7 @@ const handleMessageUpdate: EventHandler<"messageUpdate"> = async (message) => {
 
   const channel = client.channels.cache.get(message.channel.id);
 
-  if (!channel!.isText()) {
+  if (channel!.type !== ChannelType.GuildText) {
     logger.warn(
       `Storytime mode is enabled for non-text channel ID ${message.channel.id}.`
     );

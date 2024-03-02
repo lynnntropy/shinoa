@@ -1,4 +1,4 @@
-import { Message } from "discord.js";
+import { ChannelType, Message } from "discord.js";
 import client from "../../client";
 import environment from "../../environment";
 import { EventHandler, Module } from "../../internal/types";
@@ -12,7 +12,7 @@ const handleMessage: EventHandler<"messageCreate"> = async (
     return;
   }
 
-  if (!message.channel.isText()) {
+  if (message.channel.type !== ChannelType.GuildText) {
     return;
   }
 

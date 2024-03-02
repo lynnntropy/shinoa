@@ -8,6 +8,7 @@ import { Command } from "../../internal/command";
 import * as Sentry from "@sentry/node";
 import { Context } from "@sentry/types";
 import UserReadableError from "../../internal/errors/UserReadableError";
+import { commandMatchesRegisteredCommand } from "../../discord/utils";
 
 const handleFoundCommand = async (
   interaction: CommandInteraction,
@@ -26,6 +27,10 @@ const handleFoundCommand = async (
     Sentry.captureException(e, sentryScope);
     logger.warn(e);
 
+    return;
+  }
+
+  if (!interaction.isChatInputCommand()) {
     return;
   }
 
@@ -51,7 +56,9 @@ const handleFoundCommand = async (
   }
 };
 
-const handleInteraction: EventHandler<"interaction"> = async (interaction) => {
+const handleInteraction: EventHandler<"interactionCreate"> = async (
+  interaction
+) => {
   logger.trace(interaction);
   if (!interaction.isCommand()) {
     return;

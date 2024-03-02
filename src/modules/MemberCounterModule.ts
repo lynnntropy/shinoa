@@ -34,7 +34,7 @@ const updateMemberCount = async (guild: Guild) => {
   const guildConfig = config.guilds[guild.id]?.memberCounter!;
   const channel = await client.channels.fetch(guildConfig.channelId);
 
-  if (!channel?.isVoice()) {
+  if (!channel?.isVoiceBased()) {
     logger.error(
       { channel },
       `Channel configured for guild ID ${guild.id} is not a voice channel.`

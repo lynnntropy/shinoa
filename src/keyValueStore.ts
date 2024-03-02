@@ -24,7 +24,7 @@ export const updateKeyValueItem = async <T>(
 
   await prisma.keyValueItem.upsert({
     where: { key },
-    update: { value: updated },
-    create: { key, value: updated },
+    update: { value: updated as any },
+    create: { key, value: updated as any },
   });
 };

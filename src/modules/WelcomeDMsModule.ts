@@ -1,10 +1,10 @@
-import { Guild, GuildMember, MessageOptions } from "discord.js";
+import { Guild, GuildMember, MessageCreateOptions } from "discord.js";
 import config from "../config";
 import { EventHandler, Module } from "../internal/types";
 
 export type GuildWelcomeDMsConfig = {
   enabled: true;
-  messageBuilder: (guild: Guild, member: GuildMember) => MessageOptions;
+  messageBuilder: (guild: Guild, member: GuildMember) => MessageCreateOptions;
 };
 
 const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {

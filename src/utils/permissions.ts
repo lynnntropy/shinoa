@@ -1,7 +1,8 @@
 import {
+  ChannelType,
   CommandInteraction,
   PermissionResolvable,
-  Permissions,
+  PermissionsBitField,
 } from "discord.js";
 import config from "../config";
 import { Command } from "../internal/command";
@@ -28,13 +29,16 @@ export const validateInteractionIsAllowed = async (
 
   if (
     command.requiredPermissions &&
-    new Permissions(Permissions.resolve(command.requiredPermissions)).toArray()
-      .length > 0
+    new PermissionsBitField(
+      PermissionsBitField.resolve(command.requiredPermissions)
+    ).toArray().length > 0
   ) {
     if (
-      !["GUILD_TEXT", "GUILD_PUBLIC_THREAD", "GUILD_PRIVATE_THREAD"].includes(
-        interaction.channel!.type
-      )
+      ![
+        ChannelType.GuildText,
+        ChannelType.PublicThread,
+        ChannelType.PrivateThread,
+      ].includes(interaction.channel!.type)
     ) {
       await interaction.reply({
         content: "That command can only be used in a server.",
@@ -67,7 +71,7 @@ export const validateInteractionIsAllowed = async (
 };
 
 const formatPermissions = (permissions: PermissionResolvable) => {
-  return new Permissions(permissions)
+  return new PermissionsBitField(permissions)
     .toArray()
     .map((x) => `\`${x}\``)
     .join(", ");

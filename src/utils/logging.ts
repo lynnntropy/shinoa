@@ -1,4 +1,5 @@
 import {
+  ChannelType,
   CommandInteraction,
   DMChannel,
   Message,
@@ -27,7 +28,7 @@ export const logInteraction = async (interaction: CommandInteraction) => {
     return;
   }
 
-  if (interaction.channel && interaction.channel.type === "DM") {
+  if (interaction.channel && interaction.channel.type === ChannelType.DM) {
     logger.info(
       `Command /${interaction.commandName} used by ` +
         `${buildUsernameString(interaction.user)} ` +
@@ -45,7 +46,7 @@ export const logMessage = async (message: Message | PartialMessage) => {
 
   logger.trace(message);
 
-  if (message.channel.type === "GUILD_TEXT") {
+  if (message.channel.type === ChannelType.GuildText) {
     const channel = message.channel as TextChannel | NewsChannel;
     const guild = (channel as TextChannel).guild;
 
@@ -62,7 +63,7 @@ export const logMessage = async (message: Message | PartialMessage) => {
     return;
   }
 
-  if (message.channel.type === "DM") {
+  if (message.channel.type === ChannelType.DM) {
     const channel = message.channel as DMChannel;
 
     logger.debug(

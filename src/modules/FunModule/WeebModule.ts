@@ -1,9 +1,10 @@
 import { userMention } from "@discordjs/builders";
 import {
   ApplicationCommandOptionData,
+  ApplicationCommandOptionType,
   CommandInteraction,
+  EmbedBuilder,
   GuildMember,
-  MessageEmbed,
 } from "discord.js";
 import { Command } from "../../internal/command";
 import { Module } from "../../internal/types";
@@ -108,14 +109,14 @@ const commands: Command[] = commandMappings.map((mapping) => {
       {
         name: "user",
         description: `A person you want to ${mapping.name}.`,
-        type: "USER",
+        type: ApplicationCommandOptionType.User,
       },
     ];
 
     async handle(interaction: CommandInteraction) {
       const user = interaction.options.getMember("user") as GuildMember | null;
 
-      const embed = new MessageEmbed();
+      const embed = new EmbedBuilder();
 
       if (user) {
         embed.setTitle(

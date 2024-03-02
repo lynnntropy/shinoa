@@ -1,17 +1,22 @@
 import {
   ApplicationCommandOptionData,
-  CommandInteraction,
   Guild,
   GuildMember,
-  MessageEmbed,
   PermissionResolvable,
   Role,
-  Permissions,
-  MessageActionRow,
-  MessageButton,
   ButtonInteraction,
   Message,
   Snowflake,
+  ApplicationCommandOptionType,
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  Colors,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelType,
+  PermissionFlagsBits,
+  ComponentType,
 } from "discord.js";
 import config from "../config";
 import emitter, { ModerationEventType } from "../emitter";
@@ -31,22 +36,22 @@ import { buildUsernameString } from "../utils/strings";
 class KickCommand extends Command {
   name = "kick";
   description = "Kick a user.";
-  requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["KickMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user",
       description: "The user you want to kick.",
-      type: "USER",
+      type: ApplicationCommandOptionType.User,
       required: true,
     },
     {
       name: "reason",
       description: "The reason for the kick.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -55,8 +60,16 @@ class KickCommand extends Command {
       return;
     }
 
-    const member = interaction.options.getMember("user", true) as GuildMember;
+    const member = interaction.options.getMember("user") as GuildMember | null;
     const reason = interaction.options.getString("reason");
+
+    if (!member) {
+      await interaction.reply({
+        content: "User not found.",
+        ephemeral: true,
+      });
+      return;
+    }
 
     await member.kick(reason ?? undefined);
 
@@ -68,14 +81,14 @@ class KickCommand extends Command {
       reason: reason ?? undefined,
     });
 
-    const embed = new MessageEmbed()
-      .setColor("RED")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Red)
       .setDescription(
         `${bold(buildUsernameString(member.user))} has been kicked.`
       );
 
     if (reason) {
-      embed.addField("Reason", reason);
+      embed.addFields({ name: "Reason", value: reason });
     }
 
     await interaction.reply({ embeds: [embed] });
@@ -85,28 +98,28 @@ class KickCommand extends Command {
 class BanCommand extends Command {
   name = "ban";
   description = "Ban a user.";
-  requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["BanMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user",
       description: "The user you want to ban.",
-      type: "USER",
+      type: ApplicationCommandOptionType.User,
       required: true,
     },
     {
       name: "purge",
       description:
         "Turning this on will purge the last 7 days of messages from this user.",
-      type: "BOOLEAN",
+      type: ApplicationCommandOptionType.Boolean,
     },
     {
       name: "reason",
       description: "The reason for the ban.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -115,13 +128,21 @@ class BanCommand extends Command {
       return;
     }
 
-    const member = interaction.options.getMember("user", true) as GuildMember;
+    const member = interaction.options.getMember("user") as GuildMember | null;
     const purge = interaction.options.getBoolean("purge") ?? false;
     const reason = interaction.options.getString("reason");
 
+    if (!member) {
+      await interaction.reply({
+        content: "User not found.",
+        ephemeral: true,
+      });
+      return;
+    }
+
     await member.ban({
       reason: reason ?? undefined,
-      days: purge ? 7 : undefined,
+      deleteMessageSeconds: purge ? 7 * 24 * 60 * 60 : undefined,
     });
 
     emitter.emit("moderationEvent", {
@@ -132,14 +153,14 @@ class BanCommand extends Command {
       reason: reason ?? undefined,
     });
 
-    const embed = new MessageEmbed()
-      .setColor("RED")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Red)
       .setDescription(
         `${bold(buildUsernameString(member.user))} has been banned.`
       );
 
     if (reason) {
-      embed.addField("Reason", reason);
+      embed.addFields({ name: "Reason", value: reason });
     }
 
     await interaction.reply({ embeds: [embed] });
@@ -149,22 +170,22 @@ class BanCommand extends Command {
 class UnbanCommand extends Command {
   name = "unban";
   description = "Unban a user by ID.";
-  requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["BanMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user-id",
       description: "The ID of the user you want to unban.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
       required: true,
     },
     {
       name: "reason",
       description: "The reason for the unban.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -186,12 +207,12 @@ class UnbanCommand extends Command {
       reason: reason ?? undefined,
     });
 
-    const embed = new MessageEmbed()
-      .setColor("GREEN")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Green)
       .setDescription(`User ID ${userId} has been unbanned.`);
 
     if (reason) {
-      embed.addField("Reason", reason);
+      embed.addFields({ name: "Reason", value: reason });
     }
 
     await interaction.reply({ embeds: [embed] });
@@ -201,30 +222,38 @@ class UnbanCommand extends Command {
 class MuteCommand extends Command {
   name = "mute";
   description = "Mutes a user.";
-  requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["KickMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user",
       description: "The user you want to mute.",
-      type: "USER",
+      type: ApplicationCommandOptionType.User,
       required: true,
     },
     {
       name: "reason",
       description: "The reason for the mute.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
     {
       name: "duration",
       description: `The duration of the mute (e.g. "1hr 20m").`,
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
-    const member = interaction.options.getMember("user", true) as GuildMember;
+  async handle(interaction: ChatInputCommandInteraction) {
+    const member = interaction.options.getMember("user") as GuildMember | null;
     const reason = interaction.options.getString("reason");
     const durationInput = interaction.options.getString("duration");
+
+    if (!member) {
+      await interaction.reply({
+        content: "User not found.",
+        ephemeral: true,
+      });
+      return;
+    }
 
     let duration: Duration | undefined = undefined;
 
@@ -247,24 +276,32 @@ class MuteCommand extends Command {
 class UnmuteCommand extends Command {
   name = "unmute";
   description = "Unmutes a user.";
-  requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["KickMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user",
       description: "The user you want to unmute.",
-      type: "USER",
+      type: ApplicationCommandOptionType.User,
       required: true,
     },
     {
       name: "reason",
       description: "The reason for the unmute.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
-    const member = interaction.options.getMember("user", true) as GuildMember;
+  async handle(interaction: ChatInputCommandInteraction) {
+    const member = interaction.options.getMember("user") as GuildMember | null;
     const reason = interaction.options.getString("reason");
+
+    if (!member) {
+      await interaction.reply({
+        content: "User not found.",
+        ephemeral: true,
+      });
+      return;
+    }
 
     await unmute({
       guild: interaction.guild!,
@@ -279,23 +316,23 @@ class UnmuteCommand extends Command {
 class BlacklistCommand extends Command {
   name = "blacklist";
   description = "Blacklists a user ID (or a list of IDs).";
-  requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["BanMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user-ids",
       description:
         "The ID (or list of IDs) of the user(s) you want to blacklist.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
       required: true,
     },
     {
       name: "reason",
       description: "The reason for the blacklist.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -358,8 +395,8 @@ class BlacklistCommand extends Command {
       }
     );
 
-    const embed = new MessageEmbed()
-      .setColor("RED")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Red)
       .setDescription(
         `${bold(
           validatedIds.length.toString(10)
@@ -367,14 +404,14 @@ class BlacklistCommand extends Command {
       );
 
     if (exceptions.length > 0) {
-      embed.addField(
-        "Skipped IDs",
-        exceptions.map((e) => `- ${e}`).join(`  \n`)
-      );
+      embed.addFields({
+        name: "Skipped IDs",
+        value: exceptions.map((e) => `- ${e}`).join(`  \n`),
+      });
     }
 
     if (reason) {
-      embed.addField("Reason", reason);
+      embed.addFields({ name: "Reason", value: reason });
     }
 
     for (const userId of validatedIds) {
@@ -396,22 +433,22 @@ class BlacklistCommand extends Command {
 class UnblacklistCommand extends Command {
   name = "unblacklist";
   description = "Removes a user ID from the blacklist.";
-  requiredPermissions: PermissionResolvable = ["BAN_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["BanMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user-id",
       description: "The ID of the user you want to unblacklist.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
       required: true,
     },
     {
       name: "reason",
       description: "The reason for the unblacklist.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -452,12 +489,12 @@ class UnblacklistCommand extends Command {
       }
     );
 
-    const embed = new MessageEmbed()
-      .setColor("GREEN")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Green)
       .setDescription(`User ID ${userId} has been unblacklisted.`);
 
     if (reason) {
-      embed.addField("Reason", reason);
+      embed.addFields({ name: "Reason", value: reason });
     }
 
     emitter.emit("moderationEvent", {
@@ -478,9 +515,9 @@ class LockChannelCommand extends Command {
   name = "lock-channel";
   description =
     "Locks the current channel so that only people with elevated permissions can talk in it.";
-  requiredPermissions: PermissionResolvable = ["MANAGE_CHANNELS"];
+  requiredPermissions: PermissionResolvable = ["ManageChannels"];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -493,7 +530,7 @@ class LockChannelCommand extends Command {
       throw Error("`interaction.channel` can't be null for this command.");
     }
 
-    if (interaction.channel.type !== "GUILD_TEXT") {
+    if (interaction.channel.type !== ChannelType.GuildText) {
       await interaction.reply({
         content: `This type of channel (\`${interaction.channel.type}\`) can't be locked.`,
         ephemeral: true,
@@ -505,17 +542,17 @@ class LockChannelCommand extends Command {
     const roles = await interaction.guild.roles.fetch();
 
     for (const [_, role] of roles) {
-      if (channel.permissionsFor(role).has(Permissions.FLAGS.SEND_MESSAGES)) {
+      if (channel.permissionsFor(role).has(PermissionFlagsBits.SendMessages)) {
         await channel.permissionOverwrites.create(role, {
-          SEND_MESSAGES: role.permissions.has(
-            Permissions.FLAGS.MANAGE_CHANNELS
+          SendMessages: role.permissions.has(
+            PermissionFlagsBits.ManageChannels
           ),
         });
       }
     }
 
-    const embed = new MessageEmbed()
-      .setColor("RED")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Red)
       .setDescription(
         `The channel has been locked.\n\nSending messages has been restricted to members with the **Manage Channels** permission.`
       );
@@ -529,9 +566,9 @@ class LockChannelCommand extends Command {
 class UnlockChannelCommand extends Command {
   name = "unlock-channel";
   description = "Unlocks a previously locked channel.";
-  requiredPermissions: PermissionResolvable = ["MANAGE_CHANNELS"];
+  requiredPermissions: PermissionResolvable = ["ManageChannels"];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -544,7 +581,7 @@ class UnlockChannelCommand extends Command {
       throw Error("`interaction.channel` can't be null for this command.");
     }
 
-    if (interaction.channel.type !== "GUILD_TEXT") {
+    if (interaction.channel.type !== ChannelType.GuildText) {
       await interaction.reply({
         content: `This type of channel (\`${interaction.channel.type}\`) can't be locked.`,
         ephemeral: true,
@@ -557,15 +594,15 @@ class UnlockChannelCommand extends Command {
 
     for (const [_, role] of roles) {
       if (
-        role.permissions.has(Permissions.FLAGS.SEND_MESSAGES) &&
-        !channel.permissionsFor(role).has(Permissions.FLAGS.SEND_MESSAGES)
+        role.permissions.has(PermissionFlagsBits.SendMessages) &&
+        !channel.permissionsFor(role).has(PermissionFlagsBits.SendMessages)
       ) {
         await channel.permissionOverwrites.delete(role);
       }
     }
 
-    const embed = new MessageEmbed()
-      .setColor("GREEN")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Green)
       .setDescription(`The channel has been unlocked.`);
 
     await interaction.reply({
@@ -578,22 +615,22 @@ class DungeonCommand extends Command {
   name = "dungeon";
   description =
     "Throws a user into the dungeon (restricts them to a dungeon channel).";
-  requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["KickMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user",
       description: "The user you want to dungeon.",
-      type: "USER",
+      type: ApplicationCommandOptionType.User,
       required: true,
     },
     {
       name: "reason",
-      description: "The reason for the unmute.",
-      type: "STRING",
+      description: "The reason for the dungeon.",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -603,8 +640,16 @@ class DungeonCommand extends Command {
     }
 
     const role = (await getDungeonRoleForGuild(interaction.guild)) as Role;
-    const member = interaction.options.getMember("user", true) as GuildMember;
+    const member = interaction.options.getMember("user") as GuildMember | null;
     const reason = interaction.options.getString("reason");
+
+    if (!member) {
+      await interaction.reply({
+        content: "User not found.",
+        ephemeral: true,
+      });
+      return;
+    }
 
     if (member.roles.cache.has(role.id)) {
       await interaction.reply({
@@ -616,15 +661,15 @@ class DungeonCommand extends Command {
 
     await member.roles.add(role, reason ?? undefined);
 
-    const embed = new MessageEmbed()
-      .setColor("RED")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Red)
       .setDescription(
         `${userMention(member.user.id)} has been thrown into the dungeon.`
       )
       .setImage("https://i.ibb.co/xzVTSXC/ezgif-com-optimize-2.gif");
 
     if (reason) {
-      embed.addField("Reason", reason);
+      embed.addFields({ name: "Reason", value: reason });
     }
 
     emitter.emit("moderationEvent", {
@@ -644,22 +689,22 @@ class DungeonCommand extends Command {
 class UndungeonCommand extends Command {
   name = "undungeon";
   description = "Releases a user from the dungeon.";
-  requiredPermissions: PermissionResolvable = ["KICK_MEMBERS"];
+  requiredPermissions: PermissionResolvable = ["KickMembers"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "user",
-      description: "The user you want to dungeon.",
-      type: "USER",
+      description: "The user you want to undungeon.",
+      type: ApplicationCommandOptionType.User,
       required: true,
     },
     {
       name: "reason",
-      description: "The reason for the unmute.",
-      type: "STRING",
+      description: "The reason for the undungeon.",
+      type: ApplicationCommandOptionType.String,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     if (interaction.guild === null) {
       await interaction.reply({
         content: "This command can only be called inside a server.",
@@ -669,8 +714,16 @@ class UndungeonCommand extends Command {
     }
 
     const role = (await getDungeonRoleForGuild(interaction.guild)) as Role;
-    const member = interaction.options.getMember("user", true) as GuildMember;
+    const member = interaction.options.getMember("user") as GuildMember | null;
     const reason = interaction.options.getString("reason");
+
+    if (!member) {
+      await interaction.reply({
+        content: "User not found.",
+        ephemeral: true,
+      });
+      return;
+    }
 
     if (!member.roles.cache.has(role.id)) {
       await interaction.reply({
@@ -682,14 +735,14 @@ class UndungeonCommand extends Command {
 
     await member.roles.remove(role, reason ?? undefined);
 
-    const embed = new MessageEmbed()
-      .setColor("GREEN")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Green)
       .setDescription(
         `${userMention(member.user.id)} has been released from the dungeon.`
       );
 
     if (reason) {
-      embed.addField("Reason", reason);
+      embed.addFields({ name: "Reason", value: reason });
     }
 
     emitter.emit("moderationEvent", {
@@ -709,18 +762,18 @@ class UndungeonCommand extends Command {
 class ClearRolesCommand extends Command {
   name = "clear-roles";
   description = "Removes roles that match a given pattern from all members.";
-  requiredPermissions: PermissionResolvable = ["MANAGE_ROLES"];
+  requiredPermissions: PermissionResolvable = ["ManageRoles"];
   options: ApplicationCommandOptionData[] = [
     {
       name: "pattern",
       description:
         "A regular expression describing the roles that should be cleared.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
       required: true,
     },
   ];
 
-  async handle(interaction: CommandInteraction) {
+  async handle(interaction: ChatInputCommandInteraction) {
     let pattern: RegExp;
 
     try {
@@ -745,15 +798,15 @@ class ClearRolesCommand extends Command {
       return;
     }
 
-    const row = new MessageActionRow().addComponents(
-      new MessageButton()
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
         .setCustomId("continue")
         .setLabel("Yes, continue")
-        .setStyle("DANGER"),
-      new MessageButton()
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
         .setCustomId("cancel")
         .setLabel("Cancel")
-        .setStyle("SECONDARY")
+        .setStyle(ButtonStyle.Secondary)
     );
 
     await interaction.reply({
@@ -771,7 +824,7 @@ class ClearRolesCommand extends Command {
     try {
       const replyInteraction = await reply.awaitMessageComponent({
         filter,
-        componentType: "BUTTON",
+        componentType: ComponentType.Button,
         time: 300_000, // 5 minutes
       });
 
@@ -836,12 +889,12 @@ const handleGuildMemberAdd: EventHandler<"guildMemberAdd"> = async (member) => {
       reason,
     });
 
-    const embed = new MessageEmbed()
-      .setColor("RED")
+    const embed = new EmbedBuilder()
+      .setColor(Colors.Red)
       .setDescription(
         `${bold(buildUsernameString(member.user))} has been banned.`
       )
-      .addField("Reason", reason);
+      .addFields({ name: "Reason", value: reason });
 
     const channel = await getGeneralMessageChannelForGuild(member.guild);
     await channel.send({ embeds: [embed] });

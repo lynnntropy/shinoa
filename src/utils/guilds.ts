@@ -1,4 +1,4 @@
-import { Guild, TextChannel } from "discord.js";
+import { ChannelType, Guild, TextChannel } from "discord.js";
 import config from "../config";
 
 export const getGeneralMessageChannelForGuild = async (
@@ -15,7 +15,7 @@ export const getGeneralMessageChannelForGuild = async (
       );
     }
 
-    if (!channel.isText()) {
+    if (channel.type !== ChannelType.GuildText) {
       throw Error(
         `Configured general message channel ID ${channelId} isn't a text channel.`
       );
@@ -26,7 +26,9 @@ export const getGeneralMessageChannelForGuild = async (
 
   return (
     (guild.channels.cache.find(
-      (c) => c.name.toLowerCase().trim() === "general" && c.isText()
+      (c) =>
+        c.name.toLowerCase().trim() === "general" &&
+        c.type === ChannelType.GuildText
     ) as TextChannel) ?? guild.systemChannel
   );
 };

@@ -2,12 +2,12 @@ import { userMention } from "@discordjs/builders";
 import { add, formatDuration } from "date-fns";
 import {
   CommandInteraction,
-  Constants,
   DiscordAPIError,
   Guild,
   GuildMember,
-  MessageEmbed,
+  EmbedBuilder,
   Role,
+  Colors,
 } from "discord.js";
 import client from "./client";
 import config from "./config";
@@ -63,19 +63,22 @@ export const mute = async (options: MuteOptions) => {
     reason: options.reason,
   });
 
-  const embed = new MessageEmbed()
-    .setColor("RED")
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Red)
     .setDescription(`${userMention(member.user.id)} has been muted.`)
     .setImage("https://i.ibb.co/74J5ZWs/image0.png");
 
   if (options.duration) {
-    embed.addField("Duration", formatDuration(options.duration));
+    embed.addFields({
+      name: "Duration",
+      value: formatDuration(options.duration),
+    });
   } else {
-    embed.addField("Duration", "indefinite");
+    embed.addFields({ name: "Duration", value: "indefinite" });
   }
 
   if (options.reason) {
-    embed.addField("Reason", options.reason);
+    embed.addFields({ name: "Reason", value: options.reason });
   }
   if (options.interaction) {
     await options.interaction.reply({
@@ -109,12 +112,12 @@ export const unmute = async (options: UnmuteOptions) => {
     reason: options.reason,
   });
 
-  const embed = new MessageEmbed()
-    .setColor("GREEN")
+  const embed = new EmbedBuilder()
+    .setColor(Colors.Green)
     .setDescription(`${userMention(member.user.id)} has been unmuted.`);
 
   if (options.reason) {
-    embed.addField("Reason", options.reason);
+    embed.addFields({ name: "Reason", value: options.reason });
   }
 
   if (options.interaction) {
@@ -144,7 +147,9 @@ export const clearExpiredMutes = async () => {
       });
     } catch (e) {
       if (e instanceof DiscordAPIError) {
-        if (e.code === Constants.APIErrors.UNKNOWN_MEMBER) {
+        // TODO: Does Discord.js really just not have constants we can check this code against anymore...?
+        // 10007 === "Unknown member"
+        if (e.code === 10007) {
           logger.warn(
             `Mute ID ${mute.id} references unknown member ID ${mute.memberId}. This mute will be pruned.`
           );

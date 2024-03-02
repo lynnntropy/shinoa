@@ -1,4 +1,9 @@
-import { ApplicationCommandOptionData, CommandInteraction } from "discord.js";
+import {
+  ApplicationCommandOptionData,
+  ApplicationCommandOptionType,
+  ChannelType,
+  CommandInteraction,
+} from "discord.js";
 import client from "../client";
 import { Command } from "../internal/command";
 import { Module } from "../internal/types";
@@ -12,13 +17,13 @@ class SayCommand extends Command {
     {
       name: "content",
       description: "What you want her to say.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
       required: true,
     },
   ];
 
   async handle(interaction: CommandInteraction) {
-    if (interaction.channel?.isText()) {
+    if (interaction.channel?.type === ChannelType.GuildText) {
       await interaction.channel.send(
         interaction.options.data[0].value as string
       );
@@ -36,7 +41,7 @@ class EvalCommand extends Command {
     {
       name: "input",
       description: "The code to run.",
-      type: "STRING",
+      type: ApplicationCommandOptionType.String,
       required: true,
     },
   ];

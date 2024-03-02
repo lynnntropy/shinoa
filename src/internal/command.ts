@@ -1,6 +1,8 @@
 import {
   ApplicationCommandOptionData,
+  ApplicationCommandOptionType,
   ApplicationCommandSubCommandData,
+  ChatInputCommandInteraction,
   CommandInteraction,
   CommandInteractionOptionResolver,
   PermissionResolvable,
@@ -17,13 +19,14 @@ export abstract class Command {
 
   subCommands: CommandSubCommand[] = [];
 
-  async handleInteraction(interaction: CommandInteraction) {
+  async handleInteraction(interaction: ChatInputCommandInteraction) {
     await this.commandWillExecute(interaction);
 
     if (
       this.subCommands.length &&
       interaction.options.data &&
-      interaction.options.data[0].type === "SUB_COMMAND"
+      interaction.options.data[0].type ===
+        ApplicationCommandOptionType.Subcommand
     ) {
       const subCommand = this.subCommands.find(
         (sc) => sc.name === interaction.options.getSubcommand()
@@ -51,11 +54,13 @@ export abstract class Command {
     }
   }
 
-  protected handle(interaction: CommandInteraction): Promise<void> {
+  protected handle(interaction: ChatInputCommandInteraction): Promise<void> {
     return Promise.resolve();
   }
 
-  protected commandWillExecute(interaction: CommandInteraction): Promise<void> {
+  protected commandWillExecute(
+    interaction: ChatInputCommandInteraction
+  ): Promise<void> {
     return Promise.resolve();
   }
 }
@@ -63,4 +68,4 @@ export abstract class Command {
 export type CommandSubCommand = Omit<
   ApplicationCommandSubCommandData,
   "type"
-> & { handle: (interaction: CommandInteraction) => Promise<void> };
+> & { handle: (interaction: ChatInputCommandInteraction) => Promise<void> };

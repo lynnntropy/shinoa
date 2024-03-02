@@ -2,20 +2,28 @@ import { Poll, Vote } from ".prisma/client";
 import { bold, hyperlink, inlineCode, userMention } from "@discordjs/builders";
 import { logger } from "@sentry/utils";
 import {
+  ActionRowBuilder,
+  ApplicationCommandOptionType,
+  ChannelType,
+  EmbedBuilder,
   GuildChannel,
-  MessageActionRow,
-  MessageEmbed,
-  MessageOptions,
-  MessageSelectMenu,
-  MessageSelectOptionData,
+  MessageCreateOptions,
+  // MessageActionRow,
+  // MessageEmbed,
+  // MessageOptions,
+  // MessageSelectMenu,
+  // MessageSelectOptionData,
   PermissionResolvable,
+  SelectMenuBuilder,
+  SelectMenuComponentOptionData,
+  StringSelectMenuBuilder,
   TextChannel,
 } from "discord.js";
 import { Command, CommandSubCommand } from "../internal/command";
 import { EventHandler, Module } from "../internal/types";
 import prisma from "../prisma";
 
-type PollOptions = MessageSelectOptionData[];
+type PollOptions = SelectMenuComponentOptionData[];
 type PollResults = { [key: string]: number };
 
 type PollResultsInput = { options: PollOptions; votes: Vote[]; sort?: boolean };
@@ -23,7 +31,7 @@ type PollResultsInput = { options: PollOptions; votes: Vote[]; sort?: boolean };
 class PollCommand extends Command {
   name = "poll";
   description = "Manage polls.";
-  requiredPermissions: PermissionResolvable = ["MANAGE_GUILD"];
+  requiredPermissions: PermissionResolvable = ["ManageGuild"];
 
   subCommands: CommandSubCommand[] = [
     {
@@ -31,26 +39,26 @@ class PollCommand extends Command {
       description: "Show the results of a specific poll.",
       options: [
         {
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           name: "id",
           description: "The ID of the poll.",
           required: true,
         },
         {
-          type: "BOOLEAN",
+          type: ApplicationCommandOptionType.Boolean,
           name: "public",
           description:
             "Whether to show the results to *everyone* in the channel, instead of just to you.",
           required: false,
         },
         {
-          type: "BOOLEAN",
+          type: ApplicationCommandOptionType.Boolean,
           name: "sort",
           description: "Whether to sort the results by number of votes.",
           required: false,
         },
         {
-          type: "BOOLEAN",
+          type: ApplicationCommandOptionType.Boolean,
           name: "verbose",
           description:
             "Whether to show individual votes instead of just cumulative results.",
@@ -98,14 +106,14 @@ class PollCommand extends Command {
       description: "Show all active polls, with the current results.",
       options: [
         {
-          type: "BOOLEAN",
+          type: ApplicationCommandOptionType.Boolean,
           name: "public",
           description:
             "Whether to show the results to *everyone* in the channel, instead of just to you.",
           required: false,
         },
         {
-          type: "BOOLEAN",
+          type: ApplicationCommandOptionType.Boolean,
           name: "sort",
           description: "Whether to sort the results by number of votes.",
           required: false,
@@ -154,50 +162,50 @@ class PollCommand extends Command {
       description: "Create a new poll.",
       options: [
         {
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           name: "id",
           description: "A unique ID for the poll, e.g. 'art-contest-dec-2021'.",
           required: true,
         },
         {
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           name: "name",
           description:
             "A display name for the poll, e.g. 'December 2021 Art Contest'.",
           required: true,
         },
         {
-          type: "CHANNEL",
+          type: ApplicationCommandOptionType.Channel,
           name: "channel",
           description: "The channel you want the poll to take place in.",
           required: true,
         },
         {
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           name: "options",
           description: `A JSON array with the shape Array<{ label: string, value: string, description?: string }>.`,
           required: true,
         },
         {
-          type: "INTEGER",
+          type: ApplicationCommandOptionType.Integer,
           name: "min-values",
           description:
             "The minimum number of items that must be chosen (default: 1, max: 25).",
         },
         {
-          type: "INTEGER",
+          type: ApplicationCommandOptionType.Integer,
           name: "max-values",
           description:
             "The maximum number of items that can be chosen (default: 1, max: 25).",
         },
         {
-          type: "BOOLEAN",
+          type: ApplicationCommandOptionType.Boolean,
           name: "allow-changing-vote",
           description:
             "Set to True to allow people to change their vote after they've voted.",
         },
         {
-          type: "BOOLEAN",
+          type: ApplicationCommandOptionType.Boolean,
           name: "show-results",
           description:
             "Set to True to *publicly* show the poll results in real time.",
@@ -227,7 +235,7 @@ class PollCommand extends Command {
           return;
         }
 
-        if (!channel.isText()) {
+        if (!channel.isTextBased()) {
           interaction.reply({
             content: `Channel must be a text channel.`,
             ephemeral: true,
@@ -248,7 +256,7 @@ class PollCommand extends Command {
           return;
         }
 
-        let options: MessageSelectOptionData[];
+        let options: SelectMenuComponentOptionData[];
 
         try {
           options = JSON.parse(rawOptions);
@@ -311,7 +319,7 @@ class PollCommand extends Command {
       description: "Close an active poll.",
       options: [
         {
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           name: "id",
           description: "The ID of the poll.",
           required: true,
@@ -355,10 +363,10 @@ class PollCommand extends Command {
           data: { active: false },
         });
 
-        const embed = new MessageEmbed()
+        const embed = new EmbedBuilder()
           .setTitle(`Poll: ${bold(poll.name)}`)
           .setDescription("This poll has been closed.")
-          .setFooter(`Poll ID: ${poll.localId}`);
+          .setFooter({ text: `Poll ID: ${poll.localId}` });
 
         const channel = (await interaction.guild?.channels.fetch(
           poll.channelId
@@ -379,7 +387,7 @@ class PollCommand extends Command {
       description: "Reopen a previously closed poll.",
       options: [
         {
-          type: "STRING",
+          type: ApplicationCommandOptionType.String,
           name: "id",
           description: "The ID of the poll.",
           required: true,
@@ -431,7 +439,7 @@ class PollCommand extends Command {
           buildPollMessage(
             poll.localId,
             poll.name,
-            poll.options as unknown as MessageSelectOptionData[],
+            poll.options as unknown as SelectMenuComponentOptionData[],
             poll.minValues,
             poll.maxValues
           )
@@ -452,7 +460,7 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
     return;
   }
 
-  if (!interaction.isSelectMenu()) {
+  if (!interaction.isStringSelectMenu()) {
     return;
   }
 
@@ -555,7 +563,7 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
       buildPollMessage(
         poll.localId,
         poll.name,
-        poll.options as unknown as MessageSelectOptionData[],
+        poll.options as unknown as SelectMenuComponentOptionData[],
         poll.minValues,
         poll.maxValues,
         {
@@ -570,29 +578,30 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
 const buildPollMessage = (
   localId: string,
   name: string,
-  options: MessageSelectOptionData[],
+  options: SelectMenuComponentOptionData[],
   minValues: number = 1,
   maxValues: number = 1,
   resultsInput?: PollResultsInput
-): Pick<MessageOptions, "embeds" | "components"> => {
-  const actionRow = new MessageActionRow().addComponents(
-    new MessageSelectMenu()
-      .setCustomId(localId)
-      .setPlaceholder("Select an option to cast your vote.")
-      .setMinValues(minValues)
-      .setMaxValues(maxValues)
-      .addOptions(options)
-  );
+): Pick<MessageCreateOptions, "embeds" | "components"> => {
+  const actionRow =
+    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(localId)
+        .setPlaceholder("Select an option to cast your vote.")
+        .setMinValues(minValues)
+        .setMaxValues(maxValues)
+        .addOptions(options)
+    );
 
-  const embed = new MessageEmbed()
+  const embed = new EmbedBuilder()
     .setTitle(`Poll: ${bold(name)}`)
-    .setFooter(`Poll ID: ${localId}`);
+    .setFooter({ text: `Poll ID: ${localId}` });
 
   if (resultsInput) {
     embed.setDescription(buildPollResultsString(resultsInput));
   }
 
-  const message: MessageOptions = {
+  const message: MessageCreateOptions = {
     embeds: [embed],
     components: [actionRow],
   };
@@ -605,10 +614,10 @@ const buildPollResultsEmbed = (
   votes: Vote[],
   sort: boolean = true,
   verbose: boolean = false
-): MessageEmbed => {
+): EmbedBuilder => {
   const options = poll.options as unknown as PollOptions;
   if (verbose) {
-    const embed = new MessageEmbed()
+    const embed = new EmbedBuilder()
       .setTitle(`Poll Responses: ${poll.name}`)
       .setDescription(
         votes
@@ -625,15 +634,15 @@ const buildPollResultsEmbed = (
           })
           .join("\n")
       )
-      .setFooter(`Poll ID: ${poll.localId}`);
+      .setFooter({ text: `Poll ID: ${poll.localId}` });
 
     return embed;
   }
 
-  const embed = new MessageEmbed()
+  const embed = new EmbedBuilder()
     .setTitle(`Poll Results: ${poll.name}`)
     .setDescription(buildPollResultsString({ options, votes, sort }))
-    .setFooter(`Poll ID: ${poll.localId}`);
+    .setFooter({ text: `Poll ID: ${poll.localId}` });
 
   return embed;
 };

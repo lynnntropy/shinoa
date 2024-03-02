@@ -1,5 +1,4 @@
-import { Prisma, Quote } from ".prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { Prisma, Quote } from "@prisma/client";
 import client from "../client";
 import prisma from "../prisma";
 import { buildSerializableMessage } from "../utils/structures";
@@ -7,7 +6,6 @@ import * as mime from "mime-types";
 import {
   Snowflake,
   GuildMember,
-  Message,
   MessageReaction,
   CommandInteraction,
   ApplicationCommandOptionType,
@@ -19,7 +17,6 @@ import config from "../config";
 import { Command, CommandSubCommand } from "../internal/command";
 import { Module, SerializableMessage } from "../internal/types";
 import { buildUsernameString } from "../utils/strings";
-import { Channel } from "diagnostics_channel";
 
 const PREVIOUS_REACTION_EMOJI = "⏮";
 const NEXT_REACTION_EMOJI = "⏭";
@@ -88,7 +85,7 @@ class QuotesCommand extends Command {
           });
         } catch (e) {
           if (
-            e instanceof PrismaClientKnownRequestError &&
+            e instanceof Prisma.PrismaClientKnownRequestError &&
             e.code === "P2002"
           ) {
             await interaction.reply("That message has already been quoted.");
@@ -202,7 +199,7 @@ class QuotesCommand extends Command {
           return;
         }
 
-        if (result.total_results === 1) {
+        if (result.total_results === BigInt(1)) {
           await interaction.editReply({
             embeds: [
               await buildEmbedForQuotedMessage(
@@ -263,7 +260,7 @@ class QuotesCommand extends Command {
             }
 
             if (reaction.emoji.name === NEXT_REACTION_EMOJI) {
-              if (offset >= result.total_results - 1) return;
+              if (offset >= result.total_results - BigInt(1)) return;
               offset++;
               await renderCurrentQuote();
             }
@@ -408,7 +405,7 @@ interface SearchInput {
 
 interface SearchResult extends Quote {
   rank: number;
-  total_results: number;
+  total_results: bigint;
 }
 
 const searchQuotes = async (input: SearchInput) => {

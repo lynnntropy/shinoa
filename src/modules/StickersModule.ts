@@ -1,6 +1,5 @@
 import { hyperlink } from "@discordjs/builders";
-import { Sticker } from "@prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { Prisma, Sticker } from "@prisma/client";
 import {
   APIEmbed,
   ApplicationCommandOptionType,
@@ -95,7 +94,7 @@ class StickersCommand extends Command {
           });
         } catch (e) {
           if (
-            e instanceof PrismaClientKnownRequestError &&
+            e instanceof Prisma.PrismaClientKnownRequestError &&
             e.code === "P2002"
           ) {
             await interaction.reply({

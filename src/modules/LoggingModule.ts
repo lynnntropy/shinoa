@@ -1,7 +1,6 @@
 import {
   GuildChannelResolvable,
   Message,
-  // MessageEmbed,
   PermissionResolvable,
   TextChannel,
   Guild,

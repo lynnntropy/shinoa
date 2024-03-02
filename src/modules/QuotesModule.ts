@@ -289,7 +289,7 @@ class QuotesCommand extends Command {
       async handle(interaction) {
         let userId: Snowflake | undefined = undefined;
 
-        if (interaction.options) {
+        if (interaction.options.data[0]) {
           userId = interaction.options.data[0].value as string;
         }
 

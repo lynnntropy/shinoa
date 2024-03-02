@@ -780,6 +780,11 @@ acorn@^8.4.1:
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.11.3.tgz#71e0b14e13a4ec160724b38fb7b0f233b1b81d7a"
   integrity sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==
 
+afinn-165-financialmarketnews@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/afinn-165-financialmarketnews/-/afinn-165-financialmarketnews-3.0.0.tgz#cf422577775bf94f9bc156f3f001a1f29338c3d8"
+  integrity sha512-0g9A1S3ZomFIGDTzZ0t6xmv4AuokBvBmpes8htiyHpH7N4xDmvSQL6UxL/Zcs2ypRb3VwgCscaD8Q3zEawKYhw==
+
 afinn-165@^1.0.2:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/afinn-165/-/afinn-165-1.0.4.tgz#3abf6b8922dd5db84d84e0abd155924381dd73a4"
@@ -2082,14 +2087,16 @@ ms@2.1.3, ms@^2.1.3:
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.3.tgz#574c8138ce1d2b5861f0b44579dbadd60c6615b2"
   integrity sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
 
-natural@^5.1.11:
-  version "5.2.4"
-  resolved "https://registry.yarnpkg.com/natural/-/natural-5.2.4.tgz#fa321afd185096b1b453976c0f0b77bbce638029"
-  integrity sha512-hstvCeNO63go8GMwZIO/wrmcj2oh0Wom2aN7QFF+1I7EJX/NoyM3jWKDbEoCkkQ7CCqqCn0+QdP9Bj2jkD731A==
+natural@^6.10.5:
+  version "6.10.5"
+  resolved "https://registry.yarnpkg.com/natural/-/natural-6.10.5.tgz#64e3c51a8fdeec94ddca00ff931f1bf71cdd1d1a"
+  integrity sha512-YN35yqEXQu96bQkEJ1Xokyw1i/Ei04689COF3Pt/87dGpCmI3Q9bJ+YARQ+3L27/H55ofEx0evZWE/HPS4sYVw==
   dependencies:
     afinn-165 "^1.0.2"
+    afinn-165-financialmarketnews "^3.0.0"
     apparatus "^0.0.10"
     safe-stable-stringify "^2.2.0"
+    stopwords-iso "^1.1.0"
     sylvester "^0.0.12"
     underscore "^1.9.1"
     wordnet-db "^3.1.11"
@@ -2672,6 +2679,11 @@ statuses@2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/statuses/-/statuses-2.0.1.tgz#55cb000ccf1d48728bd23c685a063998cf1a1b63"
   integrity sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==
+
+stopwords-iso@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/stopwords-iso/-/stopwords-iso-1.1.0.tgz#dc303db6b0842d4290bc1339b4eaf37b94219395"
+  integrity sha512-I6GPS/E0zyieHehMRPQcqkiBMJKGgLta+1hREixhoLPqEA0AlVFiC43dl8uPpmkkeRdDMzYRWFWk5/l9x7nmNg==
 
 string_decoder@^1.1.1, string_decoder@^1.3.0:
   version "1.3.0"

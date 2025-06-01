@@ -10,8 +10,6 @@ Sentry.init({
 });
 
 const main = async () => {
-  console.log(JSON.stringify(process.env, undefined, 2));
-
   logger.info("Starting client...");
   await client.login(environment.TOKEN);
 };

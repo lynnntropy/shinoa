@@ -8,3 +8,5 @@ Shinoa is a ~~small~~ compact general-purpose Discord bot.
 - TypeScript
 - [discord.js](https://github.com/discordjs/discord.js/)
 - [Prisma](https://www.prisma.io/)
+
+.

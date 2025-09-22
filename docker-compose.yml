@@ -1,26 +1,23 @@
 services:
-  # TODO:
-  # shinoa:
-  #   image: node:18
-  #   ports:
-  #     - 8080:4000
-  #   command: /bin/sh -c "yarn && yarn dev"
-  #   working_dir: /app
-  #   volumes:
-  #     - ./:/app
-  #   environment:
-  #     NODE_OPTIONS: "--unhandled-rejections=throw"
-  #     DATABASE_URL: postgresql://postgres:postgres@db/shinoa
-  #     TOKEN: ~
-  #     LOG_LEVEL: ~
-  #     SAUCENAO_API_KEY: ~
-  #     WEEB_SH_API_KEY: ~
-  #     AMARI_BOT_API_TOKEN: ~
-  #   depends_on:
-  #     - db
+  shinoa:
+    image: denoland/deno:2.5.1
+    command: deno task dev
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      DENO_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@db/shinoa
+      TOKEN: ~
+      LOG_LEVEL: ~
+      SAUCENAO_API_KEY: ~
+      WEEB_SH_API_KEY: ~
+      AMARI_BOT_API_TOKEN: ~
+    depends_on:
+      - db
 
   db:
-    image: postgres:13
+    image: postgres:17
     ports:
       - 5432:5432
     environment:

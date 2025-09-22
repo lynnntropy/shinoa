@@ -7,7 +7,10 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  engineType = "client"
+  output = "../src/.generated/prisma"
+  runtime = "deno"
 }
 
 model KeyValueItem {

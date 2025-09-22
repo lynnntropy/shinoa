@@ -1,0 +1,20 @@
+{
+  "tasks": {
+    "dev": "deno run --watch --allow-env --allow-net=discord.com,gateway.discord.gg src/main.ts",
+    "start": "deno run src/main.ts",
+    "check": "deno check src/main.ts",
+    "prisma": "prisma",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy"
+  },
+  "imports": {
+    "@logtape/logtape": "jsr:@logtape/logtape@^1.1.1",
+    "@prisma/adapter-pg": "npm:@prisma/adapter-pg@^6.16.2",
+    "@prisma/client": "npm:@prisma/client@^6.16.2",
+    "@t3-oss/env-core": "jsr:@t3-oss/env-core@^0.13.8",
+    "@zod/zod": "jsr:@zod/zod@^4.1.11",
+    "discord.js": "npm:discord.js@^14.22.1",
+    "dotenv": "npm:dotenv@^17.2.2",
+    "prisma": "npm:prisma@^6.16.2"
+  }
+}

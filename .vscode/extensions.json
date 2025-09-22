@@ -1,3 +1,5 @@
 {
-  "recommendations": ["ms-azuretools.vscode-docker", "esbenp.prettier-vscode"]
+  "recommendations": [
+    "ms-azuretools.vscode-docker"
+  ]
 }

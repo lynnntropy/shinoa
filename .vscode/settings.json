@@ -4,5 +4,9 @@
 
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
+  },
+
+  "search.exclude": {
+    "**/.generated": true
   }
 }

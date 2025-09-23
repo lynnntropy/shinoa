@@ -1,7 +1,20 @@
-import { Client, Events, GatewayIntentBits, Partials } from "discord.js";
+import {
+  Client,
+  Events,
+  GatewayIntentBits,
+  MessageFlags,
+  Partials,
+} from "discord.js";
 import { logger } from "./logger.ts";
-// import handlers from "./eventHandlers";
+import { MiscModule } from "./modules/MiscModule.ts";
+import { withContext } from "@logtape/logtape";
 // import * as Sentry from "@sentry/node";
+
+const moduleLogger = logger.getChild("discord.js");
+
+const modules = [
+  MiscModule,
+];
 
 export const client = new Client({
   intents: [
@@ -25,6 +38,43 @@ export const client = new Client({
 
 client.once(Events.ClientReady, () => {
   logger.info("Client initialized.");
+});
+
+client.on(Events.InteractionCreate, async (interaction) => {
+  await withContext(
+    { event: Events.InteractionCreate, interaction },
+    async () => {
+      if (interaction.isChatInputCommand()) {
+        const command = modules
+          .flatMap((m) => m.slashCommands ?? [])
+          .find((c) => c.signature.name === interaction.commandName);
+
+        if (!command) {
+          moduleLogger.warn(
+            `Received interaction for unknown command /${interaction.commandName}.`,
+          );
+          return;
+        }
+
+        try {
+          await command.run(interaction);
+        } catch (error) {
+          console.error(error);
+          if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({
+              content: "There was an error while executing this command!",
+              flags: MessageFlags.Ephemeral,
+            });
+          } else {
+            await interaction.reply({
+              content: "There was an error while executing this command!",
+              flags: MessageFlags.Ephemeral,
+            });
+          }
+        }
+      }
+    },
+  );
 });
 
 // for (const event in handlers) {

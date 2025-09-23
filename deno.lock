@@ -2,12 +2,14 @@
   "version": "5",
   "specifiers": {
     "jsr:@logtape/logtape@^1.1.1": "1.1.1",
+    "jsr:@logtape/pretty@^1.1.1": "1.1.1",
     "jsr:@t3-oss/env-core@~0.13.8": "0.13.8",
     "jsr:@zod/zod@^4.1.11": "4.1.11",
     "npm:@prisma/adapter-pg@^6.16.2": "6.16.2",
     "npm:@prisma/client@^6.16.2": "6.16.2",
     "npm:@types/node@*": "24.2.0",
     "npm:arktype@2.1.0": "2.1.0",
+    "npm:date-fns@^4.1.0": "4.1.0",
     "npm:discord.js@^14.22.1": "14.22.1",
     "npm:dotenv@^17.2.2": "17.2.2",
     "npm:prisma@6.16.2": "6.16.2",
@@ -18,6 +20,12 @@
   "jsr": {
     "@logtape/logtape@1.1.1": {
       "integrity": "65ebc4ae58238f7404d96b52112293279b1d256c578621a750e793c36e34c3d2"
+    },
+    "@logtape/pretty@1.1.1": {
+      "integrity": "250029d3d86e7d4a1824b40c21f3f8712823596ca23bf82b6c800db25c7b2e88",
+      "dependencies": [
+        "jsr:@logtape/logtape"
+      ]
     },
     "@t3-oss/env-core@0.13.8": {
       "integrity": "723850fbb69000613a99335c52233571cb618b52fd96774fc2fe5b88e477e65b",
@@ -225,6 +233,9 @@
     },
     "consola@3.4.2": {
       "integrity": "sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA=="
+    },
+    "date-fns@4.1.0": {
+      "integrity": "sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg=="
     },
     "deepmerge-ts@7.1.5": {
       "integrity": "sha512-HOJkrhaYsweh+W+e74Yn7YStZOilkoPb6fycpwNLKzSPtruFs48nYis0zy5yJz1+ktUhHxoRDJ27RQAWLIJVJw=="
@@ -461,10 +472,12 @@
   "workspace": {
     "dependencies": [
       "jsr:@logtape/logtape@^1.1.1",
+      "jsr:@logtape/pretty@^1.1.1",
       "jsr:@t3-oss/env-core@~0.13.8",
       "jsr:@zod/zod@^4.1.11",
       "npm:@prisma/adapter-pg@^6.16.2",
       "npm:@prisma/client@^6.16.2",
+      "npm:date-fns@^4.1.0",
       "npm:discord.js@^14.22.1",
       "npm:dotenv@^17.2.2",
       "npm:prisma@^6.16.2"

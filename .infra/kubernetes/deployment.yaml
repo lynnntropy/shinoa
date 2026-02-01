@@ -38,6 +38,11 @@ spec:
                 secretKeyRef:
                   name: weeb
                   key: key
+            - name: AMARI_BOT_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: amari-bot
+                  key: token
             - name: LOG_LEVEL
               value: debug
             - name: SENTRY_DSN

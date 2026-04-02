@@ -23,33 +23,32 @@ import { APILeaderboardUser as AmariAPILeaderboardUser } from "amaribot.js";
 
 const logger = appLogger.child({ module: "RolesModule" });
 
-export type GuildRolesMessageConfig =
+export type GuildRolesMessageConfig = {
+  id: Snowflake;
+  channelId: Snowflake;
+} & (
   | {
-      id: Snowflake;
-      channelId: Snowflake;
-    } & (
-      | {
-          type: "select";
-          options: {
-            roleId: Snowflake;
-            description: string;
-            emoji?: {
-              name: string;
-              id: Snowflake | null;
-            };
-          }[];
-        }
-      | {
-          type: "reaction";
-          options: {
-            roleId: Snowflake;
-            emoji: {
-              name: string;
-              id: Snowflake | null;
-            };
-          }[];
-        }
-    );
+      type: "select";
+      options: {
+        roleId: Snowflake;
+        description: string;
+        emoji?: {
+          name: string;
+          id: Snowflake | null;
+        };
+      }[];
+    }
+  | {
+      type: "reaction";
+      options: {
+        roleId: Snowflake;
+        emoji: {
+          name: string;
+          id: Snowflake | null;
+        };
+      }[];
+    }
+);
 
 export type GuildStickyLevelRolesConfig = {
   enabled: true;
@@ -66,7 +65,7 @@ export interface GuildRolesConfig {
 
 const initializeMessage = async (
   guildId: string,
-  config: GuildRolesMessageConfig
+  config: GuildRolesMessageConfig,
 ) => {
   const guild = await client.guilds.fetch(guildId);
   const channel = await guild.channels.fetch(config.channelId);
@@ -77,7 +76,7 @@ const initializeMessage = async (
 
   if (channel.type !== ChannelType.GuildText) {
     throw Error(
-      `Channel ID ${config.channelId} is not a text channel (channel type is ${channel.type}).`
+      `Channel ID ${config.channelId} is not a text channel (channel type is ${channel.type}).`,
     );
   }
 
@@ -112,8 +111,8 @@ const initializeMessage = async (
             label: guild.roles.cache.get(o.roleId)!.name,
             description: o.description,
             emoji: o.emoji?.id ?? o.emoji?.name,
-          }))
-        )
+          })),
+        ),
     );
 
     await message.edit({
@@ -163,7 +162,7 @@ const refreshStickyLevelRolesForGuild = async (guildId: string) => {
 
     logger.debug(
       { guildId },
-      `Fetched ${amariUsers.length} of ${leaderboard.total_count} AmariBot users.`
+      `Fetched ${amariUsers.length} of ${leaderboard.total_count} AmariBot users.`,
     );
 
     if (amariUsers.length >= leaderboard.total_count) {
@@ -176,24 +175,31 @@ const refreshStickyLevelRolesForGuild = async (guildId: string) => {
   logger.debug({ guildId }, `Finished fetching AmariBot leaderboard.`);
 
   for (const amariUser of amariUsers) {
-    const member = await guild.members.fetch({
-      user: amariUser.id,
-      force: true,
-    });
+    try {
+      const member = await guild.members.fetch({
+        user: amariUser.id,
+        force: true,
+      });
 
-    for (const role of configuredRoles) {
-      if (
-        amariUser.level !== undefined &&
-        amariUser.level >= role.level &&
-        !member.roles.cache.has(role.roleId)
-      ) {
-        logger.debug(
-          { roleConfig: role, amariUser, member },
-          `User has reached Amari level ${role.level}, assigning sticky role.`
-        );
+      for (const role of configuredRoles) {
+        if (
+          amariUser.level !== undefined &&
+          amariUser.level >= role.level &&
+          !member.roles.cache.has(role.roleId)
+        ) {
+          logger.debug(
+            { roleConfig: role, amariUser, member },
+            `User has reached Amari level ${role.level}, assigning sticky role.`,
+          );
 
-        await member.roles.add(role.roleId);
+          await member.roles.add(role.roleId);
+        }
       }
+    } catch (e) {
+      logger.warn(
+        { err: e, amariUser },
+        `Failed to refresh sticky level roles for a user on the Amari leaderboard.`,
+      );
     }
   }
 };
@@ -212,7 +218,7 @@ const getMessageConfigForReaction = async (reaction: MessageReaction) => {
   }
 
   const message = guildRolesConfig.messages.find(
-    (m) => m.id === reaction.message.id && m.type === "reaction"
+    (m) => m.id === reaction.message.id && m.type === "reaction",
   );
 
   if (!message || message.type !== "reaction") {
@@ -243,7 +249,7 @@ const handleReady: EventHandler<"ready"> = async () => {
         } catch (e) {
           logger.error(
             { messageConfig: message, err: e },
-            "Failed to initialize message."
+            "Failed to initialize message.",
           );
         }
       }
@@ -255,7 +261,7 @@ const handleReady: EventHandler<"ready"> = async () => {
 
 const handleMessageReactionAdd: EventHandler<"messageReactionAdd"> = async (
   reaction,
-  user
+  user,
 ) => {
   if (user.bot) {
     return;
@@ -276,13 +282,13 @@ const handleMessageReactionAdd: EventHandler<"messageReactionAdd"> = async (
 
   const option =
     message.options.find(
-      (o) => o.emoji.id && o.emoji.id === reaction.emoji.id
+      (o) => o.emoji.id && o.emoji.id === reaction.emoji.id,
     ) ?? message.options.find((o) => o.emoji.name === reaction.emoji.name);
 
   if (!option) {
     Sentry.captureException(
       Error("Failed to match this reaction with an option."),
-      { contexts: { reaction: reaction as any, user: user as any } }
+      { contexts: { reaction: reaction as any, user: user as any } },
     );
     return;
   }
@@ -314,13 +320,13 @@ const handleMessageReactionRemove: EventHandler<
 
   const option =
     message.options.find(
-      (o) => o.emoji.id && o.emoji.id === reaction.emoji.id
+      (o) => o.emoji.id && o.emoji.id === reaction.emoji.id,
     ) ?? message.options.find((o) => o.emoji.name === reaction.emoji.name);
-
+  6;
   if (!option) {
     Sentry.captureException(
       Error("Failed to match this reaction with an option."),
-      { contexts: { reaction: reaction as any, user: user as any } }
+      { contexts: { reaction: reaction as any, user: user as any } },
     );
     return;
   }
@@ -331,7 +337,7 @@ const handleMessageReactionRemove: EventHandler<
 };
 
 const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
-  interaction
+  interaction,
 ) => {
   if (!interaction.inGuild()) {
     return;
@@ -348,7 +354,7 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
   }
 
   const message = guildRolesConfig.messages.find(
-    (m) => m.id === interaction.message.id && m.type === "select"
+    (m) => m.id === interaction.message.id && m.type === "select",
   );
 
   if (!message || message.type !== "select") {
@@ -359,13 +365,13 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
   const guild = await client.guilds.fetch(interaction.guildId);
 
   const option = message.options.find(
-    (o) => o.roleId === interaction.values[0]
+    (o) => o.roleId === interaction.values[0],
   );
 
   if (!option) {
     Sentry.captureException(
       Error("Failed to match this interaction with an option."),
-      { contexts: { interaction: interaction as any } }
+      { contexts: { interaction: interaction as any } },
     );
     return;
   }
@@ -384,14 +390,14 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
       new ButtonBuilder()
         .setCustomId("continue")
         .setLabel("Yes, continue")
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Primary),
     );
   } else {
     row.addComponents(
       new ButtonBuilder()
         .setCustomId("continue")
         .setLabel("Yes, continue")
-        .setStyle(ButtonStyle.Danger)
+        .setStyle(ButtonStyle.Danger),
     );
   }
 
@@ -399,7 +405,7 @@ const handleInteractionCreate: EventHandler<"interactionCreate"> = async (
     new ButtonBuilder()
       .setCustomId("cancel")
       .setLabel("Cancel")
-      .setStyle(ButtonStyle.Secondary)
+      .setStyle(ButtonStyle.Secondary),
   );
 
   await interaction.reply({
